@@ -1,0 +1,212 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/templates.php';
+require_once __DIR__ . '/mysql.php';
+secureHeaders();
+try {
+    keyBytes(); sessionStart();
+    $action = $_GET['action'] ?? 'bootstrap';
+    $method = $_SERVER['REQUEST_METHOD'];
+    $readActions = ['bootstrap','dashboard','projects','files','file','chat','db.info','db.tables','db.rows','admin.overview','admin.users','admin.groups'];
+    if ($method !== 'GET' && $method !== 'POST') fail(405, 'Methode nicht erlaubt.');
+    if (!in_array($action, $readActions, true) && $method !== 'POST') fail(405, 'Diese Aktion benötigt POST.');
+    if (in_array($action, $readActions, true) && $method !== 'GET') fail(405, 'Diese Aktion benötigt GET.');
+    $data = $method === 'POST' ? input() : $_GET;
+    if ($method === 'POST') csrf();
+    if ($action === 'bootstrap') {
+        $u = currentUser(); $hasAdmin = (bool)query("SELECT 1 FROM users WHERE role='admin' LIMIT 1")->fetchColumn();
+        jsonOut(['user' => $u ? safeUser($u) : null, 'csrf' => $_SESSION['csrf'], 'features' => $u ? features($u) : [], 'setup_required' => !$hasAdmin]);
+    }
+    if ($action === 'setup') {
+        rateLimit('setup',10,900);
+        $token = textField($data,'token',200); $expected = config()['setup_token'];
+        if (strlen($expected)<32 || !hash_equals($expected,$token)) fail(403,'Der Einrichtungsschlüssel ist nicht gültig.');
+        $email = emailField($data); $name = textField($data,'name'); $pass = passwordField($data);
+        transaction(function () use($email,$name,$pass) {
+            if (query("SELECT 1 FROM users WHERE role='admin'")->fetchColumn()) fail(409,'Die Einrichtung ist bereits abgeschlossen.');
+            $uid = id(); query('INSERT INTO users(id,name,email,password,role,created_at) VALUES(?,?,?,?,?,?)',[$uid,$name,$email,password_hash($pass,PASSWORD_DEFAULT),'admin',now()]);
+            audit($uid,'setup.complete');
+        }); jsonOut(['ok'=>true]);
+    }
+    if ($action === 'login') {
+        rateLimit('login',20,900); $email = emailField($data); $pass = $data['password'] ?? '';
+        if (!is_string($pass) || strlen($pass)>256) fail(422,'Ungültiges Passwort.');
+        $admin = ($data['portal'] ?? '') === 'admin';
+        $u = one('SELECT * FROM users WHERE email=?',[$email]);
+        $valid = password_verify($pass, $u['password'] ?? '$2y$10$123456789012345678901uKnUnQFK8mrwZZS/d83FbDXstEOkaLT/y');
+        if (!$valid || !$u || !$u['active'] || ($u['role']==='admin') !== $admin) fail(401,'E-Mail oder Passwort stimmen nicht mit diesem Zugang überein.');
+        session_regenerate_id(true); $_SESSION=['uid'=>$u['id'],'auth_version'=>(int)$u['auth_version'],'created'=>time(),'last_seen'=>time(),'csrf'=>bin2hex(random_bytes(32))];
+        query('UPDATE users SET last_login=? WHERE id=?',[now(),$u['id']]); audit($u['id'],'login');
+        jsonOut(['user'=>safeUser($u),'csrf'=>$_SESSION['csrf'],'features'=>features($u)]);
+    }
+    $u = requireUser(str_starts_with($action,'admin.'));
+    if ($action === 'logout') { $_SESSION=[]; session_destroy(); jsonOut(['ok'=>true]); }
+    if ($action === 'password') {
+        if (!is_string($data['current'] ?? null) || !password_verify($data['current'],$u['password'])) fail(422,'Das bisherige Passwort stimmt nicht.');
+        $pass = passwordField($data); query('UPDATE users SET password=?,must_change_password=0,auth_version=auth_version+1 WHERE id=?',[password_hash($pass,PASSWORD_DEFAULT),$u['id']]);
+        $_SESSION['auth_version'] = (int)$u['auth_version']+1; session_regenerate_id(true); audit($u['id'],'password.change'); jsonOut(['ok'=>true]);
+    }
+    if ($u['must_change_password']) fail(403,'Bitte ändern Sie zuerst Ihr vorläufiges Passwort.');
+    switch ($action) {
+        case 'dashboard':
+            jsonOut(['projects'=>all('SELECT p.*, (SELECT COUNT(*) FROM files f WHERE f.project_id=p.id AND kind=\'file\') file_count FROM projects p WHERE user_id=? ORDER BY updated_at DESC',[$u['id']]),
+                'stats'=>one('SELECT COUNT(*) files, COALESCE(SUM(length(CAST(content AS BLOB))),0) bytes FROM files WHERE project_id IN (SELECT id FROM projects WHERE user_id=?) AND kind=\'file\'',[$u['id']]),
+                'runs'=>(int)query("SELECT COUNT(*) FROM events WHERE user_id=? AND event='run'",[$u['id']])->fetchColumn(),
+                'activity'=>all('SELECT event,created_at FROM events WHERE user_id=? ORDER BY id DESC LIMIT 8',[$u['id']])]);
+        case 'projects': needFeature($u,'files'); jsonOut(['projects'=>all('SELECT * FROM projects WHERE user_id=? ORDER BY updated_at DESC',[$u['id']])]);
+        case 'project.create':
+            needFeature($u,'files'); $template=textField($data,'template',20); if (!in_array($template,['web','php','python'])) fail(422,'Unbekannte Vorlage.');
+            needFeature($u, $template==='web'?'html':$template); jsonOut(['id'=>createProject($u,textField($data,'name',80),$template)],201);
+        case 'project.rename':
+            needFeature($u,'files'); $p=project($u,textField($data,'id',32)); query('UPDATE projects SET name=?,updated_at=? WHERE id=?',[textField($data,'name',80),now(),$p['id']]); jsonOut(['ok'=>true]);
+        case 'project.delete':
+            needFeature($u,'files'); $p=project($u,textField($data,'id',32)); query('DELETE FROM projects WHERE id=?',[$p['id']]); audit($u['id'],'project.delete'); jsonOut(['ok'=>true]);
+        case 'files':
+            needFeature($u,'files'); $p=project($u,textField($data,'project',32));
+            jsonOut(['project'=>$p,'files'=>all('SELECT id,path,kind,version,length(CAST(content AS BLOB)) bytes,updated_at FROM files WHERE project_id=? ORDER BY kind DESC,path',[$p['id']])]);
+        case 'file':
+            needFeature($u,'editor'); $p=project($u,textField($data,'project',32)); $f=one('SELECT * FROM files WHERE project_id=? AND path=?',[$p['id'],filePath(textField($data,'path',240))]);
+            if (!$f || $f['kind']!=='file') fail(404,'Datei nicht gefunden.'); jsonOut(['file'=>$f]);
+        case 'file.save':
+            needFeature($u,'editor'); needFeature($u,'files'); $p=project($u,textField($data,'project',32)); $path=filePath(textField($data,'path',240));
+            $content=$data['content']??''; if (!is_string($content) || strlen($content)>FILE_LIMIT || !mb_check_encoding($content,'UTF-8')) fail(422,'Dateien müssen gültiger UTF-8-Text und höchstens 512 KB groß sein.');
+            $out=transaction(function() use($u,$p,$path,$data,$content) {
+                $f=one('SELECT * FROM files WHERE project_id=? AND path=?',[$p['id'],$path]);
+                if ($f && ($f['kind']!=='file' || (int)($data['version']??0)!==(int)$f['version'])) fail(409,'Diese Datei wurde inzwischen geändert. Laden Sie sie neu, bevor Sie speichern. Ihr Entwurf bleibt im Editor.');
+                $bytes=(int)query('SELECT COALESCE(SUM(length(CAST(content AS BLOB))),0) FROM files WHERE project_id IN (SELECT id FROM projects WHERE user_id=?)',[$u['id']])->fetchColumn();
+                if ($bytes-strlen($f['content']??'')+strlen($content)>SPACE_LIMIT) fail(422,'Ihr Workspace ist voll (20 MB).');
+                $count=(int)query('SELECT COUNT(*) FROM files WHERE project_id=?',[$p['id']])->fetchColumn(); if (!$f && $count>=300) fail(422,'Ein Projekt kann höchstens 300 Dateien enthalten.');
+                $parts=explode('/',$path); array_pop($parts); $parent='';
+                foreach($parts as $part) { $parent=ltrim($parent.'/'.$part,'/'); $entry=one('SELECT kind FROM files WHERE project_id=? AND path=?',[$p['id'],$parent]); if ($entry && $entry['kind']!=='directory') fail(409,'Ein übergeordneter Pfad ist bereits eine Datei.'); }
+                if (query('SELECT 1 FROM files WHERE project_id=? AND path GLOB ? LIMIT 1',[$p['id'],$path.'/*'])->fetchColumn()) fail(409,'Dieser Name wird bereits von einem Ordner verwendet.');
+                if ($f) query('UPDATE files SET content=?,version=version+1,updated_at=? WHERE id=?',[$content,now(),$f['id']]);
+                else query('INSERT INTO files(id,project_id,path,content,updated_at) VALUES(?,?,?,?,?)',[id(),$p['id'],$path,$content,now()]);
+                query('UPDATE projects SET updated_at=? WHERE id=?',[now(),$p['id']]);
+                return one('SELECT id,path,version,updated_at FROM files WHERE project_id=? AND path=?',[$p['id'],$path]);
+            }); audit($u['id'],'file.save'); jsonOut(['file'=>$out]);
+        case 'folder.create':
+            needFeature($u,'files'); $p=project($u,textField($data,'project',32)); $path=filePath(textField($data,'path',240));
+            checkParents($p['id'],$path);
+            if ((int)query('SELECT COUNT(*) FROM files WHERE project_id=?',[$p['id']])->fetchColumn()>=300) fail(422,'Ein Projekt kann höchstens 300 Einträge enthalten.');
+            if (one('SELECT id FROM files WHERE project_id=? AND path=?',[$p['id'],$path])) fail(409,'Dieser Name existiert bereits.');
+            query('INSERT INTO files(id,project_id,path,kind,updated_at) VALUES(?,?,?,\'directory\',?)',[id(),$p['id'],$path,now()]); jsonOut(['ok'=>true]);
+        case 'file.rename':
+            needFeature($u,'files'); $p=project($u,textField($data,'project',32)); $from=filePath(textField($data,'path',240)); $to=filePath(textField($data,'new_path',240));
+            transaction(function() use($p,$from,$to) {
+                $f=one('SELECT * FROM files WHERE project_id=? AND path=?',[$p['id'],$from]); if (!$f) fail(404,'Datei nicht gefunden.');
+                if ($from===$to) return;
+                if (str_starts_with($to,$from.'/')) fail(422,'Ein Ordner kann nicht in sich selbst verschoben werden.');
+                checkParents($p['id'],$to);
+                $entries=all('SELECT * FROM files WHERE project_id=? AND (path=? OR path GLOB ?)',[$p['id'],$from,$from.'/*']);
+                foreach($entries as $e) { $dest=$to.substr($e['path'],strlen($from)); filePath($dest); if (one('SELECT id FROM files WHERE project_id=? AND (path=? OR path GLOB ?)',[$p['id'],$dest,$dest.'/*'])) fail(409,'Der Zielname existiert bereits.');
+                    query('UPDATE files SET path=?,version=version+1,updated_at=? WHERE id=?',[$dest,now(),$e['id']]); }
+                query('UPDATE projects SET updated_at=? WHERE id=?',[now(),$p['id']]);
+            }); jsonOut(['ok'=>true]);
+        case 'file.delete':
+            needFeature($u,'files'); $p=project($u,textField($data,'project',32)); $path=filePath(textField($data,'path',240));
+            query('DELETE FROM files WHERE project_id=? AND (path=? OR path GLOB ?)',[$p['id'],$path,$path.'/*']); query('UPDATE projects SET updated_at=? WHERE id=?',[now(),$p['id']]); jsonOut(['ok'=>true]);
+        case 'project.bundle':
+            needFeature($u,'editor'); $p=project($u,textField($data,'project',32));
+            jsonOut(['files'=>all('SELECT path,content FROM files WHERE project_id=? AND kind=\'file\'',[$p['id']])]);
+        case 'run.record':
+            needFeature($u,'editor'); $language=textField($data,'language',20); if (!in_array($language,['html','php','python','javascript'])) fail(422,'Unbekannte Sprache.');
+            needFeature($u,$language==='javascript'?'html':$language); project($u,textField($data,'project',32)); rateLimit('run',100,60); audit($u['id'],'run',['language'=>$language]); jsonOut(['ok'=>true]);
+        case 'chat':
+        case 'chat.send':
+            needFeature($u,'chat'); $gid=textField($data,'group',32);
+            if (!one('SELECT 1 FROM group_members WHERE group_id=? AND user_id=?',[$gid,$u['id']])) fail(403,'Sie sind nicht Mitglied dieser Gruppe.');
+            if ($action==='chat.send') { rateLimit('chat.'.$u['id'],30,60); query('INSERT INTO messages(group_id,user_id,body,created_at) VALUES(?,?,?,?)',[$gid,$u['id'],textField($data,'body',2000),now()]); audit($u['id'],'chat.send'); jsonOut(['ok'=>true]); }
+            $after=max(0,(int)($data['after']??0));
+            $messages=$after ? all('SELECT m.id,m.user_id,m.body,m.created_at,u.name FROM messages m JOIN users u ON u.id=m.user_id WHERE m.group_id=? AND m.id>? ORDER BY m.id LIMIT 100',[$gid,$after]) : array_reverse(all('SELECT m.id,m.user_id,m.body,m.created_at,u.name FROM messages m JOIN users u ON u.id=m.user_id WHERE m.group_id=? ORDER BY m.id DESC LIMIT 100',[$gid]));
+            jsonOut(['messages'=>$messages]);
+        case 'db.info':
+            needFeature($u,'database'); jsonOut(['connection'=>one('SELECT host,db_name,username FROM connections WHERE user_id=?',[$u['id']]),'hosts'=>allowedHosts()]);
+        case 'db.connect':
+            needFeature($u,'database'); rateLimit('mysql.'.$u['id'],15,60);
+            $password=$data['password']??null; if(!is_string($password)||$password===''||strlen($password)>256) fail(422,'Bitte geben Sie das Datenbankpasswort ein.');
+            $conn=['host'=>textField($data,'host',253),'db_name'=>textField($data,'db_name',64),'username'=>textField($data,'username',80),'secret'=>encryptSecret($password)];
+            mysqlConnection($u,$conn); query('INSERT INTO connections VALUES(?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET host=excluded.host,db_name=excluded.db_name,username=excluded.username,secret=excluded.secret',[$u['id'],$conn['host'],$conn['db_name'],$conn['username'],$conn['secret']]); audit($u['id'],'db.connect'); jsonOut(['ok'=>true]);
+        case 'db.disconnect': needFeature($u,'database'); query('DELETE FROM connections WHERE user_id=?',[$u['id']]); jsonOut(['ok'=>true]);
+        case 'db.tables':
+            needFeature($u,'database'); rateLimit('mysql.'.$u['id'],60,60); $my=mysqlConnection($u);
+            try { jsonOut(['tables'=>$my->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN)]); } catch(PDOException $e) { mysqlError($e); }
+        case 'db.rows':
+            needFeature($u,'database'); rateLimit('mysql.'.$u['id'],60,60); $my=mysqlConnection($u); $table=textField($data,'table',64); $columns=tableColumns($my,$table); $offset=min(100000,max(0,(int)($data['offset']??0)));
+            try { $rows=$my->query('SELECT * FROM '.identifier($table).' LIMIT 101 OFFSET '.$offset)->fetchAll(); $hasMore=count($rows)>100; jsonOut(['columns'=>$columns,'rows'=>array_slice($rows,0,100),'has_more'=>$hasMore,'offset'=>$offset]); } catch(PDOException $e) { mysqlError($e); }
+        case 'db.query':
+            needFeature($u,'database'); rateLimit('mysql.'.$u['id'],30,60); $my=mysqlConnection($u); $sql=validateSql(textField($data,'sql',16000));
+            try { $stmt=$my->prepare($sql); $stmt->execute(); $rows=[]; if ($stmt->columnCount()) { while(count($rows)<201 && ($row=$stmt->fetch())) $rows[]=$row; }
+                audit($u['id'],'db.query'); jsonOut(['rows'=>array_slice($rows,0,200),'affected'=>$stmt->rowCount(),'truncated'=>count($rows)>200]); } catch(PDOException $e) { mysqlError($e); }
+        case 'db.table.create':
+            needFeature($u,'database'); rateLimit('mysql.'.$u['id'],30,60); $my=mysqlConnection($u); $table=identifier(textField($data,'table',64)); $fields=$data['fields']??[];
+            if (!is_array($fields) || count($fields)<1 || count($fields)>30) fail(422,'Bitte definieren Sie 1 bis 30 Spalten.');
+            $defs=['`id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY'];
+            foreach($fields as $field) { if (!is_array($field)) fail(422,'Ungültige Spalte.'); $name=identifier(textField($field,'name',64)); if ($name==='`id`') fail(422,'Die ID-Spalte wird automatisch angelegt.');
+                $type=$field['type']??''; if (!in_array($type,['VARCHAR(255)','TEXT','INT','DECIMAL(10,2)','DATE','DATETIME','BOOLEAN'])) fail(422,'Ungültiger Spaltentyp.'); $defs[]=$name.' '.$type.' NULL'; }
+            try { $my->exec('CREATE TABLE '.$table.' ('.implode(',',$defs).') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'); audit($u['id'],'db.table.create'); jsonOut(['ok'=>true]); } catch(PDOException $e) { mysqlError($e); }
+        case 'db.row.save':
+        case 'db.row.delete':
+            needFeature($u,'database'); rateLimit('mysql.'.$u['id'],60,60); $my=mysqlConnection($u); $table=textField($data,'table',64); $cols=tableColumns($my,$table); $primary=array_column(array_filter($cols,fn($c)=>$c['Key']==='PRI'),'Field');
+            $where=[];$params=[]; $keys=$data['keys']??null;
+            if ($keys!==null) {
+                if (!$primary || !is_array($keys) || array_diff($primary,array_keys($keys)) || count($keys)!==count($primary)) fail(422,'Bearbeiten und Löschen benötigt den vollständigen Primärschlüssel.');
+                foreach($primary as $key) { if (!is_scalar($keys[$key])) fail(422,'Ungültiger Schlüssel.'); $where[]=identifier($key).'=?'; $params[]=$keys[$key]; }
+            }
+            try {
+                if ($action==='db.row.delete') { if (!$where) fail(422,'Primärschlüssel fehlt.'); $stmt=$my->prepare('DELETE FROM '.identifier($table).' WHERE '.implode(' AND ',$where).' LIMIT 1'); $stmt->execute($params); }
+                else {
+                    $values=$data['values']??[]; if (!is_array($values) || !$values || array_diff(array_keys($values),array_column($cols,'Field'))) fail(422,'Ungültige Spalten.');
+                    foreach($values as $v) if (($v!==null && !is_scalar($v)) || (is_string($v)&&strlen($v)>100000)) fail(422,'Ungültiger Zellenwert.');
+                    $fields=array_map('identifier',array_keys($values));
+                    $sql=$where ? 'UPDATE '.identifier($table).' SET '.implode(',',array_map(fn($f)=>$f.'=?',$fields)).' WHERE '.implode(' AND ',$where).' LIMIT 1' : 'INSERT INTO '.identifier($table).' ('.implode(',',$fields).') VALUES('.implode(',',array_fill(0,count($fields),'?')).')';
+                    $stmt=$my->prepare($sql); $stmt->execute(array_merge(array_values($values),$params));
+                }
+                audit($u['id'],$action); jsonOut(['ok'=>true,'affected'=>$stmt->rowCount()]);
+            } catch(PDOException $e) { mysqlError($e); }
+        case 'admin.overview':
+            jsonOut(['counts'=>['users'=>(int)query("SELECT COUNT(*) FROM users WHERE role='user'")->fetchColumn(),'groups'=>(int)query('SELECT COUNT(*) FROM groups')->fetchColumn(),'projects'=>(int)query('SELECT COUNT(*) FROM projects')->fetchColumn(),'runs'=>(int)query("SELECT COUNT(*) FROM events WHERE event='run'")->fetchColumn()],
+                'daily'=>all("SELECT substr(created_at,1,10) day,COUNT(*) activity,SUM(event='run') runs FROM events WHERE created_at>=? GROUP BY day ORDER BY day",[gmdate('Y-m-d',time()-13*86400)]),
+                'languages'=>all("SELECT json_extract(details,'$.language') language,COUNT(*) runs FROM events WHERE event='run' GROUP BY language"),
+                'events'=>all('SELECT e.event,e.created_at,u.name FROM events e LEFT JOIN users u ON u.id=e.user_id ORDER BY e.id DESC LIMIT 30'),
+                'settings'=>settings(),'hosts'=>allowedHosts(),'health'=>['php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'sqlite'=>true,'mysql'=>extension_loaded('pdo_mysql'),'encryption'=>extension_loaded('sodium'),'private_storage'=>is_writable(dataDir())]]);
+        case 'admin.users': jsonOut(['users'=>array_map('safeUser',all('SELECT * FROM users ORDER BY name'))]);
+        case 'admin.user.save':
+            $uid=textField($data,'id',32,false); $name=textField($data,'name'); $email=emailField($data); $role=$data['role']??'user'; if(!in_array($role,['user','admin'],true)) fail(422,'Ungültige Rolle.');
+            $active=(bool)($data['active']??true); $pass=passwordField($data,$uid===''); $flags=featureInput($data['features']??[]); $groups=$data['groups']??[];
+            if (!is_array($groups)||count($groups)>50) fail(422,'Ungültige Gruppenzuordnung.');
+            transaction(function() use($u,&$uid,$name,$email,$role,$active,$pass,$flags,$groups) {
+                if ($uid) { $target=one('SELECT * FROM users WHERE id=?',[$uid]); if (!$target) fail(404,'Benutzer nicht gefunden.');
+                    if ($uid===$u['id'] && (!$active || $role!=='admin')) fail(422,'Sie können Ihren eigenen Adminzugang nicht sperren oder herabstufen.');
+                    if ($target['role']==='admin' && ($role!=='admin'||!$active) && (int)query("SELECT COUNT(*) FROM users WHERE role='admin' AND active=1")->fetchColumn()<=1) fail(422,'Mindestens ein aktiver Admin muss bestehen bleiben.');
+                    query('UPDATE users SET name=?,email=?,role=?,active=?,features=?,auth_version=auth_version+1 WHERE id=?',[$name,$email,$role,(int)$active,$flags,$uid]);
+                    if ($pass) query('UPDATE users SET password=?,must_change_password=1 WHERE id=?',[password_hash($pass,PASSWORD_DEFAULT),$uid]);
+                    if ($uid===$u['id']) $_SESSION['auth_version']=(int)$target['auth_version']+1;
+                } else { $uid=id(); query('INSERT INTO users(id,name,email,password,role,active,features,must_change_password,created_at) VALUES(?,?,?,?,?,?,?,1,?)',[$uid,$name,$email,password_hash($pass,PASSWORD_DEFAULT),$role,(int)$active,$flags,now()]); }
+                query('DELETE FROM group_members WHERE user_id=?',[$uid]); foreach(array_unique($groups) as $gid) { if(!is_string($gid)||!one('SELECT id FROM groups WHERE id=?',[$gid])) fail(422,'Eine Gruppe existiert nicht mehr.'); query('INSERT INTO group_members VALUES(?,?)',[$gid,$uid]); }
+                audit($u['id'],'admin.user.save');
+            }); jsonOut(['ok'=>true,'id'=>$uid]);
+        case 'admin.user.delete':
+            $uid=textField($data,'id',32); if ($uid===$u['id']) fail(422,'Sie können Ihren eigenen Zugang nicht löschen.');
+            transaction(function() use($uid,$u) { $target=one('SELECT * FROM users WHERE id=?',[$uid]); if (!$target) fail(404,'Benutzer nicht gefunden.');
+                if ($target['role']==='admin' && (int)query("SELECT COUNT(*) FROM users WHERE role='admin' AND active=1")->fetchColumn()<=1) fail(422,'Der letzte Admin kann nicht gelöscht werden.');
+                query('DELETE FROM users WHERE id=?',[$uid]); audit($u['id'],'admin.user.delete'); }); jsonOut(['ok'=>true]);
+        case 'admin.groups': jsonOut(['groups'=>all('SELECT g.*,(SELECT COUNT(*) FROM group_members WHERE group_id=g.id) members FROM groups g ORDER BY name')]);
+        case 'admin.group.save':
+            $gid=textField($data,'id',32,false); $name=textField($data,'name',80); $description=textField($data,'description',500,false); $flags=featureInput($data['features']??[]);
+            if ($gid) { if (!one('SELECT id FROM groups WHERE id=?',[$gid])) fail(404,'Gruppe nicht gefunden.'); query('UPDATE groups SET name=?,description=?,features=? WHERE id=?',[$name,$description,$flags,$gid]); }
+            else { $gid=id(); query('INSERT INTO groups VALUES(?,?,?,?,?)',[$gid,$name,$description,$flags,now()]); }
+            audit($u['id'],'admin.group.save'); jsonOut(['ok'=>true,'id'=>$gid]);
+        case 'admin.group.delete': query('DELETE FROM groups WHERE id=?',[textField($data,'id',32)]); audit($u['id'],'admin.group.delete'); jsonOut(['ok'=>true]);
+        case 'admin.settings':
+            $flags=featureInput($data['features']??[]); $hosts=$data['hosts']??[];
+            if (!is_array($hosts)||count($hosts)>20) fail(422,'Bitte geben Sie höchstens 20 Hosts an.');
+            foreach($hosts as $host) if (!is_string($host)||!preg_match('/^[a-zA-Z0-9.-]{1,253}$/',$host)) fail(422,'Ungültiger Host.');
+            transaction(function() use($flags,$hosts,$u) { query("UPDATE settings SET value=? WHERE key='features'",[$flags]); query("INSERT INTO settings VALUES('db_allowed_hosts',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode(array_values(array_unique($hosts)))]); audit($u['id'],'admin.settings'); }); jsonOut(['ok'=>true]);
+        default: fail(404,'Unbekannte Aktion.');
+    }
+} catch (ApiError $e) { jsonOut(['error'=>$e->getMessage()],$e->status); }
+catch (PDOException $e) {
+    if (str_contains($e->getMessage(),'UNIQUE constraint')) jsonOut(['error'=>'Dieser Name oder diese E-Mail-Adresse ist bereits vergeben.'],409);
+    error_log('ectro database error: '.$e->getCode()); jsonOut(['error'=>'Der Speicher ist vorübergehend nicht verfügbar. Bitte versuchen Sie es erneut.'],503);
+} catch (Throwable $e) { error_log('ectro error: '.get_class($e).' '.$e->getMessage()); jsonOut(['error'=>'Die Anfrage konnte nicht verarbeitet werden.'],500); }

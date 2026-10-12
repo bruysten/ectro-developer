@@ -1,0 +1,34 @@
+:root{
+/* Radii — monograph language: square cards, pill controls */
+
+--radius-0:0;
+--radius-xs:2px;
+--radius-sm:6px;
+--radius-md:10px;
+--radius-lg:16px;
+--radius-pill:999px;
+
+--radius-card:0;
+--radius-control:999px;
+--radius-window:10px;
+/* Shadows (live theme --shadow / --shadow-soft, plus float for product mocks) */
+
+--shadow-soft:0 12px 26px rgba(26,28,28,.04);
+
+--shadow:0 24px 48px rgba(26,28,28,.06);
+
+--shadow-float:0 30px 90px rgba(6,10,14,.22);
+
+--shadow-inset-line:inset 0 0 0 1px var(--border-subtle);
+/* Blur */
+
+--blur-header:saturate(1.4) blur(16px); /* @kind other */
+/* Motion */
+
+--ease-out:cubic-bezier(.2,.7,.2,1); /* @kind other */
+--ease-in-out:cubic-bezier(.65,0,.35,1); /* @kind other */
+
+--dur-fast:140ms; /* @kind other */
+--dur:240ms; /* @kind other */
+--dur-slow:480ms; /* @kind other */
+}

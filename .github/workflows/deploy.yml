@@ -1,0 +1,94 @@
+name: Deploy to Hetzner
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: hetzner-production
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: find app public scripts -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Check required PHP extensions
+        run: php -r 'foreach (["pdo_sqlite","pdo_mysql","mbstring","sodium"] as $e) { if (!extension_loaded($e)) { fwrite(STDERR, "Missing $e\n"); exit(1); } }'
+      - name: API and security integration tests
+        run: python3 tests/integration.py
+      - name: SQL policy checks
+        run: php tests/sql-policy.php
+      - name: Verify prebuilt assets
+        run: python3 scripts/preflight.py
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      DEPLOY_HOST: ${{ secrets.HETZNER_HOST }}
+      DEPLOY_USER: ${{ secrets.HETZNER_USER }}
+      DEPLOY_ROOT: ${{ secrets.HETZNER_APP_ROOT }}
+      DEPLOY_PORT: ${{ secrets.HETZNER_SSH_PORT || '222' }}
+      APP_SETUP_TOKEN: ${{ secrets.APP_SETUP_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check deployment configuration
+        id: configuration
+        env:
+          SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HETZNER_KNOWN_HOSTS }}
+          APP_URL: ${{ secrets.APP_URL }}
+        run: |
+          set -euo pipefail
+          ready=true
+          for setting in DEPLOY_HOST DEPLOY_USER DEPLOY_ROOT APP_SETUP_TOKEN SSH_KEY KNOWN_HOSTS APP_URL; do
+            if [[ -z "${!setting}" ]]; then ready=false; fi
+          done
+          printf 'ready=%s\n' "$ready" >> "$GITHUB_OUTPUT"
+          if [[ "$ready" == false ]]; then
+            printf '%s\n' '## Source verified; server deployment skipped' 'Configure the Hetzner secrets listed in docs/deploy-hetzner.md, then run this workflow again.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Prepare SSH
+        if: steps.configuration.outputs.ready == 'true'
+        env:
+          SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.HETZNER_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          [[ "$DEPLOY_ROOT" =~ ^/[a-zA-Z0-9_./-]+$ ]]
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.-]+$ ]]
+          [[ "$DEPLOY_USER" =~ ^[a-zA-Z0-9_-]+$ ]]
+          [[ "$DEPLOY_PORT" =~ ^[0-9]{1,5}$ ]]
+          (( DEPLOY_PORT >= 1 && DEPLOY_PORT <= 65535 ))
+          test "${#APP_SETUP_TOKEN}" -ge 32
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          test -s ~/.ssh/known_hosts
+      - name: Upload ready-to-run release
+        if: steps.configuration.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          ssh -p "$DEPLOY_PORT" -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_ROOT/releases/$GITHUB_SHA'"
+          rsync -az -e "ssh -p $DEPLOY_PORT -o StrictHostKeyChecking=yes" app public scripts docs "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_ROOT/releases/$GITHUB_SHA/"
+      - name: Preflight and atomic activation
+        if: steps.configuration.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          python3 -c 'import json,os;print(json.dumps({"setup_token":os.environ["APP_SETUP_TOKEN"]}))' |
+            ssh -p "$DEPLOY_PORT" -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "bash '$DEPLOY_ROOT/releases/$GITHUB_SHA/scripts/deploy.sh' '$DEPLOY_ROOT' '$GITHUB_SHA'"
+      - name: HTTPS health check
+        if: steps.configuration.outputs.ready == 'true'
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+        run: |
+          [[ "$APP_URL" =~ ^https://[a-zA-Z0-9.-]+/?$ ]]
+          curl --fail --silent --show-error "${APP_URL%/}/api/?action=bootstrap" |
+            python3 -c 'import json,sys;d=json.load(sys.stdin);assert "setup_required" in d and "csrf" in d;print("Application responds over HTTPS.")'
+      - name: Clear SSH key
+        if: always() && steps.configuration.outputs.ready == 'true'
+        run: rm -f ~/.ssh/id_ed25519

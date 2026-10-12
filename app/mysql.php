@@ -1,0 +1,46 @@
+<?php
+declare(strict_types=1);
+function allowedHosts(): array { return settings()['db_allowed_hosts'] ?? config()['db_allowed_hosts']; }
+function mysqlConnection(array $u, ?array $conn = null): PDO {
+    $conn ??= one('SELECT * FROM connections WHERE user_id=?', [$u['id']]);
+    if (!$conn) fail(422, 'Bitte hinterlegen Sie zuerst Ihre Datenbankverbindung.');
+    if (!in_array($conn['host'], allowedHosts(), true)) fail(403, 'Dieser Datenbank-Host ist nicht freigegeben.');
+    if (!preg_match('/^[a-zA-Z0-9_-]{1,64}$/', $conn['db_name']) || !preg_match('/^[a-zA-Z0-9_.@-]{1,80}$/', $conn['username'])) fail(422, 'Ungültige Verbindungsdaten.');
+    $options=[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC, PDO::ATTR_TIMEOUT=>5, PDO::ATTR_EMULATE_PREPARES=>false, PDO::MYSQL_ATTR_MULTI_STATEMENTS=>false, PDO::MYSQL_ATTR_LOCAL_INFILE=>false];
+    if (!in_array($conn['host'],['localhost','127.0.0.1'],true)) {
+        $ca=config()['mysql_tls_ca'];
+        if (!is_string($ca)||!is_readable($ca)) fail(503,'Für entfernte Datenbank-Hosts muss die Kursleitung eine vertrauenswürdige TLS-CA konfigurieren.');
+        $options[PDO::MYSQL_ATTR_SSL_CA]=$ca;$options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT]=true;
+    }
+    try {
+        $pdo = new PDO('mysql:host=' . $conn['host'] . ';port=3306;dbname=' . $conn['db_name'] . ';charset=utf8mb4', $conn['username'], decryptSecret($conn['secret']),
+            $options);
+        if (!in_array($conn['host'],['localhost','127.0.0.1'],true)) {
+            $ssl=$pdo->query("SHOW STATUS LIKE 'Ssl_cipher'")->fetch(PDO::FETCH_NUM);
+            if (!$ssl || empty($ssl[1])) fail(403,'Der entfernte Datenbankserver hat keine TLS-Verbindung hergestellt.');
+        }
+        try { $pdo->exec('SET SESSION max_statement_time=5'); } catch (PDOException) { try { $pdo->exec('SET SESSION MAX_EXECUTION_TIME=5000'); } catch (PDOException) {} }
+        return $pdo;
+    } catch (PDOException) { fail(422, 'Die Verbindung ist fehlgeschlagen. Bitte prüfen Sie Host, Datenbank, Benutzer und Passwort.'); }
+}
+function identifier(string $value): string {
+    if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/', $value)) fail(422, 'Bitte verwenden Sie Buchstaben, Zahlen und Unterstriche für Tabellen- und Spaltennamen.'); return '`' . $value . '`';
+}
+function mysqlError(PDOException $e): never {
+    $code = (int)($e->errorInfo[1] ?? 0);
+    $message = match ($code) { 1064 => 'Die SQL-Syntax ist nicht gültig.', 1062 => 'Dieser eindeutige Wert existiert bereits.', 1146 => 'Die Tabelle existiert nicht.', 1054 => 'Die Spalte existiert nicht.', 1044,1142,1227 => 'Der Datenbankbenutzer hat dafür keine Berechtigung.', 1451,1452 => 'Eine Fremdschlüssel-Beziehung verhindert diese Änderung.', 1205,1317,1969,3024 => 'Die Abfrage wurde wegen Zeitüberschreitung beendet.', default => 'Die Datenbank konnte diese Anfrage nicht ausführen.' };
+    fail(422, $message . ' (MySQL ' . $code . ')');
+}
+function tableColumns(PDO $pdo, string $table): array {
+    try { return $pdo->query('SHOW COLUMNS FROM ' . identifier($table))->fetchAll(); } catch (PDOException $e) { mysqlError($e); }
+}
+function validateSql(string $sql): string {
+    $sql = trim($sql); if (strlen($sql)>16000) fail(422, 'Die Abfrage ist zu lang.');
+    // Strip quoted strings before inspecting tokens. Native prepares still enforce one statement.
+    $tokens = preg_replace("/'(?:[^'\\\\]|\\\\.|'')*'|\"(?:[^\"\\\\]|\\\\.|\"\")*\"/s", "''", $sql);
+    if (preg_match('~--|/\*|\*/|#~', $tokens)) fail(422, 'SQL-Kommentare sind in dieser Konsole nicht erlaubt.');
+    $tokens = rtrim(trim($tokens), ';');
+    if (str_contains($tokens,';') || !preg_match('/^(SELECT|WITH|INSERT|UPDATE|DELETE|CREATE\s+TABLE|ALTER\s+TABLE|DROP\s+TABLE|SHOW\s+(TABLES|COLUMNS|INDEX)|DESCRIBE|EXPLAIN)\b/i', $tokens)) fail(422, 'Bitte verwenden Sie eine einzelne Abfrage oder eine Tabellenoperation.');
+    if (preg_match('/\b(OUTFILE|DUMPFILE|LOAD_FILE|LOAD|SLEEP|BENCHMARK|GET_LOCK|RELEASE_LOCK|GRANT|REVOKE|USE|INSTALL|UNINSTALL|FUNCTION|PROCEDURE|TRIGGER|EVENT|ATTACH|INTO\s+@|GLOBAL|INFORMATION_SCHEMA|PERFORMANCE_SCHEMA|MYSQL|SYS)\b/i', $tokens)) fail(403, 'Diese SQL-Operation ist in der Lernumgebung gesperrt.');
+    return $sql;
+}

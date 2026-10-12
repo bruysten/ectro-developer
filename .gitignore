@@ -1,0 +1,8 @@
+/var/
+/config.local.php
+/node_modules/
+/tests/.artifacts/
+.DS_Store
+*.zip
+!/public/assets/runtime/python/python_stdlib.zip
+*.log
