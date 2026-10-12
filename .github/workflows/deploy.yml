@@ -23,6 +23,16 @@ jobs:
         run: python3 tests/integration.py
       - name: SQL policy checks
         run: php tests/sql-policy.php
+      - name: Existing database migration
+        run: php tests/project-migration.php
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Collaborative editing and group projects
+        run: |
+          npm ci --ignore-scripts
+          node tests/collaboration.mjs
+          node tests/editor-changes.mjs
       - name: Verify prebuilt assets
         run: python3 scripts/preflight.py
   deploy:

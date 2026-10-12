@@ -3,7 +3,7 @@
 | Komponente | Version / Herkunft | Lizenz |
 |---|---|---|
 | Entrosphere-Tokens und Logos | vom Benutzer bereitgestelltes Design-System | Rechte des bereitgestellten Systems beachten |
-| CodeMirror | 6, genaue Paketversionen in package-lock.json | MIT |
+| CodeMirror einschließlich @codemirror/collab | 6, genaue Paketversionen in package-lock.json | MIT |
 | PHP.wasm | WordPress Playground 3.1.57 / PHP 8.4.25 | GPL-2.0-or-later, PHP License und Lizenzen enthaltener Bibliotheken |
 | Pyodide | 0.28.3 / Python 3.13 | MPL-2.0; CPython und enthaltene Standardbibliothek unter ihren eigenen Lizenzen |
 | Space Grotesk, Geist, JetBrains Mono | Google Fonts, lokal gebündelt | SIL Open Font License 1.1 |

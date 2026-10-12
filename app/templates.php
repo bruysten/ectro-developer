@@ -10,10 +10,12 @@ function starterFiles(string $template): array {
 function starterCss(): string {
     return "* { box-sizing: border-box; }\nbody { margin: 0; background: #f9f9f9; color: #1a1c1c; font: 16px/1.6 system-ui, sans-serif; }\nmain { max-width: 760px; margin: 12vh auto; padding: 32px; }\n.label { font: 11px monospace; letter-spacing: .14em; }\nh1 { font-size: clamp(36px, 6vw, 64px); line-height: 1.05; letter-spacing: -.04em; font-weight: 500; }\nh1 span { color: #b2026c; }\np { color: #5e5e62; }\nbutton { margin-top: 24px; padding: 14px 24px; background: #b2026c; color: white; border: 0; border-radius: 999px; cursor: pointer; }\n";
 }
-function createProject(array $u, string $name, string $template): string {
-    return transaction(function () use ($u,$name,$template) {
-        if ((int)query('SELECT COUNT(*) FROM projects WHERE user_id=?', [$u['id']])->fetchColumn() >= 30) fail(422, 'Sie können bis zu 30 Projekte anlegen.');
-        $pid = id(); query('INSERT INTO projects VALUES(?,?,?,?,?)', [$pid, $u['id'], $name, now(), now()]);
+function createProject(array $u, string $name, string $template, string $groupId=''): string {
+    return transaction(function () use ($u,$name,$template,$groupId) {
+        if ($groupId && !one('SELECT 1 FROM group_members WHERE group_id=? AND user_id=?',[$groupId,$u['id']])) fail(403,'Sie gehören dieser Gruppe nicht an.');
+        if ((int)query('SELECT COUNT(*) FROM projects WHERE '.($groupId?'group_id=?':'user_id=?'), [$groupId?:$u['id']])->fetchColumn() >= 30) fail(422, 'Pro Workspace sind bis zu 30 Projekte möglich.');
+        if (workspaceBytes(['group_id'=>$groupId?:null,'user_id'=>$u['id']])+array_sum(array_map('strlen',starterFiles($template)))>SPACE_LIMIT) fail(422,'Der Workspace ist voll (20 MB).');
+        $pid = id(); query('INSERT INTO projects(id,user_id,group_id,created_by,name,created_at,updated_at) VALUES(?,?,?,?,?,?,?)', [$pid, $groupId?null:$u['id'], $groupId?:null, $u['id'], $name, now(), now()]);
         foreach (starterFiles($template) as $path => $content) query('INSERT INTO files(id,project_id,path,content,updated_at) VALUES(?,?,?,?,?)', [id(),$pid,$path,$content,now()]);
         audit($u['id'], 'project.create'); return $pid;
     });

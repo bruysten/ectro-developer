@@ -7,6 +7,8 @@ Eine Entwicklungsumgebung für Schulungen und Online-Trainings. HTML/CSS/JavaScr
 - `/`: Benutzer-Login und persönlicher Workspace.
 - `/admin/`: eigener Admin-Login, Benutzer, optionale Mehrfach-Gruppenzuordnung, globale und gruppenbezogene Funktionsfreigaben und Nutzungsstatistik.
 - Dashboard mit realen Projekten und Nutzungsereignissen.
+- Eigener Navigationsbereich „Projekte“ mit persönlichen und optionalen Gruppenprojekten. Neue Projekte können direkt in einer eigenen Gruppe entstehen; persönliche Projekte lassen sich in deren Workspace verschieben.
+- Gruppenprojekte mit automatisch synchronisiertem Editor, paralleler Bearbeitung, Anzeige aktiver Mitglieder und Entwurfswiederherstellung im selben Browser-Tab. Sie überstehen das Löschen ihres Erstellers.
 - Projekte mit Web-, PHP- und Python-Vorlagen; Text-Dateimanager mit Ordnern, Umbenennen, Löschen und Download.
 - CodeMirror-Editor mit Syntaxhervorhebung, Zeilennummern, Suche, Undo/Redo, `Ctrl/⌘ S`, `Ctrl/⌘ Enter` und Konflikterkennung beim Speichern.
 - HTML/CSS/JavaScript-Vorschau, PHP 8.4 und Python 3.13 über mitgeliefertes WebAssembly; Run, Stop, Ausgabe und Website-Vorschau in einem eigenen Fenster.
@@ -21,7 +23,7 @@ Damit sind keine Docker-Installation, Rootrechte, Prozessdienste, npm, Composer 
 
 **MySQL ist im Datenbankmanager live nutzbar. Die Browser-PHP-/Python-Scripts haben keine direkte PDO-/TCP-Verbindung zu MySQL.** Server-Netzwerk, Shell, Python-Pakete von pip, persistente Laufzeit-Dateiänderungen, PHP-Sessions über mehrere Runs und POST-Formulare in der Vorschau sind nicht Teil dieser Ausführung. GET-Formulare, Links zwischen lokalen HTML/PHP-Seiten und PHP-Includes innerhalb eines Projekts werden unterstützt. Die Vorschau bündelt lokale klassische CSS-/JS-Dateien; npm-/ES-Modul-Projekte benötigen einen vorherigen Build.
 
-Aktuell werden UTF-8-Textdateien bis 512 KB, 300 Einträge pro Projekt, 30 Projekte und 20 MB pro Benutzer unterstützt. Binäre Medienuploads sind nicht implementiert. Python bringt die Standardbibliothek mit. Ein frischer Run startet eine frische Laufzeit; Änderungen aus Scripts werden nicht automatisch in die gespeicherten Dateien zurückgeschrieben.
+Aktuell werden UTF-8-Textdateien bis 512 KB, 300 Einträge pro Projekt, jeweils 30 Projekte und 20 MB pro persönlichem oder Gruppen-Workspace unterstützt. Binäre Medienuploads sind nicht implementiert. Python bringt die Standardbibliothek mit. Ein frischer Run startet eine frische Laufzeit; Änderungen aus Scripts werden nicht automatisch in die gespeicherten Dateien zurückgeschrieben.
 
 ## Deployment auf Hetzner
 
@@ -47,6 +49,7 @@ Im Browser `/admin/` öffnen und den ersten Admin mit dem Einrichtungsschlüssel
 ```sh
 python3 tests/integration.py
 php tests/sql-policy.php
+php tests/project-migration.php
 python3 scripts/preflight.py
 ```
 
@@ -55,7 +58,11 @@ Nur bei Änderungen am JavaScript-Quellcode sind lokale Build-Abhängigkeiten n�
 ```sh
 npm ci --ignore-scripts
 npm run build
+node tests/collaboration.mjs
+node tests/editor-changes.mjs
 ```
+
+Bestehende SQLite-Datenbanken werden beim ersten Zugriff automatisch und transaktional erweitert. Auf dem Server sind keine zusätzlichen Installations- oder Migrationskommandos nötig.
 
 Die generierten Dateien unter `public/assets/` und `docs/asset-integrity.json` anschließend mit versionieren. Ein Build auf dem Server findet nicht statt. Schriften lassen sich bei Bedarf lokal mit `python3 scripts/vendor-fonts.py` neu bündeln.
 
