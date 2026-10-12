@@ -12,6 +12,7 @@ Eine Entwicklungsumgebung für Schulungen und Online-Trainings. HTML/CSS/JavaScr
 - Datenbankgestützte Projekttypen auf Basis von Web, PHP oder Python; Admins können Typen anlegen, bearbeiten, deaktivieren und löschen sowie Startdateien hinzufügen, bearbeiten, umbenennen und entfernen. Änderungen gelten für neue Projekte.
 - Projekte mit Web-, PHP- und Python-Vorlagen; Text-Dateimanager mit Ordnern, Umbenennen, Löschen und Download.
 - CodeMirror-Editor mit Syntaxhervorhebung, Zeilennummern, Suche, Undo/Redo, `Ctrl/⌘ S`, `Ctrl/⌘ Enter` und Konflikterkennung beim Speichern.
+- Verschiebbare Trennlinien zwischen Dateiliste, Editor und Ausgabe, gespeicherte Größen, Tastaturbedienung und Doppelklick zum Zurücksetzen.
 - HTML/CSS/JavaScript-Vorschau, PHP 8.4 und Python 3.13 über mitgeliefertes WebAssembly; Run, Stop, Ausgabe und Website-Vorschau in einem eigenen Fenster.
 - MySQL-Verbindung, Tabellenanlage, SQL-Konsole und Datensätze anlegen, bearbeiten und löschen. Bearbeiten/Löschen benötigt einen Primärschlüssel; zusammengesetzte Schlüssel werden berücksichtigt.
 - Gruppenchat mit inkrementeller AJAX-Aktualisierung.
