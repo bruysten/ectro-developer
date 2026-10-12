@@ -174,7 +174,8 @@ try {
         case 'admin.user.save':
             $uid=textField($data,'id',32,false); $name=textField($data,'name'); $email=emailField($data); $role=$data['role']??'user'; if(!in_array($role,['user','admin'],true)) fail(422,'Ungültige Rolle.');
             $active=(bool)($data['active']??true); $pass=passwordField($data,$uid===''); $flags=featureInput($data['features']??[]); $groups=$data['groups']??[];
-            if (!is_array($groups)||count($groups)>50) fail(422,'Ungültige Gruppenzuordnung.');
+            if (!is_array($groups)||count($groups)>1000) fail(422,'Ungültige Gruppenzuordnung.');
+            foreach ($groups as $groupId) if (!is_string($groupId)) fail(422,'Ungültige Gruppenzuordnung.');
             transaction(function() use($u,&$uid,$name,$email,$role,$active,$pass,$flags,$groups) {
                 if ($uid) { $target=one('SELECT * FROM users WHERE id=?',[$uid]); if (!$target) fail(404,'Benutzer nicht gefunden.');
                     if ($uid===$u['id'] && (!$active || $role!=='admin')) fail(422,'Sie können Ihren eigenen Adminzugang nicht sperren oder herabstufen.');
@@ -191,12 +192,31 @@ try {
             transaction(function() use($uid,$u) { $target=one('SELECT * FROM users WHERE id=?',[$uid]); if (!$target) fail(404,'Benutzer nicht gefunden.');
                 if ($target['role']==='admin' && (int)query("SELECT COUNT(*) FROM users WHERE role='admin' AND active=1")->fetchColumn()<=1) fail(422,'Der letzte Admin kann nicht gelöscht werden.');
                 query('DELETE FROM users WHERE id=?',[$uid]); audit($u['id'],'admin.user.delete'); }); jsonOut(['ok'=>true]);
-        case 'admin.groups': jsonOut(['groups'=>all('SELECT g.*,(SELECT COUNT(*) FROM group_members WHERE group_id=g.id) members FROM groups g ORDER BY name')]);
+        case 'admin.groups':
+            $groups=all('SELECT g.*,(SELECT COUNT(*) FROM group_members WHERE group_id=g.id) members FROM groups g ORDER BY name');
+            $members=[];
+            foreach(all('SELECT group_id,user_id FROM group_members') as $member) $members[$member['group_id']][]=$member['user_id'];
+            foreach($groups as &$group) $group['user_ids']=$members[$group['id']]??[];
+            unset($group);
+            jsonOut(['groups'=>$groups]);
         case 'admin.group.save':
             $gid=textField($data,'id',32,false); $name=textField($data,'name',80); $description=textField($data,'description',500,false); $flags=featureInput($data['features']??[]);
-            if ($gid) { if (!one('SELECT id FROM groups WHERE id=?',[$gid])) fail(404,'Gruppe nicht gefunden.'); query('UPDATE groups SET name=?,description=?,features=? WHERE id=?',[$name,$description,$flags,$gid]); }
-            else { $gid=id(); query('INSERT INTO groups VALUES(?,?,?,?,?)',[$gid,$name,$description,$flags,now()]); }
-            audit($u['id'],'admin.group.save'); jsonOut(['ok'=>true,'id'=>$gid]);
+            $replaceMembers=array_key_exists('users',$data); $members=$data['users']??[];
+            if ($replaceMembers) {
+                if (!is_array($data['users'])||count($members)>10000) fail(422,'Ungültige Mitgliederzuordnung.');
+                foreach($members as $memberId) if (!is_string($memberId)) fail(422,'Ungültige Mitgliederzuordnung.');
+                $members=array_values(array_unique($members));
+            }
+            transaction(function() use($u,&$gid,$name,$description,$flags,$replaceMembers,$members) {
+                foreach($members as $memberId) if (!one('SELECT id FROM users WHERE id=?',[$memberId])) fail(422,'Ein Benutzer existiert nicht mehr.');
+                if ($gid) { if (!one('SELECT id FROM groups WHERE id=?',[$gid])) fail(404,'Gruppe nicht gefunden.'); query('UPDATE groups SET name=?,description=?,features=? WHERE id=?',[$name,$description,$flags,$gid]); }
+                else { $gid=id(); query('INSERT INTO groups VALUES(?,?,?,?,?)',[$gid,$name,$description,$flags,now()]); }
+                if ($replaceMembers) {
+                    query('DELETE FROM group_members WHERE group_id=?',[$gid]);
+                    foreach($members as $memberId) query('INSERT INTO group_members VALUES(?,?)',[$gid,$memberId]);
+                }
+                audit($u['id'],'admin.group.save');
+            }); jsonOut(['ok'=>true,'id'=>$gid]);
         case 'admin.group.delete': query('DELETE FROM groups WHERE id=?',[textField($data,'id',32)]); audit($u['id'],'admin.group.delete'); jsonOut(['ok'=>true]);
         case 'admin.settings':
             $flags=featureInput($data['features']??[]); $hosts=$data['hosts']??[];

@@ -119,6 +119,37 @@ with tempfile.TemporaryDirectory(prefix='ectro-test-') as private:
         check(anonymous.call('dashboard')[0]==401, 'Anonymous access denied')
         check(anonymous.call('file.save')[0]==405, 'Mutation cannot use GET')
         check(anonymous.call('db.query')[0]==405, 'SQL cannot use GET')
+        # Memberships are editable from either side and group writes are atomic.
+        bob_id = users[1][0]
+        assigned = admin.ok('admin.group.save', {'name':'Assignments','users':[uid,bob_id,uid]})['id']
+        def read_group(gid):
+            return next(g for g in admin.ok('admin.groups')['groups'] if g['id']==gid)
+        def user_groups(user_id):
+            return {g['id'] for g in next(u for u in admin.ok('admin.users')['users'] if u['id']==user_id)['groups']}
+        check(set(read_group(assigned)['user_ids'])=={uid,bob_id} and read_group(assigned)['members']==2, 'Create group assigns and deduplicates members')
+        check(user_groups(uid)=={group,assigned} and user_groups(bob_id)=={other_group,assigned}, 'Group assignment appears in user dialogs')
+        admin.ok('admin.group.save', {'id':assigned,'name':'Assignments','users':[bob_id]})
+        check(user_groups(uid)=={group} and user_groups(bob_id)=={other_group,assigned}, 'Removing group member preserves other memberships')
+        admin.ok('admin.group.save', {'id':assigned,'name':'Renamed'})
+        check(read_group(assigned)['user_ids']==[bob_id], 'Omitted members preserve existing membership')
+        for invalid in [['missing-user'],[bob_id,{'id':uid}],None,'invalid']:
+            check(admin.call('admin.group.save', {'id':assigned,'name':'Must not persist','users':invalid})[0]==422, 'Invalid members rejected')
+            saved_group=read_group(assigned)
+            check(saved_group['name']=='Renamed' and saved_group['user_ids']==[bob_id], 'Invalid group write preserves metadata and members')
+        count_before=len(admin.ok('admin.groups')['groups'])
+        check(admin.call('admin.group.save', {'name':'Must not exist','users':['missing-user']})[0]==422, 'Invalid new group rejected')
+        check(len(admin.ok('admin.groups')['groups'])==count_before, 'Invalid creation leaves no group')
+        admin.ok('admin.user.save', {'id':bob_id,'name':'User 2','email':'user2@test.invalid','groups':[other_group,assigned]})
+        check(read_group(assigned)['user_ids']==[bob_id], 'User assignment appears in group dialog')
+        admin.ok('admin.user.save', {'id':bob_id,'name':'User 2','email':'user2@test.invalid','groups':[other_group]})
+        check(read_group(assigned)['user_ids']==[] and user_groups(bob_id)=={other_group}, 'User removal updates group members')
+        admin.ok('admin.group.save', {'id':assigned,'name':'Renamed','users':[bob_id]})
+        admin.ok('admin.group.save', {'id':assigned,'name':'Renamed','users':[]})
+        check(read_group(assigned)['members']==0 and user_groups(bob_id)=={other_group}, 'Explicit empty selection removes all members')
+        check(anonymous.call('admin.groups')[0]==401, 'Member IDs unavailable anonymously')
+        bob.ok('bootstrap');bob.ok('login',{'portal':'user','email':'user2@test.invalid','password':'changed-secure-password'})
+        check(bob.call('admin.group.save',{'id':assigned,'name':'Renamed','users':[bob_id]})[0]==403, 'Learners cannot change memberships')
+        admin.ok('admin.group.delete', {'id':assigned})
         print(f'{CHECKS} API/security integration checks passed.')
     finally:
         server.terminate();server.wait(timeout=10)
