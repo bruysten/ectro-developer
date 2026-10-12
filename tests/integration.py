@@ -150,6 +150,68 @@ with tempfile.TemporaryDirectory(prefix='ectro-test-') as private:
         bob.ok('bootstrap');bob.ok('login',{'portal':'user','email':'user2@test.invalid','password':'changed-secure-password'})
         check(bob.call('admin.group.save',{'id':assigned,'name':'Renamed','users':[bob_id]})[0]==403, 'Learners cannot change memberships')
         admin.ok('admin.group.delete', {'id':assigned})
+        # Editable project types: defaults migrate once; new projects copy a snapshot.
+        types=admin.ok('admin.templates')['templates']
+        check([t['id'] for t in types]==['web','php','python'], 'Default project types seeded in original order')
+        original=admin.ok('admin.template',id='web')['template']
+        check(original['active'] and original['version']==1 and len(original['files'])==3, 'Editable default includes original start files')
+        check(bob.call('admin.template',id='web')[0]==403, 'Learner cannot read admin template editor')
+        check(anonymous.call('templates')[0]==401, 'Project type listing requires login')
+        check(bob.call('admin.template.save',{'name':'Forbidden','files':[]})[0]==403, 'Learner cannot write project types')
+        personal=bob.ok('project.create',{'name':'Before template change','template':'web'})['id']
+        before=bob.ok('file',project=personal,path='index.html')['file']['content']
+        template_data={'id':'web','version':1,'name':'HTML Training','description':'A custom start','language':'web','active':True,'files':[{'path':'index.html','content':'<h1>New start</h1>'},{'path':'css/theme.css','content':'h1 { color: red; }'}]}
+        admin.ok('admin.template.save',template_data)
+        revised=admin.ok('admin.template',id='web')['template']
+        check(revised['version']==2 and len(revised['files'])==2 and revised['name']=='HTML Training', 'Metadata and all files saved together')
+        check(admin.call('admin.template.save',{**template_data,'name':'Stale overwrite'})[0]==409, 'Stale admin write rejected')
+        check(admin.ok('admin.template',id='web')['template']==revised, 'Stale write preserves complete template')
+        visible=bob.ok('templates')['templates']
+        check(visible[0]['name']=='HTML Training' and visible[0]['file_count']==2 and 'files' not in visible[0], 'Learner creation lists edited metadata without file contents')
+        new_project=bob.ok('project.create',{'name':'After template change','template':'web'})['id']
+        check({f['path'] for f in bob.ok('files',project=new_project)['files']}=={'index.html','css/theme.css'}, 'New project receives changed start file set')
+        check(bob.ok('file',project=new_project,path='index.html')['file']['content']=='<h1>New start</h1>', 'New project receives edited content')
+        check(bob.ok('file',project=personal,path='index.html')['file']['content']==before, 'Existing project content remains unchanged')
+        check(bob.call('file',project=new_project,path='script.js')[0]==404, 'Removed template file is not copied')
+        invalid_sets=[
+            [{'path':'../secret.php','content':'bad'}], [{'path':'.env','content':'bad'}],
+            [{'path':'same.txt','content':'one'},{'path':'same.txt','content':'two'}],
+            [{'path':'folder','content':'file'},{'path':'folder/child.txt','content':'collision'}],
+            [{'path':'folder/child.txt','content':'collision'},{'path':'folder','content':'file'}],
+            [{'path':'index.html','content':{'bad':'data'}}],
+            [{'path':'big.txt','content':'x'*524289}],
+            [{'path':f'large{n}.txt','content':'x'*400000} for n in range(3)],
+            [{'path':f'{n}.txt','content':''} for n in range(101)]
+        ]
+        for start_files in invalid_sets:
+            check(admin.call('admin.template.save',{**template_data,'version':2,'name':'Must not persist','files':start_files})[0]==422, 'Invalid start files rejected')
+            check(admin.ok('admin.template',id='web')['template']==revised, 'Invalid file batch preserves metadata and contents')
+        check(admin.call('admin.template.save',{**template_data,'version':2,'language':'ruby'})[0]==422, 'Unsupported runtime cannot be introduced')
+        check(admin.call('admin.template.save',{**template_data,'version':2,'active':1})[0]==422, 'Active state requires a boolean')
+        disabled={**template_data,'version':2,'active':False}
+        admin.ok('admin.template.save',disabled)
+        check(all(t['id']!='web' for t in bob.ok('templates')['templates']), 'Disabled type absent from learner selection')
+        check(bob.call('project.create',{'name':'Disabled','template':'web'})[0]==422, 'Disabled type cannot be used via forged request')
+        check(bob.ok('file',project=new_project,path='index.html')['file']['content']=='<h1>New start</h1>', 'Disabling type leaves existing projects usable')
+        custom={'name':'Python Workshop','description':'Custom Python exercise','language':'python','active':True,'files':[{'path':'main.py','content':'print("Custom start")\r\n'},{'path':'123','content':'numeric path'}]}
+        custom_id=admin.ok('admin.template.save',custom)['id']
+        check(custom_id not in ['web','php','python'], 'Additional project type has independent identity')
+        custom_type=admin.ok('admin.template',id=custom_id)['template']
+        check(next(f['content'] for f in custom_type['files'] if f['path']=='main.py')=='print("Custom start")\n', 'Start content normalized to LF')
+        grouped=bob.ok('project.create',{'name':'Custom group project','template':custom_id,'group':other_group})['id']
+        check(bob.ok('file',project=grouped,path='123')['file']['content']=='numeric path', 'Custom type files also copied into group projects')
+        admin.ok('admin.settings',{'features':{'python':False},'hosts':['localhost']})
+        check(all(t['language']!='python' for t in bob.ok('templates')['templates']), 'Language restriction filters custom and built-in types')
+        check(bob.call('project.create',{'name':'Blocked custom','template':custom_id})[0]==403, 'Custom type cannot bypass language restrictions')
+        admin.ok('admin.settings',{'features':{},'hosts':['localhost']})
+        empty_id=admin.ok('admin.template.save',{'name':'Empty workspace','language':'web','files':[]})['id']
+        empty_project=bob.ok('project.create',{'name':'Empty start','template':empty_id})['id']
+        check(bob.ok('files',project=empty_project)['files']==[], 'Empty template creates a deliberate empty project')
+        check(admin.call('admin.template.delete',{'id':'web','version':2})[0]==409, 'Stale deletion rejected')
+        admin.ok('admin.template.delete',{'id':'web','version':3})
+        check(all(t['id']!='web' for t in admin.ok('admin.templates')['templates']), 'Deleted default does not reappear after initialization')
+        check(bob.ok('file',project=personal,path='index.html')['file']['content']==before, 'Deleting type preserves existing projects')
+        check(bob.call('project.create',{'name':'Deleted','template':'web'})[0]==422, 'Deleted type unavailable to new projects')
         print(f'{CHECKS} API/security integration checks passed.')
     finally:
         server.terminate();server.wait(timeout=10)

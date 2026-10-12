@@ -4,7 +4,7 @@ Stand: 12.10.2026. Lokale PHP-CLI 8.5.5; Entwicklung über den eingebauten PHP-W
 
 Automatisch geprüft:
 
-- 123 HTTP-API-/Sicherheitschecks gegen ein temporäres, unabhängig erzeugtes SQLite-Datenverzeichnis: Setup, CSRF, Portale, Passwortwechsel, Rollen, fremde Projekte, Traversal, Versionskonflikte, Ordner-Umbenennen, Gruppenrechte, globale und gruppenbezogene Sperren, Datenbank-Hostbeschränkung, Session-Widerruf und Statistik.
+- 206 HTTP-API-/Sicherheitschecks gegen ein temporäres, unabhängig erzeugtes SQLite-Datenverzeichnis: Setup, CSRF, Portale, Passwortwechsel, Rollen, fremde Projekte, Traversal, Versionskonflikte, Ordner-Umbenennen, Gruppenrechte, globale und gruppenbezogene Sperren, Datenbank-Hostbeschränkung, Session-Widerruf, Statistik und editierbare Projekttypen. Die zusätzlichen Vorlagenprüfungen decken Initialisierung, Metadaten und Startdateien, unveränderte Bestandsprojekte, veraltete Adminänderungen, ungültige Pfade und Größen, eigene Typen in Gruppenprojekten, Sprachsperren, Deaktivierung und Löschung ohne Wiederherstellung der Defaults ab.
 - 32 Checks für Gruppenprojekte und zwei echte CodeMirror-Zustände gegen eine isolierte PHP-API: gleichzeitige und überlappende Änderungen, Offline-Nachlauf, Unicode, Wiederherstellung nach verlorener Bestätigung, Zugriffsisolation, Mitgliedschaftsentzug, Umbenennen und Lebensdauer von Gruppenprojekten.
 - 300 deterministische Vergleiche des PHP-ChangeSet-Protokolls mit CodeMirror, einschließlich Emoji, mehrzeiligem Text, Einfügungen und Löschungen.
 - Migration einer bestehenden SQLite-Datenbank mit unveränderten persönlichen Projekt- und Dateidaten, gültigen Fremdschlüsseln und Löschkaskaden.
@@ -20,6 +20,7 @@ Im Codex-In-App-Browser praktisch geprüft:
 - Neue Projektnavigation und gemeinsame Datei in zwei getrennten Editor-Tabs: beide Beiträge erreichen identische Inhalte.
 - Simulierter Netzwerkausfall in einem Tab, parallele Änderungen im anderen Tab, Wiederverbindung und Neuladen: der lokale Entwurf bleibt erhalten und beide Editoren gleichen sich ab.
 - Einklappbare Navigation im Lernenden- und Adminbereich: 76-Pixel-Icon-Leiste, Tastaturbedienung und Beschriftungen, Auf-/Zuklappen im offenen Editor, gespeicherte Ansicht nach Neuladen, getrennte Einstellungen je Portal und vollständiges mobiles Menü.
+- Admin-Projekttypverwaltung: Standardtypen öffnen, eigene Vorlage anlegen, Code bearbeiten, Startdateien ergänzen und umbenennen, speichern und erneut öffnen. Ein daraus im Frontend angelegtes Projekt enthält die geprüften HTML- und CSS-Startdateien. Mobile Verwaltung bei 390 Pixeln ohne horizontalen Überlauf.
 - Responsive Darstellung bei 390 Pixeln Breite: Navigation bedienbar, keine horizontale Seitenüberbreite.
 - PHP-Projekt: tatsächliche PHP-8.4-Ausführung, dynamische HTML-Liste und lokale CSS-Datei.
 - Python-Projekt: tatsächliche Python-3.13-Ausführung mit Datum und Schleife, lesbarer Output.

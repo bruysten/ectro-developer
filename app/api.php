@@ -9,7 +9,7 @@ try {
     keyBytes(); sessionStart();
     $action = $_GET['action'] ?? 'bootstrap';
     $method = $_SERVER['REQUEST_METHOD'];
-    $readActions = ['bootstrap','dashboard','projects','files','file','chat','db.info','db.tables','db.rows','admin.overview','admin.users','admin.groups'];
+    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template'];
     if ($method !== 'GET' && $method !== 'POST') fail(405, 'Methode nicht erlaubt.');
     if (!in_array($action, $readActions, true) && $method !== 'POST') fail(405, 'Diese Aktion benötigt POST.');
     if (in_array($action, $readActions, true) && $method !== 'GET') fail(405, 'Diese Aktion benötigt GET.');
@@ -56,9 +56,12 @@ try {
                 'runs'=>(int)query("SELECT COUNT(*) FROM events WHERE user_id=? AND event='run'",[$u['id']])->fetchColumn(),
                 'activity'=>all('SELECT event,created_at FROM events WHERE user_id=? ORDER BY id DESC LIMIT 8',[$u['id']])]);
         case 'projects': needFeature($u,'files'); jsonOut(['projects'=>visibleProjects($u)]);
+        case 'templates':
+            needFeature($u,'files');$available=features($u);
+            jsonOut(['templates'=>array_values(array_filter(projectTypes(),fn($type)=>$type['active']&&$available[$type['language']==='web'?'html':$type['language']]))]);
         case 'project.create':
-            needFeature($u,'files'); $template=textField($data,'template',20); if (!in_array($template,['web','php','python'])) fail(422,'Unbekannte Vorlage.');
-            needFeature($u, $template==='web'?'html':$template); jsonOut(['id'=>createProject($u,textField($data,'name',80),$template,textField($data,'group',32,false))],201);
+            needFeature($u,'files'); $template=textField($data,'template',32);
+            jsonOut(['id'=>createProject($u,textField($data,'name',80),$template,textField($data,'group',32,false))],201);
         case 'project.share':
             needFeature($u,'files'); $pid=textField($data,'id',32); $gid=textField($data,'group',32);
             transaction(function() use($u,$pid,$gid) {
@@ -194,6 +197,17 @@ try {
                 'languages'=>all("SELECT json_extract(details,'$.language') language,COUNT(*) runs FROM events WHERE event='run' GROUP BY language"),
                 'events'=>all('SELECT e.event,e.created_at,u.name FROM events e LEFT JOIN users u ON u.id=e.user_id ORDER BY e.id DESC LIMIT 30'),
                 'settings'=>settings(),'hosts'=>allowedHosts(),'health'=>['php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'sqlite'=>true,'mysql'=>extension_loaded('pdo_mysql'),'encryption'=>extension_loaded('sodium'),'private_storage'=>is_writable(dataDir())]]);
+        case 'admin.templates': jsonOut(['templates'=>projectTypes()]);
+        case 'admin.template': jsonOut(['template'=>projectType(textField($data,'id',32))]);
+        case 'admin.template.save': jsonOut(['id'=>saveProjectType($u,$data),'ok'=>true]);
+        case 'admin.template.delete':
+            initializeProjectTypes();
+            transaction(function() use($u,$data) {
+                $tid=textField($data,'id',32);$type=one('SELECT version FROM project_types WHERE id=?',[$tid]);
+                if(!$type)fail(404,'Projekttyp nicht gefunden.');
+                if(!is_int($data['version']??null)||(int)$type['version']!==$data['version'])fail(409,'Der Projekttyp wurde inzwischen geändert. Bitte aktualisieren Sie die Übersicht.');
+                query('DELETE FROM project_types WHERE id=?',[$tid]);audit($u['id'],'admin.template.delete');
+            }); jsonOut(['ok'=>true]);
         case 'admin.users': jsonOut(['users'=>array_map('safeUser',all('SELECT * FROM users ORDER BY name'))]);
         case 'admin.user.save':
             $uid=textField($data,'id',32,false); $name=textField($data,'name'); $email=emailField($data); $role=$data['role']??'user'; if(!in_array($role,['user','admin'],true)) fail(422,'Ungültige Rolle.');
