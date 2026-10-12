@@ -19,6 +19,7 @@ Im Codex-In-App-Browser praktisch geprüft:
 - Dashboard, Editor, Gruppenchat-Ansicht, Adminübersicht, Benutzerformular mit persönlichen Freigaben, Dialog-Abbruch und Nutzungsstatistik.
 - Neue Projektnavigation und gemeinsame Datei in zwei getrennten Editor-Tabs: beide Beiträge erreichen identische Inhalte.
 - Simulierter Netzwerkausfall in einem Tab, parallele Änderungen im anderen Tab, Wiederverbindung und Neuladen: der lokale Entwurf bleibt erhalten und beide Editoren gleichen sich ab.
+- Einklappbare Navigation im Lernenden- und Adminbereich: 76-Pixel-Icon-Leiste, Tastaturbedienung und Beschriftungen, Auf-/Zuklappen im offenen Editor, gespeicherte Ansicht nach Neuladen, getrennte Einstellungen je Portal und vollständiges mobiles Menü.
 - Responsive Darstellung bei 390 Pixeln Breite: Navigation bedienbar, keine horizontale Seitenüberbreite.
 - PHP-Projekt: tatsächliche PHP-8.4-Ausführung, dynamische HTML-Liste und lokale CSS-Datei.
 - Python-Projekt: tatsächliche Python-3.13-Ausführung mit Datum und Schleife, lesbarer Output.
