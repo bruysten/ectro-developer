@@ -1,0 +1,59 @@
+:root{
+
+--font-display:"Space Grotesk","Avenir Next","Segoe UI",sans-serif;
+
+--font-body:"Geist","Inter","Avenir Next","Segoe UI",sans-serif;
+
+--font-mono:"JetBrains Mono","SFMono-Regular",Consolas,monospace;
+
+--fw-light:300; /* @kind font */
+--fw-regular:400; /* @kind font */
+--fw-medium:500; /* @kind font */
+--fw-semibold:600; /* @kind font */
+--fw-bold:700; /* @kind font */
+/* Display scale — Space Grotesk, tight negative tracking as in the live theme (-0.04…-0.075em) */
+
+--fs-display-xl:clamp(46px,7.2vw,112px); /* @kind font */
+--lh-display-xl:.92; /* @kind font */
+--ls-display-xl:-.065em; /* @kind font */
+
+--fs-display-l:clamp(38px,5vw,76px); /* @kind font */
+--lh-display-l:.98; /* @kind font */
+--ls-display-l:-.055em; /* @kind font */
+
+--fs-h1:clamp(32px,3.8vw,56px); /* @kind font */
+--lh-h1:1.02; /* @kind font */
+--ls-h1:-.045em; /* @kind font */
+
+--fs-h2:clamp(26px,2.6vw,38px); /* @kind font */
+--lh-h2:1.08; /* @kind font */
+--ls-h2:-.04em; /* @kind font */
+
+--fs-h3:22px; /* @kind font */
+--lh-h3:1.18; /* @kind font */
+--ls-h3:-.025em; /* @kind font */
+
+--fs-h4:18px; /* @kind font */
+--lh-h4:1.25; /* @kind font */
+--ls-h4:-.015em; /* @kind font */
+/* Body — Geist */
+
+--fs-lead:clamp(18px,1.45vw,21px); /* @kind font */
+--lh-lead:1.5; /* @kind font */
+
+--fs-body:16px; /* @kind font */
+--lh-body:1.6; /* @kind font */
+
+--fs-small:14px; /* @kind font */
+--lh-small:1.5; /* @kind font */
+
+--fs-micro:12px; /* @kind font */
+--lh-micro:1.4; /* @kind font */
+/* Labels — uppercase, wide tracking (live theme uses .14–.2em) */
+
+--fs-label:12px; /* @kind font */
+--ls-label:.18em; /* @kind font */
+
+--fs-meta:11px; /* @kind font */
+--ls-meta:.12em; /* @kind font */
+}

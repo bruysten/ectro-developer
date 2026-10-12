@@ -1,0 +1,20 @@
+:root{
+/* Ink (neutrals, warm-black from live theme --ink #1a1c1c) */
+--ink-950:#0c0d0e;--ink-900:#111213;--ink-850:#16181a;--ink-800:#1a1c1c;--ink-700:#2b2d30;--ink-600:#45474b;--ink-500:#5e5e62;--ink-400:#7b7c82;--ink-300:#a9aaae;--ink-200:#d6d7da;--ink-150:#e6e7e9;--ink-100:#eeeef0;--paper-50:#f3f3f4;--paper:#f9f9f9;--white:#ffffff;
+/* Magenta — the Entrosphere accent (live theme --accent #b2026c / --accent-strong #d32d86) */
+--magenta-800:#6e0142;--magenta-700:#8f0157;--magenta-600:#b2026c;--magenta-500:#d32d86;--magenta-300:#ec8fbf;--magenta-100:#f8e1ee;--magenta-50:#fcf2f7;
+/* Signal colours (from tenant root.css) — used for module coding + status, never as large fills */
+--signal-navy:#163265;--signal-blue:#2282A8;--signal-sky:#95B7C4;--signal-orange:#F37000;--signal-sage:#ADC79D;--signal-green:#3E7A4A;
+/* Semantic — text */
+--text-strong:var(--ink-800);--text-body:#2e3033;--text-muted:var(--ink-500);--text-faint:var(--ink-400);--text-accent:var(--magenta-600);
+--text-on-dark:#f4f4f5;--text-on-dark-muted:#a3a5ab;--text-on-accent:#ffffff;
+/* Semantic — surfaces */
+--surface-page:var(--paper);--surface-sunken:var(--paper-50);--surface-card:var(--white);--surface-glass:rgba(255,255,255,.88);
+--surface-inverse:var(--ink-900);--surface-inverse-raised:var(--ink-850);--surface-accent:var(--magenta-600);--surface-accent-soft:var(--magenta-50);
+/* Semantic — lines */
+--border-subtle:rgba(26,28,28,.08);--border-strong:rgba(26,28,28,.16);--border-ink:var(--ink-800);--border-on-dark:rgba(255,255,255,.10);--border-on-dark-strong:rgba(255,255,255,.22);
+/* Semantic — interaction */
+--accent:var(--magenta-600);--accent-hover:var(--magenta-700);--accent-bright:var(--magenta-500);--focus-ring:0 0 0 3px rgba(178,2,108,.28);
+/* Status (Hub KPI vocabulary: Ahead / On track / Behind; agent states) */
+--status-ahead:var(--signal-green);--status-on-track:var(--signal-blue);--status-behind:var(--signal-orange);--status-agent:var(--magenta-600);--status-human:var(--signal-navy);
+}

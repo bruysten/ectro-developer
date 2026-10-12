@@ -1,0 +1,23 @@
+{
+  "name": "ectro-developer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "python3 tests/integration.py",
+    "preview": "php -S 127.0.0.1:8080 -t public scripts/router.php"
+  },
+  "devDependencies": {
+    "@codemirror/lang-css": "6.3.1",
+    "@codemirror/lang-html": "6.4.11",
+    "@codemirror/lang-javascript": "6.2.4",
+    "@codemirror/lang-php": "6.0.2",
+    "@codemirror/lang-python": "6.2.1",
+    "@codemirror/view": "6.38.6",
+    "@php-wasm/universal": "3.1.57",
+    "@php-wasm/web-8-4": "3.1.57",
+    "codemirror": "6.0.2",
+    "esbuild": "0.25.10",
+    "pyodide": "0.28.3"
+  }
+}
