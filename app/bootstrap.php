@@ -38,6 +38,19 @@ function db(): PDO {
     $pdo = new PDO('sqlite:' . dataDir() . '/app.sqlite', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
     $pdo->exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL;');
     $pdo->exec(file_get_contents(__DIR__ . '/schema.sql'));
+    // Upgrade existing installations without a separate deployment command.
+    if (!in_array('group_id',array_column($pdo->query('PRAGMA table_info(projects)')->fetchAll(),'name'),true)) {
+        $pdo->exec('PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE');
+        try {
+            if (!in_array('group_id',array_column($pdo->query('PRAGMA table_info(projects)')->fetchAll(),'name'),true)) {
+                $pdo->exec('CREATE TABLE projects_upgrade (id TEXT PRIMARY KEY, user_id TEXT REFERENCES users(id) ON DELETE CASCADE, group_id TEXT REFERENCES groups(id) ON DELETE CASCADE, created_by TEXT REFERENCES users(id) ON DELETE SET NULL, name TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, CHECK ((user_id IS NULL) != (group_id IS NULL)))');
+                $pdo->exec('INSERT INTO projects_upgrade(id,user_id,created_by,name,created_at,updated_at) SELECT id,user_id,user_id,name,created_at,updated_at FROM projects; DROP TABLE projects; ALTER TABLE projects_upgrade RENAME TO projects');
+            }
+            $pdo->exec('COMMIT');
+        } catch(Throwable $e) { $pdo->exec('ROLLBACK'); throw $e; }
+        finally { $pdo->exec('PRAGMA foreign_keys=ON'); }
+    }
+    $pdo->exec('CREATE INDEX IF NOT EXISTS projects_group ON projects(group_id); CREATE INDEX IF NOT EXISTS projects_user ON projects(user_id)');
     return $pdo;
 }
 function query(string $sql, array $params = []): PDOStatement {
@@ -91,9 +104,9 @@ function csrf(): void {
     if (!$token || !hash_equals($_SESSION['csrf'], $token)) fail(403, 'Die Sicherheitsprüfung ist fehlgeschlagen. Bitte laden Sie die Seite neu.');
 }
 function input(): array {
-    if ((int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 800000) fail(413, 'Die Anfrage ist zu groß.');
-    $raw = file_get_contents('php://input', false, null, 0, 800001);
-    if (strlen($raw) > 800000) fail(413, 'Die Anfrage ist zu groß.');
+    if ((int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 4194304) fail(413, 'Die Anfrage ist zu groß.');
+    $raw = file_get_contents('php://input', false, null, 0, 4194305);
+    if (strlen($raw) > 4194304) fail(413, 'Die Anfrage ist zu groß.');
     try { $data = json_decode($raw ?: '{}', true, 32, JSON_THROW_ON_ERROR); }
     catch (JsonException) { fail(400, 'Die Anfrage enthält kein gültiges JSON.'); }
     if (!is_array($data)) fail(400, 'Ungültige Anfrage.'); return $data;
@@ -147,7 +160,16 @@ function audit(?string $uid, string $event, array $details = []): void {
     query('INSERT INTO events(user_id,event,details,created_at) VALUES(?,?,?,?)', [$uid, $event, json_encode($details), now()]);
 }
 function project(array $u, string $pid): array {
-    $p = one('SELECT * FROM projects WHERE id=? AND user_id=?', [$pid, $u['id']]); if (!$p) fail(404, 'Projekt nicht gefunden.'); return $p;
+    $p = one('SELECT p.*,g.name group_name FROM projects p LEFT JOIN groups g ON g.id=p.group_id WHERE p.id=? AND (p.user_id=? OR EXISTS(SELECT 1 FROM group_members m WHERE m.group_id=p.group_id AND m.user_id=?))', [$pid, $u['id'],$u['id']]); if (!$p) fail(404, 'Projekt nicht gefunden.'); return $p;
+}
+function visibleProjects(array $u): array {
+    return all("SELECT p.*,g.name group_name,(SELECT COUNT(*) FROM files f WHERE f.project_id=p.id AND f.kind='file') file_count FROM projects p LEFT JOIN groups g ON g.id=p.group_id WHERE p.user_id=? OR EXISTS(SELECT 1 FROM group_members m WHERE m.group_id=p.group_id AND m.user_id=?) ORDER BY p.updated_at DESC",[$u['id'],$u['id']]);
+}
+function projectManager(array $u,array $p): void {
+    if ($p['group_id'] && $u['role']!=='admin' && $p['created_by']!==$u['id']) fail(403,'Nur der Ersteller oder ein Administrator kann dieses Gruppenprojekt umbenennen oder löschen.');
+}
+function workspaceBytes(array $p): int {
+    return (int)query('SELECT COALESCE(SUM(length(CAST(f.content AS BLOB))),0) FROM files f JOIN projects p ON p.id=f.project_id WHERE '.($p['group_id']?'p.group_id=?':'p.user_id=?'),[$p['group_id']?:$p['user_id']])->fetchColumn();
 }
 function filePath(string $path): string {
     if (!$path || strlen($path) > 240 || !preg_match('~^[\pL\pN _./-]+$~u', $path) || str_starts_with($path, '/') || str_contains($path, '//')) fail(422, 'Bitte verwenden Sie einen relativen Dateinamen ohne Sonderzeichen.');

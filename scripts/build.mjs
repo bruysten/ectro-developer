@@ -17,7 +17,7 @@ await copyFile('node_modules/@php-wasm/web-8-4/asyncify/php_8_4.js','public/asse
 await copyFile('node_modules/@php-wasm/web-8-4/asyncify/8_4_25/php_8_4.wasm','public/assets/runtime/php/8_4_25/php_8_4.wasm');
 for(const name of ['pyodide.js','pyodide.asm.js','pyodide.asm.wasm','python_stdlib.zip','pyodide-lock.json'])await copyFile('node_modules/pyodide/'+name,'public/assets/runtime/python/'+name);
 const licenses=[];
-for(const pkg of ['@php-wasm/universal','@php-wasm/web-8-4','codemirror','@codemirror/view']){
+for(const pkg of ['@php-wasm/universal','@php-wasm/web-8-4','codemirror','@codemirror/view','@codemirror/collab']){
   try {licenses.push(pkg+'\n'+await readFile('node_modules/'+pkg+'/LICENSE','utf8'));}catch{}
 }
 await writeFile('public/assets/THIRD-PARTY-LICENSES.txt',licenses.join('\n\n'));

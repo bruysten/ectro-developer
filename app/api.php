@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/templates.php';
 require_once __DIR__ . '/mysql.php';
+require_once __DIR__ . '/collaboration.php';
 secureHeaders();
 try {
     keyBytes(); sessionStart();
@@ -50,18 +51,35 @@ try {
     if ($u['must_change_password']) fail(403,'Bitte ändern Sie zuerst Ihr vorläufiges Passwort.');
     switch ($action) {
         case 'dashboard':
-            jsonOut(['projects'=>all('SELECT p.*, (SELECT COUNT(*) FROM files f WHERE f.project_id=p.id AND kind=\'file\') file_count FROM projects p WHERE user_id=? ORDER BY updated_at DESC',[$u['id']]),
+            jsonOut(['projects'=>visibleProjects($u),
                 'stats'=>one('SELECT COUNT(*) files, COALESCE(SUM(length(CAST(content AS BLOB))),0) bytes FROM files WHERE project_id IN (SELECT id FROM projects WHERE user_id=?) AND kind=\'file\'',[$u['id']]),
                 'runs'=>(int)query("SELECT COUNT(*) FROM events WHERE user_id=? AND event='run'",[$u['id']])->fetchColumn(),
                 'activity'=>all('SELECT event,created_at FROM events WHERE user_id=? ORDER BY id DESC LIMIT 8',[$u['id']])]);
-        case 'projects': needFeature($u,'files'); jsonOut(['projects'=>all('SELECT * FROM projects WHERE user_id=? ORDER BY updated_at DESC',[$u['id']])]);
+        case 'projects': needFeature($u,'files'); jsonOut(['projects'=>visibleProjects($u)]);
         case 'project.create':
             needFeature($u,'files'); $template=textField($data,'template',20); if (!in_array($template,['web','php','python'])) fail(422,'Unbekannte Vorlage.');
-            needFeature($u, $template==='web'?'html':$template); jsonOut(['id'=>createProject($u,textField($data,'name',80),$template)],201);
+            needFeature($u, $template==='web'?'html':$template); jsonOut(['id'=>createProject($u,textField($data,'name',80),$template,textField($data,'group',32,false))],201);
+        case 'project.share':
+            needFeature($u,'files'); $pid=textField($data,'id',32); $gid=textField($data,'group',32);
+            transaction(function() use($u,$pid,$gid) {
+                $p=project($u,$pid);
+                if ($p['group_id']||$p['user_id']!==$u['id']) fail(403,'Nur eigene persönliche Projekte können geteilt werden.');
+                if (!one('SELECT 1 FROM group_members WHERE group_id=? AND user_id=?',[$gid,$u['id']])) fail(403,'Sie gehören dieser Gruppe nicht an.');
+                if ((int)query('SELECT COUNT(*) FROM projects WHERE group_id=?',[$gid])->fetchColumn()>=30) fail(422,'Die Gruppe hat bereits 30 Projekte.');
+                $target=['group_id'=>$gid,'user_id'=>null];
+                $size=(int)query('SELECT COALESCE(SUM(length(CAST(content AS BLOB))),0) FROM files WHERE project_id=?',[$pid])->fetchColumn();
+                if (workspaceBytes($target)+$size>SPACE_LIMIT) fail(422,'Der Gruppen-Workspace ist voll (20 MB).');
+                query('UPDATE projects SET group_id=?,created_by=user_id,user_id=NULL,updated_at=? WHERE id=?',[$gid,now(),$pid]);
+                // Canonical LF text is required by CodeMirror collaboration.
+                foreach(all("SELECT id,content FROM files WHERE project_id=? AND kind='file'",[$pid]) as $file) query('UPDATE files SET content=?,version=version+1 WHERE id=?',[str_replace(["\r\n","\r"],"\n",$file['content']),$file['id']]);
+                audit($u['id'],'project.share');
+            }); jsonOut(['ok'=>true]);
+        case 'file.sync':
+            needFeature($u,'editor'); needFeature($u,'files'); jsonOut(synchronizeFile($u,$data));
         case 'project.rename':
-            needFeature($u,'files'); $p=project($u,textField($data,'id',32)); query('UPDATE projects SET name=?,updated_at=? WHERE id=?',[textField($data,'name',80),now(),$p['id']]); jsonOut(['ok'=>true]);
+            needFeature($u,'files'); transaction(function() use($u,$data) { $p=project($u,textField($data,'id',32));projectManager($u,$p);query('UPDATE projects SET name=?,updated_at=? WHERE id=?',[textField($data,'name',80),now(),$p['id']]); }); jsonOut(['ok'=>true]);
         case 'project.delete':
-            needFeature($u,'files'); $p=project($u,textField($data,'id',32)); query('DELETE FROM projects WHERE id=?',[$p['id']]); audit($u['id'],'project.delete'); jsonOut(['ok'=>true]);
+            needFeature($u,'files'); transaction(function() use($u,$data) { $p=project($u,textField($data,'id',32));projectManager($u,$p);query('DELETE FROM projects WHERE id=?',[$p['id']]);audit($u['id'],'project.delete'); }); jsonOut(['ok'=>true]);
         case 'files':
             needFeature($u,'files'); $p=project($u,textField($data,'project',32));
             jsonOut(['project'=>$p,'files'=>all('SELECT id,path,kind,version,length(CAST(content AS BLOB)) bytes,updated_at FROM files WHERE project_id=? ORDER BY kind DESC,path',[$p['id']])]);
@@ -72,9 +90,12 @@ try {
             needFeature($u,'editor'); needFeature($u,'files'); $p=project($u,textField($data,'project',32)); $path=filePath(textField($data,'path',240));
             $content=$data['content']??''; if (!is_string($content) || strlen($content)>FILE_LIMIT || !mb_check_encoding($content,'UTF-8')) fail(422,'Dateien müssen gültiger UTF-8-Text und höchstens 512 KB groß sein.');
             $out=transaction(function() use($u,$p,$path,$data,$content) {
+                $p=project($u,$p['id']);
+                $content=$p['group_id']?str_replace(["\r\n","\r"],"\n",$content):$content;
                 $f=one('SELECT * FROM files WHERE project_id=? AND path=?',[$p['id'],$path]);
+                if ($f && $p['group_id']) fail(409,'Diese Gruppendatei bitte im synchronisierten Editor bearbeiten.');
                 if ($f && ($f['kind']!=='file' || (int)($data['version']??0)!==(int)$f['version'])) fail(409,'Diese Datei wurde inzwischen geändert. Laden Sie sie neu, bevor Sie speichern. Ihr Entwurf bleibt im Editor.');
-                $bytes=(int)query('SELECT COALESCE(SUM(length(CAST(content AS BLOB))),0) FROM files WHERE project_id IN (SELECT id FROM projects WHERE user_id=?)',[$u['id']])->fetchColumn();
+                $bytes=workspaceBytes($p);
                 if ($bytes-strlen($f['content']??'')+strlen($content)>SPACE_LIMIT) fail(422,'Ihr Workspace ist voll (20 MB).');
                 $count=(int)query('SELECT COUNT(*) FROM files WHERE project_id=?',[$p['id']])->fetchColumn(); if (!$f && $count>=300) fail(422,'Ein Projekt kann höchstens 300 Dateien enthalten.');
                 $parts=explode('/',$path); array_pop($parts); $parent='';
@@ -87,25 +108,28 @@ try {
             }); audit($u['id'],'file.save'); jsonOut(['file'=>$out]);
         case 'folder.create':
             needFeature($u,'files'); $p=project($u,textField($data,'project',32)); $path=filePath(textField($data,'path',240));
+            transaction(function() use($u,$p,$path) {
+            project($u,$p['id']);
             checkParents($p['id'],$path);
             if ((int)query('SELECT COUNT(*) FROM files WHERE project_id=?',[$p['id']])->fetchColumn()>=300) fail(422,'Ein Projekt kann höchstens 300 Einträge enthalten.');
             if (one('SELECT id FROM files WHERE project_id=? AND path=?',[$p['id'],$path])) fail(409,'Dieser Name existiert bereits.');
-            query('INSERT INTO files(id,project_id,path,kind,updated_at) VALUES(?,?,?,\'directory\',?)',[id(),$p['id'],$path,now()]); jsonOut(['ok'=>true]);
+            query('INSERT INTO files(id,project_id,path,kind,updated_at) VALUES(?,?,?,\'directory\',?)',[id(),$p['id'],$path,now()]); }); jsonOut(['ok'=>true]);
         case 'file.rename':
             needFeature($u,'files'); $p=project($u,textField($data,'project',32)); $from=filePath(textField($data,'path',240)); $to=filePath(textField($data,'new_path',240));
-            transaction(function() use($p,$from,$to) {
+            transaction(function() use($u,$p,$from,$to) {
+                $p=project($u,$p['id']);
                 $f=one('SELECT * FROM files WHERE project_id=? AND path=?',[$p['id'],$from]); if (!$f) fail(404,'Datei nicht gefunden.');
                 if ($from===$to) return;
                 if (str_starts_with($to,$from.'/')) fail(422,'Ein Ordner kann nicht in sich selbst verschoben werden.');
                 checkParents($p['id'],$to);
                 $entries=all('SELECT * FROM files WHERE project_id=? AND (path=? OR path GLOB ?)',[$p['id'],$from,$from.'/*']);
                 foreach($entries as $e) { $dest=$to.substr($e['path'],strlen($from)); filePath($dest); if (one('SELECT id FROM files WHERE project_id=? AND (path=? OR path GLOB ?)',[$p['id'],$dest,$dest.'/*'])) fail(409,'Der Zielname existiert bereits.');
-                    query('UPDATE files SET path=?,version=version+1,updated_at=? WHERE id=?',[$dest,now(),$e['id']]); }
+                    query('UPDATE files SET path=?,version=version+?,updated_at=? WHERE id=?',[$dest,$p['group_id']?0:1,now(),$e['id']]); }
                 query('UPDATE projects SET updated_at=? WHERE id=?',[now(),$p['id']]);
             }); jsonOut(['ok'=>true]);
         case 'file.delete':
             needFeature($u,'files'); $p=project($u,textField($data,'project',32)); $path=filePath(textField($data,'path',240));
-            query('DELETE FROM files WHERE project_id=? AND (path=? OR path GLOB ?)',[$p['id'],$path,$path.'/*']); query('UPDATE projects SET updated_at=? WHERE id=?',[now(),$p['id']]); jsonOut(['ok'=>true]);
+            transaction(function() use($u,$p,$path) { project($u,$p['id']);query('DELETE FROM files WHERE project_id=? AND (path=? OR path GLOB ?)',[$p['id'],$path,$path.'/*']); query('UPDATE projects SET updated_at=? WHERE id=?',[now(),$p['id']]); }); jsonOut(['ok'=>true]);
         case 'project.bundle':
             needFeature($u,'editor'); $p=project($u,textField($data,'project',32));
             jsonOut(['files'=>all('SELECT path,content FROM files WHERE project_id=? AND kind=\'file\'',[$p['id']])]);
