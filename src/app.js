@@ -213,21 +213,53 @@ async function adminUsers(version){
   bind('new-user',()=>userDialog());bind('edit-user',(e,el)=>userDialog(data.users.find(u=>u.id===el.closest('tr').dataset.user)));
   bind('delete-user',async(e,el)=>{const target=data.users.find(u=>u.id===el.closest('tr').dataset.user);if(await confirm('Benutzer löschen',`„${target.name}“, alle Projekte, Dateien, Verbindungen und Nachrichten werden dauerhaft gelöscht.`)){await api('admin.user.delete',{id:target.id});await route();}});
 }
+function assignmentPicker(label,name,items,selected=[],emptyCopy='Noch keine Einträge angelegt.') {
+  const chosen=new Set(selected);
+  return `<fieldset class="field assignment-field"><legend class="field-label">${esc(label)}</legend><div class="assignment-picker" data-assignment>
+    <input type="search" class="assignment-search" aria-label="${name==='groups'?'Gruppen suchen':'Benutzer suchen'}" placeholder="${name==='groups'?'Gruppen suchen …':'Name oder E-Mail suchen …'}" autocomplete="off">
+    <div class="assignment-toolbar"><span class="assignment-count" role="status" aria-live="polite"></span><button type="button" class="assignment-filter" aria-pressed="false">Nur ausgewählte</button></div>
+    <div class="assignment-list">${items.map(item=>`<label class="assignment-option"><input type="checkbox" name="${name}" value="${esc(item.id)}" ${chosen.has(item.id)?'checked':''}><span><strong>${esc(item.name)}</strong>${item.detail?`<small>${esc(item.detail)}</small>`:''}</span></label>`).join('')}<p class="assignment-empty" hidden>${esc(items.length?'Keine passenden Einträge.':emptyCopy)}</p></div>
+  </div></fieldset>`;
+}
+function bindAssignments(dialog) {
+  $$('[data-assignment]',dialog).forEach(picker=>{
+    const search=$('.assignment-search',picker),filter=$('.assignment-filter',picker),rows=$$('.assignment-option',picker);
+    const inputs=rows.map(row=>$('input',row));
+    const searchTexts=rows.map(row=>row.textContent.toLocaleLowerCase('de'));
+    let selectedOnly=false;
+    const update=()=>{
+      const term=search.value.trim().toLocaleLowerCase('de');let visible=0;
+      rows.forEach((row,index)=>{row.hidden=!searchTexts[index].includes(term)||(selectedOnly&&!inputs[index].checked);if(!row.hidden)visible++;});
+      $('.assignment-count',picker).textContent=`${inputs.filter(input=>input.checked).length} von ${rows.length} ausgewählt`;
+      $('.assignment-empty',picker).hidden=visible>0;
+      filter.setAttribute('aria-pressed',String(selectedOnly));
+      filter.textContent=selectedOnly?'Alle anzeigen':'Nur ausgewählte';
+      filter.disabled=rows.length===0;
+    };
+    search.addEventListener('input',update);
+    picker.addEventListener('change',update);
+    filter.addEventListener('click',()=>{selectedOnly=!selectedOnly;update();});
+    // Keep filtered checkboxes in the form so their selections are submitted too.
+    search.addEventListener('keydown',event=>{if(event.key==='Enter')event.preventDefault();});
+    update();
+  });
+}
 async function userDialog(target=null){
-  const [{groups}]=await Promise.all([api('admin.groups')]);
-  return modal(target?'Benutzer bearbeiten':'Benutzer anlegen',`<div class="form">${field('Name','name',target?.name||'','text','','required maxlength="120"')}${field('E-Mail-Adresse','email',target?.email||'','email','','required')}<div class="form-grid"><label class="field"><span>Rolle</span><select name="role"><option value="user" ${target?.role!=='admin'?'selected':''}>Lernender</option><option value="admin" ${target?.role==='admin'?'selected':''}>Administrator</option></select></label><label class="field"><span>Status</span><select name="active"><option value="1" ${target?.active!==false?'selected':''}>Aktiv</option><option value="0" ${target?.active===false?'selected':''}>Gesperrt</option></select></label></div>${field(target?'Neues vorläufiges Passwort (optional)':'Vorläufiges Passwort','password','','password',target?'Leer lassen, um das Passwort beizubehalten.':'Der Benutzer ersetzt es beim ersten Login.',(target?'':'required ')+'minlength="12" autocomplete="new-password"')}<div class="field"><span>Gruppenzuordnung (optional)</span><div class="check-list">${groups.map(g=>`<label><input type="checkbox" name="groups" value="${g.id}" ${target?.groups.some(v=>v.id===g.id)?'checked':''}>${esc(g.name)}</label>`).join('')||'<span class="muted">Noch keine Gruppen angelegt.</span>'}</div></div><div class="field"><span>Persönliche Freigaben</span>${featureControls(target?.features||{})}</div></div>`,async data=>{await api('admin.user.save',{id:target?.id||'',name:data.get('name'),email:data.get('email'),role:data.get('role'),active:data.get('active')==='1',password:data.get('password'),groups:data.getAll('groups'),features:readFeatures(data)});toast('Benutzer gespeichert.');await route();});
+  const {groups}=await api('admin.groups');
+  return modal(target?'Benutzer bearbeiten':'Benutzer anlegen',`<div class="form">${field('Name','name',target?.name||'','text','','required maxlength="120"')}${field('E-Mail-Adresse','email',target?.email||'','email','','required')}<div class="form-grid"><label class="field"><span>Rolle</span><select name="role"><option value="user" ${target?.role!=='admin'?'selected':''}>Lernender</option><option value="admin" ${target?.role==='admin'?'selected':''}>Administrator</option></select></label><label class="field"><span>Status</span><select name="active"><option value="1" ${target?.active!==false?'selected':''}>Aktiv</option><option value="0" ${target?.active===false?'selected':''}>Gesperrt</option></select></label></div>${field(target?'Neues vorläufiges Passwort (optional)':'Vorläufiges Passwort','password','','password',target?'Leer lassen, um das Passwort beizubehalten.':'Der Benutzer ersetzt es beim ersten Login.',(target?'':'required ')+'minlength="12" autocomplete="new-password"')}${assignmentPicker('Gruppenzuordnung (optional)','groups',groups.map(g=>({...g,detail:g.description})),target?.groups.map(g=>g.id)||[],'Noch keine Gruppen angelegt.')}<div class="field"><span>Persönliche Freigaben</span>${featureControls(target?.features||{})}</div></div>`,async data=>{await api('admin.user.save',{id:target?.id||'',name:data.get('name'),email:data.get('email'),role:data.get('role'),active:data.get('active')==='1',password:data.get('password'),groups:data.getAll('groups'),features:readFeatures(data)});toast('Benutzer gespeichert.');await route();},'Speichern',{after:bindAssignments});
 }
 async function adminGroups(version){
   const {groups}=await api('admin.groups');
-  if(!render(`<div class="content">${pageHead('03','Gemeinsam organisiert<span class="accent">.</span>','Gruppen bündeln Zugänge, Freigaben und den gemeinsamen Chat.',button('Gruppe anlegen','new-group','primary','add'))}${groups.length?`<div class="project-grid">${groups.map((g,i)=>`<article class="project-card"><div class="meta"><span class="accent">${String(i+1).padStart(2,'0')}</span> // GRUPPE</div><h3>${esc(g.name)}</h3><p class="muted" style="font-size:12px">${esc(g.description)||'Gemeinsamer Lernraum.'}</p><div class="card-foot"><span>${num(g.members)} Mitglieder</span><div data-group-id="${g.id}">${ib('edit','edit-group','Gruppe bearbeiten')}${ib('delete','delete-group','Gruppe löschen')}</div></div></article>`).join('')}</div>`:empty('Raum für Ihre Lerngruppe','Gruppen sind optional. Jeder Benutzer hat auch ohne Gruppe einen eigenen Space.','groups') }<div class="notice">Mitglieder ordnen Sie in der Benutzerverwaltung zu. Gesperrte Funktionen einer Gruppe bleiben für ihre Mitglieder gesperrt.</div></div>`,version))return;
+  if(!render(`<div class="content">${pageHead('03','Gemeinsam organisiert<span class="accent">.</span>','Gruppen bündeln Zugänge, Freigaben und den gemeinsamen Chat.',button('Gruppe anlegen','new-group','primary','add'))}${groups.length?`<div class="project-grid">${groups.map((g,i)=>`<article class="project-card"><div class="meta"><span class="accent">${String(i+1).padStart(2,'0')}</span> // GRUPPE</div><h3>${esc(g.name)}</h3><p class="muted" style="font-size:12px">${esc(g.description)||'Gemeinsamer Lernraum.'}</p><div class="card-foot"><span>${num(g.members)} Mitglieder</span><div data-group-id="${g.id}">${ib('edit','edit-group','Gruppe bearbeiten')}${ib('delete','delete-group','Gruppe löschen')}</div></div></article>`).join('')}</div>`:empty('Raum für Ihre Lerngruppe','Gruppen sind optional. Jeder Benutzer hat auch ohne Gruppe einen eigenen Space.','groups') }<div class="notice">Mitglieder können Sie hier beim Anlegen oder Bearbeiten einer Gruppe und in der Benutzerverwaltung zuordnen. Gesperrte Funktionen einer Gruppe bleiben für ihre Mitglieder gesperrt.</div></div>`,version))return;
   bind('new-group',()=>groupDialog());bind('edit-group',(e,el)=>groupDialog(groups.find(g=>g.id===el.closest('[data-group-id]').dataset.groupId)));
   bind('delete-group',async(e,el)=>{const g=groups.find(g=>g.id===el.closest('[data-group-id]').dataset.groupId);if(await confirm('Gruppe löschen',`„${g.name}“ und ihr Chat werden gelöscht. Die persönlichen Workspaces bleiben erhalten.`)){await api('admin.group.delete',{id:g.id});await route();}});
 }
 function featureControls(flags={},prefix='feature'){return Object.entries(FEATURES).map(([key,[label,copy]])=>`<div class="feature-row"><div><strong>${label}</strong><p>${copy}</p></div><label class="switch"><span class="hidden">${label} freigeben</span><input name="${prefix}-${key}" type="checkbox" ${flags[key]!==false?'checked':''}></label></div>`).join('');}
 function readFeatures(data,prefix='feature'){return Object.fromEntries(Object.keys(FEATURES).map(k=>[k,data.has(prefix+'-'+k)]));}
-function groupDialog(group=null){
+async function groupDialog(group=null){
+  const {users}=await api('admin.users');
   const flags=group?JSON.parse(group.features):{};
-  return modal(group?'Gruppe bearbeiten':'Neue Gruppe',`<div class="form">${field('Gruppenname','name',group?.name||'','text','','required maxlength="80"')}<label class="field"><span>Beschreibung</span><textarea name="description" maxlength="500">${esc(group?.description||'')}</textarea></label></div><div class="section-head"><h2>Funktionsfreigaben</h2></div>${featureControls(flags)}`,async data=>{await api('admin.group.save',{id:group?.id||'',name:data.get('name'),description:data.get('description'),features:readFeatures(data)});toast('Gruppe gespeichert.');await route();});
+  return modal(group?'Gruppe bearbeiten':'Neue Gruppe',`<div class="form">${field('Gruppenname','name',group?.name||'','text','','required maxlength="80"')}<label class="field"><span>Beschreibung</span><textarea name="description" maxlength="500">${esc(group?.description||'')}</textarea></label>${assignmentPicker('Mitglieder (optional)','users',users.map(u=>({...u,detail:u.email+(u.active?'':' · Gesperrt')})),group?.user_ids||[],'Noch keine Benutzer angelegt.')}</div><div class="section-head"><h2>Funktionsfreigaben</h2></div>${featureControls(flags)}`,async data=>{await api('admin.group.save',{id:group?.id||'',name:data.get('name'),description:data.get('description'),users:data.getAll('users'),features:readFeatures(data)});toast('Gruppe gespeichert.');await route();},'Speichern',{after:bindAssignments});
 }
 async function adminFeatures(version){
   const d=await api('admin.overview');
