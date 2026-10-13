@@ -1,3 +1,4 @@
+import {imageURL,cssImages} from './preview-assets.js';
 export function execute(language,files,path,onPhase=()=>{},query='') {
   let frame,port,timer,abort,readyOnce=false;
   const promise=new Promise((resolve,reject)=>{
@@ -23,7 +24,7 @@ export function execute(language,files,path,onPhase=()=>{},query='') {
   return {promise,stop:()=>abort?.()};
 }
 
-export function previewDocument(content,files,path) {
+export function previewDocument(content,files,path,assets=[]) {
   const doc=new DOMParser().parseFromString(content,'text/html');
   const paths=new Map(files.map(f=>[f.path,f.content]));
   const relative=(url)=>{
@@ -32,12 +33,18 @@ export function previewDocument(content,files,path) {
   doc.querySelectorAll('base,meta[http-equiv],iframe,object,embed').forEach(e=>e.remove());
   for(const link of doc.querySelectorAll('link[rel="stylesheet"]')) {
     const file=paths.get(relative(link.getAttribute('href')));
-    if(file!==undefined){const style=doc.createElement('style');style.textContent=file;link.replaceWith(style);}else link.remove();
+    if(file!==undefined){const style=doc.createElement('style');style.textContent=cssImages(file,relative(link.getAttribute('href')),assets);style.dataset.workspaceCss='true';link.replaceWith(style);}else link.remove();
   }
   for(const script of doc.querySelectorAll('script[src]')) {
     const file=paths.get(relative(script.getAttribute('src')));
     if(file!==undefined){script.removeAttribute('src');script.textContent=file;}else script.remove();
   }
+  for(const el of doc.querySelectorAll('img[src],input[type="image"][src]'))el.setAttribute('src',imageURL(el.getAttribute('src'),path,assets));
+  for(const el of doc.querySelectorAll('[poster]'))el.setAttribute('poster',imageURL(el.getAttribute('poster'),path,assets));
+  for(const el of doc.querySelectorAll('img[srcset],source[srcset]')){const value=el.getAttribute('srcset');if(!value.includes('data:'))el.setAttribute('srcset',value.split(',').map(candidate=>candidate.trim().replace(/^(\S+)/,url=>imageURL(url,path,assets))).join(', '));}
+  for(const el of doc.querySelectorAll('link[rel~="icon"]'))el.setAttribute('href',imageURL(el.getAttribute('href'),path,assets));
+  for(const style of doc.querySelectorAll('style:not([data-workspace-css])'))style.textContent=cssImages(style.textContent,path,assets);
+  for(const el of doc.querySelectorAll('[style]'))el.setAttribute('style',cssImages(el.getAttribute('style'),path,assets));
   const policy=doc.createElement('meta');policy.httpEquiv='Content-Security-Policy';
   policy.content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob:; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'";
   doc.head.prepend(policy);
@@ -45,20 +52,20 @@ export function previewDocument(content,files,path) {
   doc.head.insertBefore(bridge,policy.nextSibling);
   return '<!doctype html>\n'+doc.documentElement.outerHTML;
 }
-export function createPreviewFrame(content,files,path) {
+export function createPreviewFrame(content,files,path,assets=[]) {
   const frame=document.createElement('iframe');frame.className='output-frame';frame.title='Website-Vorschau';frame.sandbox='allow-scripts';frame.src='/sandbox/view.php';frame.dataset.path=path;
-  const html=previewDocument(content,files,path);
+  const html=previewDocument(content,files,path,assets);
   const ready=e=>{if(e.source===frame.contentWindow&&e.origin==='null'&&e.data?.type==='renderer-ready'){removeEventListener('message',ready);frame.contentWindow.postMessage({type:'render',html},'*');}};
   addEventListener('message',ready);frame.addEventListener('load',()=>{if(!frame.isConnected)removeEventListener('message',ready);});
   return frame;
 }
-export async function renderPreview(target,files,path,onPhase=()=>{},query='') {
+export async function renderPreview(target,files,path,onPhase=()=>{},query='',assets=[]) {
   const entry=files.find(f=>f.path===path);if(!entry)throw Error('Die Startdatei wurde nicht gefunden.');
   const language=path.endsWith('.php')?'php':path.endsWith('.py')?'python':path.endsWith('.js')?'javascript':'html';
   let content=entry.content,errors='',job;
   if(language!=='html'){job=execute(language,files,path,onPhase,query);const result=await job.promise;content=result.output;errors=result.errors;}
   target.replaceChildren();
-  if(language==='php'||language==='html') {target.append(createPreviewFrame(content,files,path));}
+  if(language==='php'||language==='html') {target.append(createPreviewFrame(content,files,path,assets));}
   else {const pre=document.createElement('pre');pre.textContent=content||'Das Script wurde ohne Ausgabe beendet.';target.append(pre);}
   return {job,errors};
 }

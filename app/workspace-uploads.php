@@ -30,3 +30,9 @@ function workspaceUpload(array $u,array $data): array {
         query('UPDATE projects SET updated_at=? WHERE id=?',[now(),$p['id']]);audit($u['id'],'file.upload',['project'=>$p['id']]);return ['id'=>$fid,'path'=>$path,'extension'=>$ext,'size'=>strlen($content)];
     });
 }
+
+function previewImageAssets(array $u,array $p): array {
+    if(!features($u)['files'])return [];
+    $mime=['png'=>'image/png','apng'=>'image/png','jpg'=>'image/jpeg','jpeg'=>'image/jpeg','jpe'=>'image/jpeg','jfif'=>'image/jpeg','gif'=>'image/gif','webp'=>'image/webp','avif'=>'image/avif','bmp'=>'image/bmp','ico'=>'image/x-icon','svg'=>'image/svg+xml'];
+    $out=[];foreach(all("SELECT f.id,f.path,a.extension,a.size FROM files f JOIN workspace_uploads a ON a.file_id=f.id WHERE f.project_id=?",[$p['id']]) as $file){if(isset($mime[$file['extension']]))$out[]=['id'=>$file['id'],'path'=>$file['path'],'mime'=>$mime[$file['extension']],'size'=>(int)$file['size']];}return $out;
+}

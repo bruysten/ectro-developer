@@ -1,7 +1,7 @@
 {
   "public/assets/THIRD-PARTY-LICENSES.txt": "823083c3993d4f76e676e56db3c8162b87ac00bd3f900229e8260f66b87f759b",
-  "public/assets/app.css": "412fa49638e44489b5cf23d056cd5431fae4f2eb82f8a6c7b0429514fbc9229d",
-  "public/assets/app.js": "6af9ba806df4b4030973c09d5ec04462a945e6bc44204044bda2003f03eea714",
+  "public/assets/app.css": "a353c0cd9eb927fe072a93bd839e9eed380dfbc4edfed4ba3b6d00ec7fdf5d9c",
+  "public/assets/app.js": "b6d39496f361d910e38db3f34770ccc631cc2b38b6af3ed2cd95b205bb808167",
   "public/assets/brand/logo-dark.svg": "2b33fd5248db698e5f95a19bb12af84defbf8c787c8292fefa7c87c48ffc1371",
   "public/assets/brand/logo-icon.svg": "43003eecd874d3596644157d68a4647ac0d0f0bd6e7f2336fde0a68b04c6fe7e",
   "public/assets/brand/logo.svg": "9922ed33c6eb5368728190460a965f7a4df48e43633209501363025636648511",
@@ -34,7 +34,7 @@
   "public/assets/licenses/PYODIDE-LICENSE": "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5",
   "public/assets/licenses/SPACE-GROTESK-OFL.txt": "564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72",
   "public/assets/pdf-preview.js": "11a5ee686eea26e81019e8f2126dfd3ea32f93235a48b009ae3c828502a0a0cb",
-  "public/assets/preview.js": "920812f5e3f74d2580dfd156ecf6d69c1b093c93f646420c781e6fb7ec71c27b",
+  "public/assets/preview.js": "7df15450e94ad286dd530f9e1affb98d13eebab659e0d5b724ed163df63cb85f",
   "public/assets/runtime/.htaccess": "01ce3d1551f6cfe61232a9d2f1fe124250416910c0be9c1f3e49451dcd66598e",
   "public/assets/runtime/pdf/fonts/FoxitDingbats.pfb": "845c752392b6c914fb989c75a08b7792b88f542d2499042ef2889f8c814a16ed",
   "public/assets/runtime/pdf/fonts/FoxitFixed.pfb": "b6c8fe53f134b8b6d4578cd2d544df4cee9624c4efa8d51a560fb40ea296101b",

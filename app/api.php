@@ -142,7 +142,7 @@ try {
             transaction(function() use($u,$p,$path) { project($u,$p['id']);query('DELETE FROM files WHERE project_id=? AND (path=? OR path GLOB ?)',[$p['id'],$path,$path.'/*']); query('UPDATE projects SET updated_at=? WHERE id=?',[now(),$p['id']]); }); jsonOut(['ok'=>true]);
         case 'project.bundle':
             needFeature($u,'editor'); $p=project($u,textField($data,'project',32));
-            jsonOut(['files'=>all('SELECT path,content FROM files WHERE project_id=? AND kind=\'file\'',[$p['id']])]);
+            jsonOut(['files'=>all('SELECT path,content FROM files WHERE project_id=? AND kind=\'file\'',[$p['id']]),'assets'=>previewImageAssets($u,$p)]);
         case 'run.record':
             needFeature($u,'editor'); $language=textField($data,'language',20); if (!in_array($language,['html','php','python','javascript'])) fail(422,'Unbekannte Sprache.');
             needFeature($u,$language==='javascript'?'html':$language); project($u,textField($data,'project',32)); rateLimit('run',100,60); audit($u['id'],'run',['language'=>$language]); jsonOut(['ok'=>true]);

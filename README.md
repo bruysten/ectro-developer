@@ -82,8 +82,10 @@ Im Adminbereich beim Anlegen oder Bearbeiten eines Benutzers die Rolle **Lehrer*
 
 ### Dokumente und Bilder im Dateimanager
 
-Unter Dateien ein Projekt wählen und **Hochladen** öffnen. Datei und Projektpfad auswählen; nach dem Upload steht das Original sofort mit Vorschau und Download in der Liste. PDF und moderne Office-Dokumente verwenden die vorhandene Vorschau, gängige Bilder werden direkt dargestellt. Weitere Bild-/RAW-/Grafikformate können heruntergeladen werden. Unter **Admin → Funktionen → Projekt-Uploads** lassen sich Uploads, erlaubte Endungen und Dateigröße einstellen. Code und Uploads teilen sich die bestehende Workspace-Quote von 20 MB; das wirksame Uploadlimit berücksichtigt auch PHP.
+Unter Dateien ein Projekt wählen und **Hochladen** öffnen. Datei in die Dropzone ziehen oder per Klick auswählen, Zielprojekt und Projektpfad wählen; das zuletzt verwendete Projekt ist pro Benutzer vorausgewählt. Nach dem Upload steht das Original sofort mit Vorschau und Download in der Liste. PDF und moderne Office-Dokumente verwenden die vorhandene Vorschau, gängige Bilder werden direkt dargestellt. Weitere Bild-/RAW-/Grafikformate können heruntergeladen werden. Unter **Admin → Funktionen → Projekt-Uploads** lassen sich Uploads, erlaubte Endungen und Dateigröße einstellen. Code und Uploads teilen sich die bestehende Workspace-Quote von 20 MB; das wirksame Uploadlimit berücksichtigt auch PHP.
 
 ### Anmeldedauer
 
 Unter **Admin → Funktionen → Anmeldung** die Anmeldedauer in Stunden einstellen. Standard sind **8 Stunden**, möglich sind 1–168 Stunden. Die Zeit zählt ab dem Login und wird durch Aktivität nicht verlängert. Die Einstellung gilt für Lernende, Lehrer und Administratoren sowie bereits laufende Sitzungen. Nach Ablauf verlangt die nächste Anfrage eine erneute Anmeldung.
+
+Hochgeladene browsergeeignete Bilder lassen sich in HTML-/PHP-Ausgaben mit relativen Pfaden verwenden, etwa `<img src="bild.png">` oder CSS `url("images/bild.png")`. Sie werden auch im separaten Vorschaufenster dargestellt; die Vorschau bleibt isoliert.
