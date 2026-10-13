@@ -217,3 +217,5 @@ html[data-workspace-resizing="x"],html[data-workspace-resizing="x"] * { cursor:c
 html[data-workspace-resizing="y"],html[data-workspace-resizing="y"] * { cursor:row-resize!important; }
 html[data-workspace-resizing] iframe { pointer-events:none!important; }
 @media(max-width:560px) { .editor-layout>[data-resize="files"] { height:8px;flex:none; } }
+
+.project-actions { display:flex;align-items:center;gap:4px;flex-shrink:0; }

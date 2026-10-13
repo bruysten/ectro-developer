@@ -212,6 +212,17 @@ with tempfile.TemporaryDirectory(prefix='ectro-test-') as private:
         check(all(t['id']!='web' for t in admin.ok('admin.templates')['templates']), 'Deleted default does not reappear after initialization')
         check(bob.ok('file',project=personal,path='index.html')['file']['content']==before, 'Deleting type preserves existing projects')
         check(bob.call('project.create',{'name':'Deleted','template':'web'})[0]==422, 'Deleted type unavailable to new projects')
+        # Whole-project deletion removes nested files and folders, preserving other projects.
+        bob.ok('folder.create', {'project':new_project,'path':'nested'})
+        bob.ok('file.save', {'project':new_project,'path':'nested/example.txt','content':'Remove me','version':0})
+        check(bob.call('project.delete', {'id':pid})[0]==404, 'Cannot delete another user project')
+        bob.ok('project.delete', {'id':new_project})
+        check(all(p['id']!=new_project for p in bob.ok('projects')['projects']), 'Deleted project disappears from overview')
+        check(bob.call('files',project=new_project)[0]==404, 'Deleted project folders and files inaccessible')
+        check(bob.call('file',project=new_project,path='nested/example.txt')[0]==404, 'Nested project file removed')
+        check(bob.call('project.bundle',{'project':new_project})[0]==404, 'Deleted project cannot be previewed')
+        check(bob.call('project.delete',{'id':new_project})[0]==404, 'Repeated deletion reports missing project')
+        check(bob.ok('file',project=personal,path='index.html')['file']['content']==before, 'Deleting a project preserves other project files')
         print(f'{CHECKS} API/security integration checks passed.')
     finally:
         server.terminate();server.wait(timeout=10)
