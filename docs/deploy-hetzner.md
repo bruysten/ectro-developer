@@ -74,3 +74,7 @@ Mit einem echten Lernenden-Zugang HTML/JS, PHP und Python ausführen und eine HT
 Die App unterscheidet Anmeldung (1045/1698), fehlende Datenbankrechte (1044), unbekannte Datenbank (1049), DNS (2005), Erreichbarkeit (2002/2003), Verbindungsabbruch (2006/2013) und TLS (2026 bzw. mysqlnd-SSL-Fehler). Die Meldungen zeigen keinen rohen Treiberfehler und keine Zugangsdaten. Ein fehlender PDO-MySQL-Treiber wird gesondert gemeldet. Bei Hetzner die Verbindungsdaten in konsoleH verwenden; das Hauptpasswort wird benötigt, wenn Lernende auch Tabellenstrukturen verwalten sollen.
 
 Quelle der mitgelieferten CA: [Hetzner MariaDB/MySQL](https://docs.hetzner.com/de/managed/databases/mariadb-mysql/), abgerufen am 13.10.2026. SHA-256-Zertifikatfingerprint: `0C:2F:66:73:68:A8:03:14:E2:45:5E:1D:FF:FE:89:64:85:4D:9D:11:2F:C6:F5:A3:68:CF:D2:AE:93:6A:74:27`; gültig bis 04.06.2032. Das Zertifikat wird mit dem Release ausgeliefert und zur Laufzeit nicht heruntergeladen.
+
+### Chat-Uploads
+
+Die vorgefertigten PDF-/Office-Vorschauen sind mitgeliefert. Anhänge liegen privat in der bestehenden SQLite-Datenbank; sie gehören zum Datenbankbackup. Keine zusätzliche Installation ist erforderlich. Für größere Uploads bei Bedarf `upload_max_filesize` und `post_max_size` in den PHP-Einstellungen des Hostings erhöhen; die App zeigt das aktuell wirksame Limit an und berücksichtigt einen Multipart-Puffer. Die Adminfreigabe ist auf 1–25 MB pro Datei begrenzt, der Dateispeicher auf 100 MB je Gruppe.

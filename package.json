@@ -20,5 +20,9 @@
     "codemirror": "6.0.2",
     "esbuild": "0.25.10",
     "pyodide": "0.28.3"
+  },
+  "dependencies": {
+    "fflate": "0.8.3",
+    "pdfjs-dist": "6.4.299"
   }
 }

@@ -223,6 +223,70 @@ with tempfile.TemporaryDirectory(prefix='ectro-test-') as private:
         check(bob.call('project.bundle',{'project':new_project})[0]==404, 'Deleted project cannot be previewed')
         check(bob.call('project.delete',{'id':new_project})[0]==404, 'Repeated deletion reports missing project')
         check(bob.ok('file',project=personal,path='index.html')['file']['content']==before, 'Deleting a project preserves other project files')
+        # Chat uploads are private group data, never executable web files.
+        def upload(client, group_id, filename, content, body='', csrf=True):
+            boundary='ectro-test-boundary-2026'
+            payload=(f'--{boundary}\r\nContent-Disposition: form-data; name="group"\r\n\r\n{group_id}\r\n--{boundary}\r\nContent-Disposition: form-data; name="body"\r\n\r\n{body}\r\n--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{filename}"\r\nContent-Type: application/octet-stream\r\n\r\n').encode()+content+f'\r\n--{boundary}--\r\n'.encode()
+            request=urllib.request.Request(base+'/api/?action=chat.upload',data=payload,headers={'Content-Type':'multipart/form-data; boundary='+boundary,**({'X-CSRF-Token':client.token} if csrf else {})})
+            try: response=client.opener.open(request,timeout=10)
+            except urllib.error.HTTPError as error: response=error
+            return response.code,json.loads(response.read())
+        def attachment(client, file_id):
+            try: response=client.opener.open(base+'/chat-file.php?id='+file_id,timeout=10)
+            except urllib.error.HTTPError as error: response=error
+            return response.code,response.headers,response.read()
+        sharing=admin.ok('admin.overview')['sharing']
+        check(sharing['enabled'] and all(t in sharing['types'] for t in ['pdf','php','docx','xlsx','pptx','odt']), 'Generous chat upload defaults')
+        check(upload(bob,other_group,'source.php',b'<?php echo "must not execute"; ?>',csrf=False)[0]==403, 'Upload CSRF required')
+        check(upload(bob,group,'source.php',b'code')[0]==403, 'No upload to another group')
+        check(upload(bob,other_group,'program.exe',b'not executable')[0]==422, 'Unapproved extension rejected')
+        check(upload(bob,other_group,'.env',b'secret')[0]==422, 'Hidden filename rejected')
+        check(upload(bob,other_group,'empty.txt',b'')[0]==413, 'Empty attachment rejected')
+        code=b'<?php echo "must not execute"; ?>'
+        check(upload(bob,other_group,'source.php',code,body='A source file')[0]==200, 'Source attachment accepted')
+        history=bob.ok('chat',group=other_group)
+        entry=history['messages'][-1];file_id=entry['attachment']['id']
+        check(entry['body']=='A source file' and entry['attachment']['name']=='source.php', 'Attachment metadata in chat history')
+        check('content' not in entry['attachment'], 'History does not include binary payload')
+        status,headers,content=attachment(bob,file_id)
+        check(status==200 and content==code and headers['Content-Type']=='application/octet-stream', 'Source download is exact bytes and not executed')
+        check(headers['Content-Disposition'].startswith('attachment;') and 'sandbox' in headers['Content-Security-Policy'], 'Download headers isolate active content')
+        check(attachment(anonymous,file_id)[0]==401, 'Anonymous cannot download')
+        check(attachment(admin,file_id)[0]==200, 'Administrator can review attachments outside own groups')
+        check(bob.call('admin.chat',group=other_group)[0]==403, 'Learner cannot access moderation history')
+        check(bob.call('admin.chat.delete',{'group':other_group,'message':entry['id']})[0]==403, 'Learner cannot moderate')
+        check(admin.call('admin.chat.reset',{'group':other_group},csrf=False)[0]==403, 'Reset requires CSRF')
+        check(admin.call('admin.chat.delete',{'group':group,'message':entry['id']})[0]==404, 'Moderation scoped to specified group')
+        config={'enabled':False,'types':['txt'],'max_mb':1}
+        admin.ok('admin.settings',{'features':{},'hosts':['localhost'],'chat_sharing':config})
+        check(upload(bob,other_group,'note.txt',b'text')[0]==403, 'Global sharing disable enforced')
+        check(attachment(bob,file_id)[0]==200, 'Sharing disable preserves existing downloads')
+        admin.ok('admin.settings',{'features':{},'hosts':['localhost'],'chat_sharing':{**config,'enabled':True}})
+        check(upload(bob,other_group,'source.php',b'code')[0]==422, 'Configured type restriction enforced')
+        check(upload(bob,other_group,'big.txt',b'x'*1048577)[0]==413, 'Configured upload size enforced')
+        check(admin.call('admin.settings',{'features':{},'hosts':['localhost'],'chat_sharing':{**config,'types':['../php']}})[0]==422, 'Invalid sharing settings rejected')
+        check(bob.ok('chat',group=other_group)['sharing']['types']==['txt'], 'Failed settings save preserves configuration')
+        bob_id=users[1][0]
+        admin.ok('admin.group.save',{'id':other_group,'name':'Private group','users':[]})
+        check(attachment(bob,file_id)[0]==403, 'Membership removal revokes saved attachment URL')
+        admin.ok('admin.group.save',{'id':other_group,'name':'Private group','users':[bob_id]})
+        admin.ok('admin.chat.delete',{'group':other_group,'message':entry['id']})
+        check(attachment(bob,file_id)[0]==404, 'Deleting message cascades to attachment')
+        revised=bob.ok('chat',group=other_group,after=entry['id'],revision=history['revision'])
+        check(revised['reset'] and revised['revision']>history['revision'], 'Moderation invalidates open chat history')
+        check(upload(bob,other_group,'note.txt',b'Test reset')[0]==200, 'Attachment-only message accepted')
+        last=bob.ok('chat',group=other_group)['messages'][-1]['attachment']['id']
+        admin.ok('admin.chat.reset',{'group':other_group})
+        check(bob.ok('chat',group=other_group)['messages']==[] and attachment(bob,last)[0]==404, 'Group chat reset removes messages and attachments')
+        check(bob.ok('files',project=grouped)['project']['id']==grouped, 'Chat reset preserves group projects')
+        # History remains paginated and complete rather than truncating the group chat.
+        seed=subprocess.run(['php','-r',"require 'app/bootstrap.php';for($i=0;$i<105;$i++)query('INSERT INTO messages(group_id,user_id,body,created_at) VALUES(?,?,?,?)',[$argv[1],$argv[2],'History '.$i,now()]);",other_group,bob_id],cwd=ROOT,env=env,capture_output=True)
+        check(seed.returncode==0, 'Isolated pagination fixtures created')
+        recent=bob.ok('chat',group=other_group)
+        older=bob.ok('chat',group=other_group,before=recent['messages'][0]['id'])
+        check(len(recent['messages'])==100 and recent['has_more'] and len(older['messages'])==5 and not older['has_more'], 'All history pages available')
+        check(not ({m['id'] for m in recent['messages']} & {m['id'] for m in older['messages']}), 'History pages do not overlap')
+        admin.ok('admin.chat.reset',{'group':other_group})
         print(f'{CHECKS} API/security integration checks passed.')
     finally:
         server.terminate();server.wait(timeout=10)
