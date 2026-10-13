@@ -7,12 +7,13 @@ require_once __DIR__ . '/chat.php';
 require_once __DIR__ . '/workspace-uploads.php';
 require_once __DIR__ . '/sql-training.php';
 require_once __DIR__ . '/collaboration.php';
+require_once __DIR__ . '/mail.php';
 secureHeaders();
 try {
     keyBytes(); sessionStart();
     $action = $_GET['action'] ?? 'bootstrap';
     $method = $_SERVER['REQUEST_METHOD'];
-    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info'];
+    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info','admin.mail','admin.mail.templates'];
     if ($method !== 'GET' && $method !== 'POST') fail(405, 'Methode nicht erlaubt.');
     if (!in_array($action, $readActions, true) && $method !== 'POST') fail(405, 'Diese Aktion benötigt POST.');
     if (in_array($action, $readActions, true) && $method !== 'GET') fail(405, 'Diese Aktion benötigt GET.');
@@ -222,7 +223,7 @@ try {
                 'daily'=>all("SELECT substr(created_at,1,10) day,COUNT(*) activity,SUM(event='run') runs FROM events WHERE created_at>=? GROUP BY day ORDER BY day",[gmdate('Y-m-d',time()-13*86400)]),
                 'languages'=>all("SELECT json_extract(details,'$.language') language,COUNT(*) runs FROM events WHERE event='run' GROUP BY language"),
                 'events'=>all('SELECT e.event,e.created_at,u.name FROM events e LEFT JOIN users u ON u.id=e.user_id ORDER BY e.id DESC LIMIT 30'),
-                'sharing'=>chatSharing(),'uploads'=>workspaceUploads(),'session_hours'=>sessionHours(),'settings'=>settings(),'hosts'=>allowedHosts(),'health'=>['php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'sqlite'=>true,'mysql'=>extension_loaded('pdo_mysql'),'encryption'=>extension_loaded('sodium'),'private_storage'=>is_writable(dataDir())]]);
+                'sharing'=>chatSharing(),'uploads'=>workspaceUploads(),'session_hours'=>sessionHours(),'settings'=>array_diff_key(settings(),['mailjet'=>true]),'hosts'=>allowedHosts(),'health'=>['php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'sqlite'=>true,'mysql'=>extension_loaded('pdo_mysql'),'encryption'=>extension_loaded('sodium'),'private_storage'=>is_writable(dataDir())]]);
         case 'admin.templates': jsonOut(['templates'=>projectTypes()]);
         case 'admin.template': jsonOut(['template'=>projectType(textField($data,'id',32))]);
         case 'admin.template.save': jsonOut(['id'=>saveProjectType($u,$data),'ok'=>true]);
@@ -234,13 +235,33 @@ try {
                 if(!is_int($data['version']??null)||(int)$type['version']!==$data['version'])fail(409,'Der Projekttyp wurde inzwischen geändert. Bitte aktualisieren Sie die Übersicht.');
                 query('DELETE FROM project_types WHERE id=?',[$tid]);audit($u['id'],'admin.template.delete');
             }); jsonOut(['ok'=>true]);
+        case 'admin.mail':
+            initializeMailTemplates();cleanWelcomeMails();jsonOut(['config'=>publicMailConfig(),'mails'=>all('SELECT id,user_id,recipient,template_name,status,error,created_at,updated_at FROM welcome_mails ORDER BY created_at DESC LIMIT 50')]);
+        case 'admin.mail.save': saveMailConfig($u,$data);jsonOut(['ok'=>true,'config'=>publicMailConfig()]);
+        case 'admin.mail.test':
+            rateLimit('mail.test.'.$u['id'],5,60);$c=mailConfig();if(empty($c['api_key'])||empty($c['api_secret']))fail(422,'Bitte zuerst beide Mailjet-Schlüssel speichern.');
+            $result=mailjetSend($c,['To'=>[['Email'=>$c['sender_email'],'Name'=>$c['sender_name']]],'Subject'=>'Verbindung prüfen','TextPart'=>'Mailjet-Verbindungsprüfung.'],true);jsonOut(['result'=>$result]);
+        case 'admin.mail.retry':
+            rateLimit('mail.send.'.$u['id'],20,60);$mid=textField($data,'id',32);$mail=one('SELECT status FROM welcome_mails WHERE id=?',[$mid]);if(!$mail)fail(404,'Zugangsmail nicht gefunden.');
+            if($mail['status']==='uncertain'&&($data['confirm_uncertain']??false)!==true)fail(422,'Der Versandstatus ist unklar. Bitte zuerst Mailjet prüfen und den erneuten Versand bestätigen.');
+            jsonOut(['mail'=>deliverWelcome($mid,$u,true)]);
+        case 'admin.mail.templates': initializeMailTemplates();jsonOut(['templates'=>all('SELECT * FROM mail_templates ORDER BY name'),'variables'=>MAIL_VARIABLES,'defaults'=>mailDefaults()]);
+        case 'admin.mail.template.save':
+            initializeMailTemplates();$t=mailTemplateInput($data);$tid=textField($data,'id',32,false);
+            transaction(function()use(&$tid,$t,$data,$u){if($tid){$old=one('SELECT version FROM mail_templates WHERE id=?',[$tid]);if(!$old)fail(404,'Mailvorlage nicht gefunden.');if(!is_int($data['version']??null)||$data['version']!==(int)$old['version'])fail(409,'Die Vorlage wurde inzwischen geändert. Bitte neu laden.');query('UPDATE mail_templates SET name=?,subject=?,body=?,version=version+1,updated_at=? WHERE id=?',[$t['name'],$t['subject'],$t['body'],now(),$tid]);}else{$tid=id();query('INSERT INTO mail_templates(id,name,subject,body,updated_at) VALUES(?,?,?,?,?)',[$tid,$t['name'],$t['subject'],$t['body'],now()]);}audit($u['id'],'admin.mail.template.save');});jsonOut(['ok'=>true,'id'=>$tid]);
+        case 'admin.mail.template.delete':
+            initializeMailTemplates();transaction(function()use($u,$data){$tid=textField($data,'id',32);$old=one('SELECT version FROM mail_templates WHERE id=?',[$tid]);if(!$old)fail(404,'Mailvorlage nicht gefunden.');if(!is_int($data['version']??null)||$data['version']!==(int)$old['version'])fail(409,'Die Vorlage wurde inzwischen geändert. Bitte neu laden.');query('DELETE FROM mail_templates WHERE id=?',[$tid]);audit($u['id'],'admin.mail.template.delete');});jsonOut(['ok'=>true]);
         case 'admin.users': jsonOut(['users'=>array_map('safeUser',all('SELECT * FROM users ORDER BY name'))]);
         case 'admin.user.save':
             $uid=textField($data,'id',32,false); $name=textField($data,'name'); $email=emailField($data); $role=$data['role']??'user'; if(!in_array($role,['user','teacher','admin'],true)) fail(422,'Ungültige Rolle.');
             $active=(bool)($data['active']??true); $pass=passwordField($data,$uid===''); $flags=featureInput($data['features']??[]); $groups=$data['groups']??[];
             if (!is_array($groups)||count($groups)>1000) fail(422,'Ungültige Gruppenzuordnung.');
             foreach ($groups as $groupId) if (!is_string($groupId)) fail(422,'Ungültige Gruppenzuordnung.');
-            transaction(function() use($u,&$uid,$name,$email,$role,$active,$pass,$flags,$groups) {
+            $mail=null;$mailId=null;
+            $wantsMail=textField($data,'mail_template',32,false)!=='';
+            if($wantsMail&&$uid!=='')fail(422,'Zugangsmails können beim Anlegen eines neuen Benutzers versendet werden.');
+            if($wantsMail){$existing=one('SELECT m.*,u.name,u.role,u.active,u.password FROM welcome_mails m JOIN users u ON u.id=m.user_id WHERE request_key=?', [textField($data,'creation_token',36)]);if($existing){if($existing['created_by']!==$u['id']||$existing['recipient']!==$email||$existing['name']!==$name||$existing['role']!==$role||(bool)$existing['active']!==$active||!password_verify($pass,$existing['password']))fail(409,'Dieser Anlegevorgang wurde bereits verwendet. Bitte den Dialog neu öffnen.');jsonOut(['ok'=>true,'id'=>$existing['user_id'],'mail'=>welcomeStatus($existing['id'])]);}rateLimit('mail.send.'.$u['id'],20,60);$mail=prepareWelcome($data,$name,$email,$role,$active,$pass,$groups);}
+            transaction(function() use($u,&$uid,$name,$email,$role,$active,$pass,$flags,$groups,$mail,&$mailId) {
                 if ($uid) { $target=one('SELECT * FROM users WHERE id=?',[$uid]); if (!$target) fail(404,'Benutzer nicht gefunden.');
                     if ($uid===$u['id'] && (!$active || $role!=='admin')) fail(422,'Sie können Ihren eigenen Adminzugang nicht sperren oder herabstufen.');
                     if ($target['role']==='admin' && ($role!=='admin'||!$active) && (int)query("SELECT COUNT(*) FROM users WHERE role='admin' AND active=1")->fetchColumn()<=1) fail(422,'Mindestens ein aktiver Admin muss bestehen bleiben.');
@@ -249,8 +270,9 @@ try {
                     if ($uid===$u['id']) $_SESSION['auth_version']=(int)$target['auth_version']+1;
                 } else { $uid=id(); query('INSERT INTO users(id,name,email,password,role,active,features,must_change_password,created_at) VALUES(?,?,?,?,?,?,?,1,?)',[$uid,$name,$email,password_hash($pass,PASSWORD_DEFAULT),$role,(int)$active,$flags,now()]); }
                 query('DELETE FROM group_members WHERE user_id=?',[$uid]); foreach(array_unique($groups) as $gid) { if(!is_string($gid)||!one('SELECT id FROM groups WHERE id=?',[$gid])) fail(422,'Eine Gruppe existiert nicht mehr.'); query('INSERT INTO group_members VALUES(?,?)',[$gid,$uid]); }
+                if($mail){queueWelcome($mail,$uid,$u,$email);$mailId=$mail['id'];}
                 audit($u['id'],'admin.user.save');
-            }); jsonOut(['ok'=>true,'id'=>$uid]);
+            }); jsonOut(['ok'=>true,'id'=>$uid,'mail'=>$mailId?deliverWelcome($mailId,$u):null]);
         case 'admin.user.delete':
             $uid=textField($data,'id',32); if ($uid===$u['id']) fail(422,'Sie können Ihren eigenen Zugang nicht löschen.');
             transaction(function() use($uid,$u) { $target=one('SELECT * FROM users WHERE id=?',[$uid]); if (!$target) fail(404,'Benutzer nicht gefunden.');

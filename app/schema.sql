@@ -28,3 +28,6 @@ CREATE TABLE IF NOT EXISTS chat_presence (group_id TEXT REFERENCES groups(id) ON
 CREATE INDEX IF NOT EXISTS group_members_user ON group_members(user_id,group_id);
 
 CREATE TABLE IF NOT EXISTS workspace_uploads (file_id TEXT PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE,extension TEXT NOT NULL,size INTEGER NOT NULL,content BLOB NOT NULL);
+CREATE TABLE IF NOT EXISTS mail_templates (id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE COLLATE NOCASE, subject TEXT NOT NULL, body TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS welcome_mails (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, created_by TEXT REFERENCES users(id) ON DELETE SET NULL, request_key TEXT NOT NULL UNIQUE, recipient TEXT NOT NULL, template_name TEXT NOT NULL, auth_version INTEGER NOT NULL, payload TEXT, status TEXT NOT NULL CHECK(status IN ('pending','sending','sent','failed','uncertain','expired','cancelled')), error TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS welcome_mails_created ON welcome_mails(created_at);

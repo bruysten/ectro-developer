@@ -48,6 +48,8 @@ jobs:
         run: php tests/sql-policy.php
       - name: Configurable session duration
         run: php tests/session-duration.php
+      - name: Mailjet templates and delivery safeguards
+        run: php tests/mail.php
       - name: Existing database migration
         run: php tests/project-migration.php
       - uses: actions/setup-node@v4
@@ -60,6 +62,7 @@ jobs:
           node tests/editor-changes.mjs
           node tests/chat-preview.mjs
           node tests/sql-composer.mjs
+          node tests/mail-templates.mjs
           node tests/chat-bubble.mjs
           node tests/color.mjs
           node tests/preview-assets.mjs
