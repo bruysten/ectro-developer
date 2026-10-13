@@ -4,6 +4,7 @@ require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/templates.php';
 require_once __DIR__ . '/mysql.php';
 require_once __DIR__ . '/chat.php';
+require_once __DIR__ . '/workspace-uploads.php';
 require_once __DIR__ . '/sql-training.php';
 require_once __DIR__ . '/collaboration.php';
 secureHeaders();
@@ -11,12 +12,12 @@ try {
     keyBytes(); sessionStart();
     $action = $_GET['action'] ?? 'bootstrap';
     $method = $_SERVER['REQUEST_METHOD'];
-    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants'];
+    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info'];
     if ($method !== 'GET' && $method !== 'POST') fail(405, 'Methode nicht erlaubt.');
     if (!in_array($action, $readActions, true) && $method !== 'POST') fail(405, 'Diese Aktion benötigt POST.');
     if (in_array($action, $readActions, true) && $method !== 'GET') fail(405, 'Diese Aktion benötigt GET.');
-    if($action==='chat.upload' && ($postLimit=iniBytes((string)ini_get('post_max_size')))>0 && (int)($_SERVER['CONTENT_LENGTH']??0)>$postLimit)fail(413,'Der Upload überschreitet das PHP-Uploadlimit.');
-    $data = $method === 'POST' ? ($action==='chat.upload'?$_POST:input()) : $_GET;
+    if(in_array($action,['chat.upload','file.upload'],true) && ($postLimit=iniBytes((string)ini_get('post_max_size')))>0 && (int)($_SERVER['CONTENT_LENGTH']??0)>$postLimit)fail(413,'Der Upload überschreitet das PHP-Uploadlimit.');
+    $data = $method === 'POST' ? (in_array($action,['chat.upload','file.upload'],true)?$_POST:input()) : $_GET;
     if ($method === 'POST') csrf();
     if ($action === 'bootstrap') {
         $u = currentUser(); $hasAdmin = (bool)query("SELECT 1 FROM users WHERE role='admin' LIMIT 1")->fetchColumn();
@@ -55,7 +56,7 @@ try {
     switch ($action) {
         case 'dashboard':
             jsonOut(['projects'=>visibleProjects($u),
-                'stats'=>one('SELECT COUNT(*) files, COALESCE(SUM(length(CAST(content AS BLOB))),0) bytes FROM files WHERE project_id IN (SELECT id FROM projects WHERE user_id=?) AND kind=\'file\'',[$u['id']]),
+                'stats'=>one('SELECT COUNT(*) files, COALESCE(SUM(length(CAST(f.content AS BLOB))+COALESCE(a.size,0)),0) bytes FROM files f LEFT JOIN workspace_uploads a ON a.file_id=f.id WHERE project_id IN (SELECT id FROM projects WHERE user_id=?) AND kind IN (\'file\',\'asset\')',[$u['id']]),
                 'runs'=>(int)query("SELECT COUNT(*) FROM events WHERE user_id=? AND event='run'",[$u['id']])->fetchColumn(),
                 'activity'=>all('SELECT event,created_at FROM events WHERE user_id=? ORDER BY id DESC LIMIT 8',[$u['id']])]);
         case 'teacher.participants': needFeature($u,'files');jsonOut(['groups'=>teacherParticipants($u)]);
@@ -74,7 +75,7 @@ try {
                 if (!one('SELECT 1 FROM group_members WHERE group_id=? AND user_id=?',[$gid,$u['id']])) fail(403,'Sie gehören dieser Gruppe nicht an.');
                 if ((int)query('SELECT COUNT(*) FROM projects WHERE group_id=?',[$gid])->fetchColumn()>=30) fail(422,'Die Gruppe hat bereits 30 Projekte.');
                 $target=['group_id'=>$gid,'user_id'=>null];
-                $size=(int)query('SELECT COALESCE(SUM(length(CAST(content AS BLOB))),0) FROM files WHERE project_id=?',[$pid])->fetchColumn();
+                $size=(int)query('SELECT COALESCE(SUM(length(CAST(f.content AS BLOB))+COALESCE(a.size,0)),0) FROM files f LEFT JOIN workspace_uploads a ON a.file_id=f.id WHERE project_id=?',[$pid])->fetchColumn();
                 if (workspaceBytes($target)+$size>SPACE_LIMIT) fail(422,'Der Gruppen-Workspace ist voll (20 MB).');
                 query('UPDATE projects SET group_id=?,created_by=user_id,user_id=NULL,updated_at=? WHERE id=?',[$gid,now(),$pid]);
                 // Canonical LF text is required by CodeMirror collaboration.
@@ -87,9 +88,11 @@ try {
             needFeature($u,'files'); transaction(function() use($u,$data) { $p=project($u,textField($data,'id',32));projectManager($u,$p);query('UPDATE projects SET name=?,updated_at=? WHERE id=?',[textField($data,'name',80),now(),$p['id']]); }); jsonOut(['ok'=>true]);
         case 'project.delete':
             needFeature($u,'files'); transaction(function() use($u,$data) { $p=project($u,textField($data,'id',32));projectManager($u,$p,true);query('DELETE FROM projects WHERE id=?',[$p['id']]);audit($u['id'],'project.delete'); }); jsonOut(['ok'=>true]);
+        case 'uploads.info': needFeature($u,'files');jsonOut(['uploads'=>workspaceUploads()]);
+        case 'file.upload': jsonOut(['file'=>workspaceUpload($u,$data)],201);
         case 'files':
             needFeature($u,'files'); $p=project($u,textField($data,'project',32));
-            jsonOut(['project'=>$p,'files'=>all('SELECT id,path,kind,version,length(CAST(content AS BLOB)) bytes,updated_at FROM files WHERE project_id=? ORDER BY kind DESC,path',[$p['id']])]);
+            jsonOut(['project'=>$p,'files'=>all('SELECT f.id,f.path,f.kind,f.version,length(CAST(f.content AS BLOB))+COALESCE(a.size,0) bytes,f.updated_at,a.extension FROM files f LEFT JOIN workspace_uploads a ON a.file_id=f.id WHERE f.project_id=? ORDER BY f.kind DESC,f.path',[$p['id']])]);
         case 'file':
             needFeature($u,'editor'); $p=project($u,textField($data,'project',32)); $f=one('SELECT * FROM files WHERE project_id=? AND path=?',[$p['id'],filePath(textField($data,'path',240))]);
             if (!$f || $f['kind']!=='file') fail(404,'Datei nicht gefunden.'); jsonOut(['file'=>$f]);
@@ -125,7 +128,7 @@ try {
             needFeature($u,'files'); $p=project($u,textField($data,'project',32)); $from=filePath(textField($data,'path',240)); $to=filePath(textField($data,'new_path',240));
             transaction(function() use($u,$p,$from,$to) {
                 $p=project($u,$p['id']);
-                $f=one('SELECT * FROM files WHERE project_id=? AND path=?',[$p['id'],$from]); if (!$f) fail(404,'Datei nicht gefunden.');
+                $f=one('SELECT * FROM files WHERE project_id=? AND path=?',[$p['id'],$from]); if (!$f) fail(404,'Datei nicht gefunden.');if($f['kind']==='asset'&&strtolower(pathinfo($from,PATHINFO_EXTENSION))!==strtolower(pathinfo($to,PATHINFO_EXTENSION)))fail(422,'Beim Umbenennen bitte die Dateiendung beibehalten.');
                 if ($from===$to) return;
                 if (str_starts_with($to,$from.'/')) fail(422,'Ein Ordner kann nicht in sich selbst verschoben werden.');
                 checkParents($p['id'],$to);
@@ -219,7 +222,7 @@ try {
                 'daily'=>all("SELECT substr(created_at,1,10) day,COUNT(*) activity,SUM(event='run') runs FROM events WHERE created_at>=? GROUP BY day ORDER BY day",[gmdate('Y-m-d',time()-13*86400)]),
                 'languages'=>all("SELECT json_extract(details,'$.language') language,COUNT(*) runs FROM events WHERE event='run' GROUP BY language"),
                 'events'=>all('SELECT e.event,e.created_at,u.name FROM events e LEFT JOIN users u ON u.id=e.user_id ORDER BY e.id DESC LIMIT 30'),
-                'sharing'=>chatSharing(),'settings'=>settings(),'hosts'=>allowedHosts(),'health'=>['php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'sqlite'=>true,'mysql'=>extension_loaded('pdo_mysql'),'encryption'=>extension_loaded('sodium'),'private_storage'=>is_writable(dataDir())]]);
+                'sharing'=>chatSharing(),'uploads'=>workspaceUploads(),'settings'=>settings(),'hosts'=>allowedHosts(),'health'=>['php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'sqlite'=>true,'mysql'=>extension_loaded('pdo_mysql'),'encryption'=>extension_loaded('sodium'),'private_storage'=>is_writable(dataDir())]]);
         case 'admin.templates': jsonOut(['templates'=>projectTypes()]);
         case 'admin.template': jsonOut(['template'=>projectType(textField($data,'id',32))]);
         case 'admin.template.save': jsonOut(['id'=>saveProjectType($u,$data),'ok'=>true]);
@@ -285,7 +288,8 @@ try {
             if (!is_array($hosts)||count($hosts)>20) fail(422,'Bitte geben Sie höchstens 20 Hosts an.');
             foreach($hosts as $host) if (!is_string($host)||!preg_match('/^[a-zA-Z0-9.-]{1,253}$/',$host)) fail(422,'Ungültiger Host.');
             $sharing=isset($data['chat_sharing'])?chatSharingInput($data['chat_sharing']):null;
-            transaction(function() use($flags,$hosts,$u,$sharing) { query("UPDATE settings SET value=? WHERE key='features'",[$flags]); query("INSERT INTO settings VALUES('db_allowed_hosts',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode(array_values(array_unique($hosts)))]); if($sharing!==null)query("INSERT INTO settings VALUES('chat_sharing',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($sharing)]);audit($u['id'],'admin.settings'); }); jsonOut(['ok'=>true]);
+            $uploads=isset($data['workspace_uploads'])?workspaceUploadsInput($data['workspace_uploads']):null;
+            transaction(function() use($flags,$hosts,$u,$sharing,$uploads) { query("UPDATE settings SET value=? WHERE key='features'",[$flags]); query("INSERT INTO settings VALUES('db_allowed_hosts',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode(array_values(array_unique($hosts)))]); if($sharing!==null)query("INSERT INTO settings VALUES('chat_sharing',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($sharing)]);if($uploads!==null)query("INSERT INTO settings VALUES('workspace_uploads',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($uploads)]);audit($u['id'],'admin.settings'); }); jsonOut(['ok'=>true]);
         default: fail(404,'Unbekannte Aktion.');
     }
 } catch (ApiError $e) { jsonOut(['error'=>$e->getMessage()],$e->status); }

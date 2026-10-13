@@ -26,3 +26,5 @@ CREATE TABLE IF NOT EXISTS chat_state (group_id TEXT PRIMARY KEY REFERENCES grou
 CREATE TABLE IF NOT EXISTS chat_presence (group_id TEXT REFERENCES groups(id) ON DELETE CASCADE,user_id TEXT REFERENCES users(id) ON DELETE CASCADE,touched INTEGER NOT NULL,PRIMARY KEY(group_id,user_id));
 
 CREATE INDEX IF NOT EXISTS group_members_user ON group_members(user_id,group_id);
+
+CREATE TABLE IF NOT EXISTS workspace_uploads (file_id TEXT PRIMARY KEY REFERENCES files(id) ON DELETE CASCADE,extension TEXT NOT NULL,size INTEGER NOT NULL,content BLOB NOT NULL);

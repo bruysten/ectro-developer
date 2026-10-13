@@ -17,8 +17,10 @@ try {
     query("UPDATE users SET role='teacher' WHERE id='user'");
     if(one("SELECT role FROM users WHERE id='user'")['role']!=='teacher')throw new RuntimeException('Teacher role migration failed');
     try{query("UPDATE users SET role='superadmin' WHERE id='user'");throw new RuntimeException('Invalid role accepted');}catch(PDOException $e){}
+    query("INSERT INTO files(id,project_id,path,kind,updated_at) VALUES('asset','project','document.pdf','asset','2026')");
+    query("INSERT INTO workspace_uploads VALUES('asset','pdf',8,'original')");
     query('DELETE FROM users WHERE id=?',['user']);
-    if (one('SELECT id FROM projects')||one('SELECT id FROM files')) throw new RuntimeException('Personal deletion cascade broken');
+    if (one('SELECT id FROM projects')||one('SELECT id FROM files')||one('SELECT file_id FROM workspace_uploads')) throw new RuntimeException('Personal deletion cascade broken');
     echo "Existing project/teacher-role migration, content, role constraint and cascades verified.\n";
 } finally {
     foreach(glob($dir.'/*') as $file)unlink($file);rmdir($dir);

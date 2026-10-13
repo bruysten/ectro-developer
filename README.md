@@ -79,3 +79,7 @@ Unter **Admin → Freigaben → Chat-Dateien** lassen sich Teilen, erlaubte Endu
 ### Lehrerzugang
 
 Im Adminbereich beim Anlegen oder Bearbeiten eines Benutzers die Rolle **Lehrer** wählen und die zu betreuenden Gruppen zuordnen. Lehrer melden sich am normalen Benutzer-Login an. In Projekte, Dateien und Editor wählen sie Gruppe und Teilnehmer, sehen deren persönliche Projekte und bearbeiten Dateien direkt im vorhandenen Editor. „Mein Workspace“ führt zurück zu den eigenen Projekten. Der Zugriff endet mit dem Entzug der gemeinsamen Gruppenzugehörigkeit; konkurrierende Änderungen werden durch die Versionsprüfung geschützt. Die Rollen-Erweiterung wird beim nächsten App-Aufruf automatisch auf bestehenden Installationen eingerichtet.
+
+### Dokumente und Bilder im Dateimanager
+
+Unter Dateien ein Projekt wählen und **Hochladen** öffnen. Datei und Projektpfad auswählen; nach dem Upload steht das Original sofort mit Vorschau und Download in der Liste. PDF und moderne Office-Dokumente verwenden die vorhandene Vorschau, gängige Bilder werden direkt dargestellt. Weitere Bild-/RAW-/Grafikformate können heruntergeladen werden. Unter **Admin → Funktionen → Projekt-Uploads** lassen sich Uploads, erlaubte Endungen und Dateigröße einstellen. Code und Uploads teilen sich die bestehende Workspace-Quote von 20 MB; das wirksame Uploadlimit berücksichtigt auch PHP.
