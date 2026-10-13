@@ -166,12 +166,9 @@ try {
             try { $stmt=$my->prepare($sql); $stmt->execute(); $rows=[]; if ($stmt->columnCount()) { while(count($rows)<201 && ($row=$stmt->fetch())) $rows[]=$row; }
                 audit($u['id'],'db.query'); jsonOut(['rows'=>array_slice($rows,0,200),'affected'=>$stmt->rowCount(),'truncated'=>count($rows)>200]); } catch(PDOException $e) { mysqlError($e); }
         case 'db.table.create':
-            needFeature($u,'database'); rateLimit('mysql.'.$u['id'],30,60); $my=mysqlConnection($u); $table=identifier(textField($data,'table',64)); $fields=$data['fields']??[];
-            if (!is_array($fields) || count($fields)<1 || count($fields)>30) fail(422,'Bitte definieren Sie 1 bis 30 Spalten.');
-            $defs=['`id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY'];
-            foreach($fields as $field) { if (!is_array($field)) fail(422,'Ungültige Spalte.'); $name=identifier(textField($field,'name',64)); if ($name==='`id`') fail(422,'Die ID-Spalte wird automatisch angelegt.');
-                $type=$field['type']??''; if (!in_array($type,['VARCHAR(255)','TEXT','INT','DECIMAL(10,2)','DATE','DATETIME','BOOLEAN'])) fail(422,'Ungültiger Spaltentyp.'); $defs[]=$name.' '.$type.' NULL'; }
-            try { $my->exec('CREATE TABLE '.$table.' ('.implode(',',$defs).') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'); audit($u['id'],'db.table.create'); jsonOut(['ok'=>true]); } catch(PDOException $e) { mysqlError($e); }
+            needFeature($u,'database'); rateLimit('mysql.'.$u['id'],30,60);
+            $sql=createTableSql(textField($data,'table',64),$data['fields']??[]);$my=mysqlConnection($u);
+            try { $my->exec($sql); audit($u['id'],'db.table.create'); jsonOut(['ok'=>true]); } catch(PDOException $e) { mysqlError($e); }
         case 'db.row.save':
         case 'db.row.delete':
             needFeature($u,'database'); rateLimit('mysql.'.$u['id'],60,60); $my=mysqlConnection($u); $table=textField($data,'table',64); $cols=tableColumns($my,$table); $primary=array_column(array_filter($cols,fn($c)=>$c['Key']==='PRI'),'Field');

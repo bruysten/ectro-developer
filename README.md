@@ -14,7 +14,7 @@ Eine Entwicklungsumgebung für Schulungen und Online-Trainings. HTML/CSS/JavaScr
 - CodeMirror-Editor mit Syntaxhervorhebung, Zeilennummern, Suche, Undo/Redo, `Ctrl/⌘ S`, `Ctrl/⌘ Enter` und Konflikterkennung beim Speichern.
 - Verschiebbare Trennlinien zwischen Dateiliste, Editor und Ausgabe, gespeicherte Größen, Tastaturbedienung und Doppelklick zum Zurücksetzen.
 - HTML/CSS/JavaScript-Vorschau, PHP 8.4 und Python 3.13 über mitgeliefertes WebAssembly; Run, Stop, Ausgabe und Website-Vorschau in einem eigenen Fenster.
-- MySQL-Verbindung, Tabellenanlage, SQL-Konsole und Datensätze anlegen, bearbeiten und löschen. Bearbeiten/Löschen benötigt einen Primärschlüssel; zusammengesetzte Schlüssel werden berücksichtigt.
+- MySQL-Verbindung, Tabellenanlage mit expliziten Spalten und Primär-/UNIQUE-/Suchschlüsseln (keine automatisch ergänzte ID), SQL-Konsole und Datensätze anlegen, bearbeiten und löschen. Bearbeiten/Löschen benötigt einen Primärschlüssel; zusammengesetzte Schlüssel werden berücksichtigt.
 - Gruppenchat mit inkrementeller AJAX-Aktualisierung.
 
 ## Ausführung und bewusste Grenzen

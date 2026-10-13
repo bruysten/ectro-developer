@@ -13,6 +13,19 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          MARIADB_ROOT_PASSWORD: disposable-root-test-password
+          MARIADB_DATABASE: ectro_schema_test
+          MARIADB_USER: schema_test
+          MARIADB_PASSWORD: disposable-schema-test-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
     steps:
       - uses: actions/checkout@v4
       - name: PHP syntax
@@ -23,6 +36,10 @@ jobs:
         run: python3 tests/integration.py
       - name: MySQL connection configuration and errors
         run: php tests/mysql-connection.php
+      - name: Table schema and MariaDB constraints
+        env:
+          MYSQL_SCHEMA_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=ectro_schema_test
+        run: php tests/table-schema.php
       - name: SQL policy checks
         run: php tests/sql-policy.php
       - name: Existing database migration

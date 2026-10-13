@@ -36,7 +36,7 @@ function bind(action,fn,root=document){$$(`[data-action="${action}"]`,root).forE
 function empty(title,copy,glyph='folder_open',cta=''){return `<div class="empty">${icon(glyph)}<h3>${title}</h3><p>${copy}</p>${cta}</div>`;}
 function pageHead(index,title,copy,cta=''){return `<div class="page-head"><div><div class="meta">${index} // ${admin?'ADMINISTRATION':'MEIN WORKSPACE'}</div><h1>${title}</h1><p>${copy}</p></div>${cta}</div>`;}
 function modal(title,body,onSubmit,label='Speichern',options={}) {
-  const dialog=$('#modal');dialog.setAttribute('aria-labelledby','modal-title');dialog.innerHTML=`<form id="modal-form"><div class="dialog-head"><h2 id="modal-title">${title}</h2>${ib('close','close-modal','Schließen')}</div><div class="dialog-body">${body}<div class="error" role="alert"></div></div><div class="dialog-foot">${button('Abbrechen','close-modal')}${button(label,'submit-modal','primary')}</div></form>`;
+  const dialog=$('#modal');dialog.className=options.className||'';dialog.setAttribute('aria-labelledby','modal-title');dialog.innerHTML=`<form id="modal-form"><div class="dialog-head"><h2 id="modal-title">${title}</h2>${ib('close','close-modal','Schließen')}</div><div class="dialog-body">${body}<div class="error" role="alert"></div></div><div class="dialog-foot">${button('Abbrechen','close-modal')}${button(label,'submit-modal','primary')}</div></form>`;
   let closed;const result=new Promise(r=>closed=r);const close=()=>{dialog.close();closed(false);};bind('close-modal',close,dialog);dialog.oncancel=()=>closed(false);
   const form=$('#modal-form');const submit=$('[data-action="submit-modal"]',form);submit.type='submit';
   form.onsubmit=async e=>{e.preventDefault();submit.disabled=true;$('.error',form).textContent='';try{await onSubmit(new FormData(form),form);dialog.close();closed(true);}catch(err){$('.error',form).textContent=err.message;}finally{submit.disabled=false;}};
@@ -247,7 +247,38 @@ function rowDialog(row=null){
   return modal(row?'Datensatz bearbeiten':'Neuer Datensatz',`<div class="form">${cols.map((c,i)=>`${field(esc(c.Field)+' · '+esc(c.Type),'v'+i,row?.[c.Field]??'', 'text', '', 'maxlength="100000"')}<label style="font-size:11px"><input type="checkbox" name="null${i}" ${row&&row[c.Field]===null?'checked':''} ${c.Null!=='YES'?'disabled':''}> NULL</label>`).join('')}</div>`,async data=>{const values=Object.fromEntries(cols.map((c,i)=>[c.Field,data.has('null'+i)?null:data.get('v'+i)]));await api('db.row.save',{table,values,keys});toast('Datensatz gespeichert.');await loadRows();});
 }
 function newTable(){
-  return modal('Neue Tabelle',`${field('Tabellenname','table','','text','','required placeholder="zum_beispiel"')}<div class="notice">Eine eindeutige ID wird automatisch angelegt.</div><div class="form" id="table-fields"></div><div style="margin-top:16px">${button('Spalte hinzufügen','add-column','secondary','add')}</div>`,async(data,form)=>{const fields=$$('[data-column]',form).map(row=>({name:$('input',row).value,type:$('select',row).value}));await api('db.table.create',{table:data.get('table'),fields});toast('Tabelle erstellt.');await loadTables();},'Tabelle erstellen',{after:dialog=>{const add=()=>{const node=document.createElement('div');node.className='form-grid';node.dataset.column='';node.innerHTML=field('Spaltenname','column','','text','','required')+`<label class="field"><span>Datentyp</span><select>${['VARCHAR(255)','TEXT','INT','DECIMAL(10,2)','DATE','DATETIME','BOOLEAN'].map(t=>`<option>${t}</option>`).join('')}</select></label>`;$('#table-fields',dialog).append(node);};bind('add-column',add,dialog);add();}});
+  const types=['VARCHAR(255)','TEXT','INT','BIGINT UNSIGNED','DECIMAL(10,2)','DATE','DATETIME','BOOLEAN'];
+  const hints={none:'Normale Spalte ohne Schlüssel.',primary:'Identifiziert jeden Datensatz eindeutig. Mehrere Primärspalten bilden gemeinsam einen Schlüssel.',unique:'Verhindert doppelte Werte in dieser Spalte. Bei erlaubtem NULL sind mehrere leere Werte möglich.',index:'Beschleunigt die Suche in dieser Spalte. Doppelte Werte sind erlaubt.'};
+  return modal('Neue Tabelle',`${field('Tabellenname','table','','text','','required maxlength="64" placeholder="zum_beispiel"')}<div class="notice" id="table-key-summary"></div><div class="form" id="table-fields"></div><div style="margin-top:16px">${button('Spalte hinzufügen','add-column','secondary','add')}</div>`,async(data,form)=>{
+    const fields=$$('[data-column]',form).map(row=>({name:$('[name="column"]',row).value,type:$('[name="type"]',row).value,key:$('[name="key"]',row).value,nullable:$('[name="nullable"]',row).checked,auto_increment:$('[name="auto_increment"]',row).checked}));
+    await api('db.table.create',{table:data.get('table'),fields});toast('Tabelle erstellt.');await loadTables();
+  },'Tabelle erstellen',{className:'table-create-dialog',after:dialog=>{
+    const rows=()=>$$('[data-column]',dialog);
+    const update=()=>{
+      rows().forEach(row=>{if($('[name="type"]',row).value==='TEXT')$('[name="key"]',row).value='none';});
+      const primary=rows().filter(row=>$('[name="key"]',row).value==='primary');
+      rows().forEach((row,i)=>{
+        $('.column-number',row).textContent='SPALTE '+String(i+1).padStart(2,'0');
+        const key=$('[name="key"]',row),type=$('[name="type"]',row),nullable=$('[name="nullable"]',row),increment=$('[name="auto_increment"]',row);
+        for(const option of key.options)option.disabled=type.value==='TEXT'&&option.value!=='none';
+        if(type.value==='TEXT')key.value='none';
+        nullable.disabled=key.value==='primary';if(nullable.disabled)nullable.checked=false;
+        increment.disabled=key.value!=='primary'||!['INT','BIGINT UNSIGNED'].includes(type.value)||primary.length!==1;if(increment.disabled)increment.checked=false;
+        $('.column-key-hint',row).textContent=type.value==='TEXT'?'Für Schlüssel verwenden Sie VARCHAR(255) statt TEXT.':hints[key.value];
+        $('[data-action="remove-column"]',row).disabled=rows().length===1;
+      });
+      const count=rows().filter(row=>$('[name="key"]',row).value==='primary').length;
+      $('#table-key-summary',dialog).textContent=count===0?'Alle Spalten legen Sie selbst fest. Wählen Sie einen Primärschlüssel, um Datensätze später einzeln bearbeiten und löschen zu können.':count===1?'Der gewählte Primärschlüssel identifiziert jeden Datensatz eindeutig.':`${count} Primärspalten bilden gemeinsam einen zusammengesetzten Schlüssel.`;
+      $('[data-action="add-column"]',dialog).disabled=rows().length>=30;
+    };
+    const add=()=>{
+      if(rows().length>=30)return;
+      const node=document.createElement('section');node.className='table-column';node.dataset.column='';
+      node.innerHTML=`<div class="table-column-head"><span class="meta column-number"></span>${ib('close','remove-column','Spalte entfernen')}</div><div class="form-grid">${field('Spaltenname','column','','text','','required maxlength="64" placeholder="z. B. id oder name"')}<label class="field"><span>Datentyp</span><select name="type">${types.map(type=>`<option>${type}</option>`).join('')}</select></label></div><label class="field column-key"><span>Schlüssel</span><select name="key"><option value="none">Kein Schlüssel</option><option value="primary">Primärschlüssel · PRIMARY KEY</option><option value="unique">Eindeutiger Wert · UNIQUE</option><option value="index">Suchindex · INDEX</option></select><small class="column-key-hint"></small></label><div class="column-options"><label><input type="checkbox" name="nullable" checked> Leer erlaubt (NULL)</label><label><input type="checkbox" name="auto_increment"> Automatisch hochzählen</label></div>`;
+      $('#table-fields',dialog).append(node);node.onchange=update;bind('remove-column',()=>{node.remove();update();},node);update();
+    };
+    bind('add-column',()=>{add();rows().at(-1)?.querySelector('[name="column"]').focus();},dialog);add();$('[name="table"]',dialog).focus();
+  }});
 }
 async function chat(version){
   // Refresh group membership so permissions revoked in another session take effect immediately.
