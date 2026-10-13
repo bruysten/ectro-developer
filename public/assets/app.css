@@ -330,4 +330,10 @@ html[data-workspace-resizing] iframe { pointer-events:none!important; }
 .team-avatar img { width:100%;height:100%;object-fit:cover; }.team-avatar--large { width:96px;height:96px; }
 .team-profile-heading { display:flex;align-items:center;gap:24px;margin-bottom:28px; }.team-profile-heading h3 { margin:0;overflow-wrap:anywhere; }
 .team-bio { white-space:pre-wrap;overflow-wrap:anywhere; }.team-links { display:flex;flex-wrap:wrap;gap:16px;margin-top:24px; }.team-links a { display:flex;align-items:center;gap:8px;overflow-wrap:anywhere; }
-.profile-sharing { border-top:1px solid var(--border-subtle);padding-top:24px;margin-top:24px; }.team-consent { display:flex;align-items:flex-start;gap:12px;line-height:1.6; }.team-consent input { width:18px;height:18px;flex-shrink:0;margin-top:4px;accent-color:var(--accent); }
+.profile-sharing { display:grid;grid-template-columns:18px minmax(0,1fr);column-gap:12px;row-gap:12px;border-top:1px solid var(--border-subtle);padding-top:24px;margin-top:24px; }
+.profile-sharing>h3 { grid-column:2;margin:0 0 4px; }
+.team-consent { grid-column:1/-1;display:grid;grid-template-columns:18px minmax(0,1fr);gap:12px;align-items:start;font-size:13px;line-height:1.65; }
+.team-consent input { width:18px;height:18px;margin:3px 0 0;accent-color:var(--accent); }
+.team-consent>span { min-width:0;max-width:60ch;overflow-wrap:anywhere; }
+.profile-sharing>p,.profile-sharing>small { grid-column:2;display:block;max-width:60ch;margin:0;font-size:12px;line-height:1.65; }
+.profile-sharing>small { margin-top:4px;font-size:11px; }
