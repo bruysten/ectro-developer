@@ -5,10 +5,11 @@ Eine Entwicklungsumgebung für Schulungen und Online-Trainings. HTML/CSS/JavaScr
 ## Umfang
 
 - `/`: Benutzer-Login und persönlicher Workspace.
-- `/admin/`: eigener Admin-Login, Benutzer, optionale Mehrfach-Gruppenzuordnung, globale und gruppenbezogene Funktionsfreigaben und Nutzungsstatistik.
+- `/admin/`: eigener Admin-Login, Benutzer, optionale Mehrfach-Gruppenzuordnung, Projekttypen mit editierbaren Startdateien, globale und gruppenbezogene Funktionsfreigaben und Nutzungsstatistik.
 - Dashboard mit realen Projekten und Nutzungsereignissen.
 - Eigener Navigationsbereich „Projekte“ mit persönlichen und optionalen Gruppenprojekten. Neue Projekte können direkt in einer eigenen Gruppe entstehen; persönliche Projekte lassen sich in deren Workspace verschieben.
 - Gruppenprojekte mit automatisch synchronisiertem Editor, paralleler Bearbeitung, Anzeige aktiver Mitglieder und Entwurfswiederherstellung im selben Browser-Tab. Sie überstehen das Löschen ihres Erstellers.
+- Datenbankgestützte Projekttypen auf Basis von Web, PHP oder Python; Admins können Typen anlegen, bearbeiten, deaktivieren und löschen sowie Startdateien hinzufügen, bearbeiten, umbenennen und entfernen. Änderungen gelten für neue Projekte.
 - Projekte mit Web-, PHP- und Python-Vorlagen; Text-Dateimanager mit Ordnern, Umbenennen, Löschen und Download.
 - CodeMirror-Editor mit Syntaxhervorhebung, Zeilennummern, Suche, Undo/Redo, `Ctrl/⌘ S`, `Ctrl/⌘ Enter` und Konflikterkennung beim Speichern.
 - HTML/CSS/JavaScript-Vorschau, PHP 8.4 und Python 3.13 über mitgeliefertes WebAssembly; Run, Stop, Ausgabe und Website-Vorschau in einem eigenen Fenster.
