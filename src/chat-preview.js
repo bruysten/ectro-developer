@@ -1,17 +1,17 @@
-export function previewAttachment(file,root){
+export function previewAttachment(file,root,sourceURL='/chat-file.php?'+new URLSearchParams({id:file.id})){
   root.textContent='Vorschau wird geladen …';const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),15000);let worker,url,pdfCleanup;
   const cleanup=()=>{controller.abort();clearTimeout(timeout);worker?.terminate();pdfCleanup?.();if(url)URL.revokeObjectURL(url);};
   const run=async()=>{
   try {
-    const response=await fetch('/chat-file.php?'+new URLSearchParams({id:file.id}),{credentials:'same-origin',signal:controller.signal});
+    const response=await fetch(sourceURL,{credentials:'same-origin',signal:controller.signal});
     if(!response.ok){const data=await response.json();throw Error(data.error||'Die Datei ist nicht verfügbar.');}
     const blob=await response.blob();if(controller.signal.aborted)return cleanup;
     const ext=file.extension;
     if(ext==='pdf'){const pdfModule='/assets/pdf-preview.js';const {renderPDF}=await import(pdfModule);pdfCleanup=await renderPDF(blob,root,controller.signal);
-    } else if(['png','jpg','jpeg','gif','webp'].includes(ext)){
-      const types={pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp'};
+    } else if(['png','apng','jpg','jpeg','jpe','jfif','gif','webp','avif','bmp','ico'].includes(ext)){
+      const types={pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',avif:'image/avif',apng:'image/png',bmp:'image/bmp',ico:'image/x-icon',jpe:'image/jpeg',jfif:'image/jpeg'};
       url=URL.createObjectURL(new Blob([blob],{type:types[ext]}));
-      const frame=document.createElement(ext==='pdf'?'iframe':'img');frame.src=url;frame.className='chat-preview-media';frame.title=file.name;if(ext==='pdf')frame.setAttribute('sandbox','');else frame.alt=file.name;root.replaceChildren(frame);
+      const frame=document.createElement(ext==='pdf'?'iframe':'img');frame.src=url;frame.className='chat-preview-media';frame.title=file.name;if(ext==='pdf')frame.setAttribute('sandbox','');else{frame.alt=file.name;frame.onerror=()=>{root.textContent='Dieses Bildformat kann der Browser nicht darstellen. Bitte das Original herunterladen.';};}root.replaceChildren(frame);
     } else if(['docx','docm','dotx','dotm','xlsx','xlsm','xltx','xltm','pptx','pptm','potx','potm','ppsx','ppsm','odt','ods','odp','odg'].includes(ext)){
       worker=new Worker('/assets/chat-preview-worker.js',{type:'module'});
       const result=await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{worker.terminate();reject(Error('Die Textvorschau dauert zu lange. Bitte das Original herunterladen.'));},5000);worker.onmessage=e=>{clearTimeout(timer);resolve(e.data);};worker.onerror=()=>{clearTimeout(timer);reject(Error('Die Textvorschau ist nicht verfügbar.'));};blob.arrayBuffer().then(bytes=>worker.postMessage(bytes,[bytes]),reject);});

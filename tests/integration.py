@@ -5,6 +5,7 @@ import json
 import os
 import pathlib
 import socket
+import sqlite3
 import subprocess
 import tempfile
 import time
@@ -363,6 +364,66 @@ with tempfile.TemporaryDirectory(prefix='ectro-test-') as private:
         teacher.ok('file.rename',{'project':private_project,'path':'feedback/review.txt','new_path':'feedback/notes.txt'})
         check(any(f['path']=='feedback/notes.txt' for f in pupil.ok('files',project=private_project)['files']),'Teacher file management stays in selected workspace')
         check(teacher.call('file.save',{'project':private_project,'path':'index.html','content':'CSRF bypass','version':opened['version']},csrf=False)[0]==403,'Teacher writes require CSRF')
+        # Binary project files use private storage and the same teacher/group authorization.
+        def workspace_upload(client,project_id,path,content,csrf=True):
+            boundary='workspace-upload-test'
+            payload=(f'--{boundary}\r\nContent-Disposition: form-data; name="project"\r\n\r\n{project_id}\r\n--{boundary}\r\nContent-Disposition: form-data; name="path"\r\n\r\n{path}\r\n--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="fixture.bin"\r\nContent-Type: application/octet-stream\r\n\r\n').encode()+content+f'\r\n--{boundary}--\r\n'.encode()
+            req=urllib.request.Request(base+'/api/?action=file.upload',data=payload,headers={'Content-Type':'multipart/form-data; boundary='+boundary,**({'X-CSRF-Token':client.token} if csrf else {})})
+            try: res=client.opener.open(req,timeout=10)
+            except urllib.error.HTTPError as error: res=error
+            return res.code,json.loads(res.read())
+        def workspace_download(client,fid):
+            try: res=client.opener.open(base+'/workspace-file.php?id='+fid,timeout=10)
+            except urllib.error.HTTPError as error: res=error
+            return res.code,res.headers,res.read()
+        cfg=teacher.ok('uploads.info')['uploads']
+        check(cfg['enabled'] and all(ext in cfg['types'] for ext in ['pdf','docx','xlsx','pptx','avif','heic','dng','psd']),'Generous project upload defaults')
+        original=b'%PDF-1.7\x00\xff original bytes'
+        status,uploaded=workspace_upload(teacher,private_project,'documents/review.pdf',original)
+        check(status==201,'Teacher upload to shared pupil workspace')
+        fid=uploaded['file']['id']
+        listing=pupil.ok('files',project=private_project)['files']
+        check(any(f['kind']=='asset' and f['bytes']==len(original) and f['path']=='documents/review.pdf' for f in listing),'Binary file listed with exact size')
+        check(next(p['file_count'] for p in pupil.ok('projects')['projects'] if p['id']==private_project)==sum(f['kind']!='directory' for f in listing),'Project count includes documents')
+        check(pupil.ok('dashboard')['stats']['bytes']>=len(original),'Storage statistics include uploaded bytes')
+        status,headers,body=workspace_download(pupil,fid)
+        check(status==200 and body==original,'Exact original project download')
+        check(headers['Content-Type']=='application/octet-stream' and headers['Content-Disposition'].startswith('attachment;') and headers['X-Content-Type-Options']=='nosniff','Binary originals cannot execute inline')
+        check(workspace_download(outsider,fid)[0]==404,'Foreign project download denied')
+        check(workspace_download(anonymous,fid)[0]==401,'Anonymous binary download denied')
+        check(pupil.call('file',project=private_project,path='documents/review.pdf')[0]==404,'Binary file excluded from text editor')
+        check(pupil.call('file.save',{'project':private_project,'path':'documents/review.pdf','content':'Overwrite','version':1})[0]==409,'Code save cannot overwrite binary asset')
+        check(all(f['path']!='documents/review.pdf' for f in pupil.ok('project.bundle',{'project':private_project})['files']),'Binary documents excluded from executable code bundle')
+        check(workspace_upload(teacher,private_project,'documents/review.pdf',b'replacement')[0]==409,'Upload cannot overwrite existing file')
+        check(workspace_upload(teacher,private_project,'../escape.pdf',original)[0]==422,'Upload traversal rejected')
+        check(workspace_upload(teacher,private_project,'script.php',b'<?php echo 1;')[0]==422,'Unapproved upload type rejected')
+        check(workspace_upload(teacher,private_project,'empty.pdf',b'')[0]==413,'Empty project upload rejected')
+        check(workspace_upload(teacher,private_project,'no-csrf.pdf',original,False)[0]==403,'Project upload requires CSRF')
+        check(workspace_upload(teacher,outside_project,'outside.pdf',original)[0]==404,'Teacher upload restricted to own shared groups')
+        pupil.ok('file.rename',{'project':private_project,'path':'documents/review.pdf','new_path':'documents/renamed.pdf'})
+        check(workspace_download(pupil,fid)[1]['Content-Disposition'].endswith('renamed.pdf'),'Download filename follows renamed path')
+        check(pupil.call('file.rename',{'project':private_project,'path':'documents/renamed.pdf','new_path':'documents/renamed.php'})[0]==422,'Renaming keeps uploaded format')
+        admin.ok('admin.settings',{'features':{},'hosts':['localhost'],'workspace_uploads':{'enabled':False,'types':['pdf'],'max_mb':1}})
+        check(workspace_upload(teacher,private_project,'disabled.pdf',original)[0]==403,'Admin can disable project uploads')
+        check(workspace_download(pupil,fid)[0]==200,'Upload disable preserves existing original access')
+        admin.ok('admin.settings',{'features':{},'hosts':['localhost'],'workspace_uploads':{'enabled':True,'types':['png'],'max_mb':1}})
+        check(workspace_upload(teacher,private_project,'restricted.pdf',original)[0]==422,'Admin upload type restriction enforced')
+        check(workspace_upload(teacher,private_project,'oversize.png',b'x'*1048577)[0]==413,'Admin upload size enforced')
+        pupil.ok('file.delete',{'project':private_project,'path':'documents'})
+        check(workspace_download(pupil,fid)[0]==404,'Deleting folder deletes uploaded originals')
+        group_status,group_asset=workspace_upload(pupil,shared_a,'group.png',b'\x89PNG\r\n\x1a\nfixture')
+        check(group_status==201 and workspace_download(teacher,group_asset['file']['id'])[0]==200,'Group assets readable by current group members')
+        check(workspace_download(outsider,group_asset['file']['id'])[0]==404,'Other groups cannot download group asset')
+        # A disposable full-size blob verifies storage accounting without repeated HTTP uploads.
+        quota_db=sqlite3.connect(pathlib.Path(private)/'app.sqlite')
+        quota_db.execute("INSERT INTO files(id,project_id,path,kind,updated_at) VALUES(?,?,'quota.png','asset','2026')",['a'*32,private_project])
+        quota_db.execute("INSERT INTO workspace_uploads VALUES(?,'png',20971520,zeroblob(20971520))",['a'*32]);quota_db.commit();quota_db.close()
+        check(workspace_upload(pupil,private_project,'full.png',b'tiny')[0]==413,'Uploads respect total workspace bytes including binary data')
+        check(pupil.call('file.save',{'project':private_project,'path':'index.html','content':'Another edit','version':2})[0]==422,'Code writes also respect binary storage quota')
+        pupil.ok('file.delete',{'project':private_project,'path':'quota.png'})
+        check(workspace_upload(pupil,private_project,'freed.png',b'tiny')[0]==201,'Deleting uploaded file releases logical workspace quota')
+        check(admin.call('admin.settings',{'features':{},'hosts':['localhost'],'workspace_uploads':{'enabled':True,'types':[],'max_mb':1}})[0]==422,'Enabled uploads require a type')
+        check(admin.call('admin.settings',{'features':{},'hosts':['localhost'],'workspace_uploads':{'enabled':True,'types':['png'],'max_mb':21}})[0]==422,'Upload size setting is bounded by workspace quota')
         admin.ok('admin.settings',{'features':{'files':False},'hosts':['localhost']})
         check(teacher.call('file',project=private_project,path='index.html')[0]==404 and teacher.call('project.bundle',{'project':private_project})[0]==404,'Files feature revokes direct teacher reads and preview bundles')
         admin.ok('admin.settings',{'features':{'files':True},'hosts':['localhost']})

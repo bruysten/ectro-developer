@@ -182,15 +182,15 @@ function project(array $u, string $pid): array {
     $p=one("SELECT p.*,g.name group_name,owner.name owner_name FROM projects p LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users owner ON owner.id=p.user_id WHERE p.id=? AND (p.user_id=? OR EXISTS(SELECT 1 FROM group_members m WHERE m.group_id=p.group_id AND m.user_id=?) OR (?='teacher' AND owner.role IN ('user','teacher') AND EXISTS(SELECT 1 FROM group_members student JOIN group_members teacher ON teacher.group_id=student.group_id WHERE student.user_id=p.user_id AND teacher.user_id=?)))",[$pid,$u['id'],$u['id'],$u['role']==='teacher'&&features($u)['files']?'teacher':'user',$u['id']]);if(!$p)fail(404,'Projekt nicht gefunden.');return $p;
 }
 function visibleProjects(array $u,string $target='',string $gid=''): array {
-    if($target&&$target!==$u['id']){teacherTarget($u,$target,$gid);return all("SELECT p.*,g.name group_name,owner.name owner_name,(SELECT COUNT(*) FROM files f WHERE f.project_id=p.id AND f.kind='file') file_count FROM projects p LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users owner ON owner.id=p.user_id WHERE p.user_id=? OR p.group_id=? ORDER BY p.updated_at DESC",[$target,$gid]);}
-    return all("SELECT p.*,g.name group_name,(SELECT COUNT(*) FROM files f WHERE f.project_id=p.id AND f.kind='file') file_count FROM projects p LEFT JOIN groups g ON g.id=p.group_id WHERE p.user_id=? OR EXISTS(SELECT 1 FROM group_members m WHERE m.group_id=p.group_id AND m.user_id=?) ORDER BY p.updated_at DESC",[$u['id'],$u['id']]);
+    if($target&&$target!==$u['id']){teacherTarget($u,$target,$gid);return all("SELECT p.*,g.name group_name,owner.name owner_name,(SELECT COUNT(*) FROM files f WHERE f.project_id=p.id AND f.kind IN ('file','asset')) file_count FROM projects p LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users owner ON owner.id=p.user_id WHERE p.user_id=? OR p.group_id=? ORDER BY p.updated_at DESC",[$target,$gid]);}
+    return all("SELECT p.*,g.name group_name,(SELECT COUNT(*) FROM files f WHERE f.project_id=p.id AND f.kind IN ('file','asset')) file_count FROM projects p LEFT JOIN groups g ON g.id=p.group_id WHERE p.user_id=? OR EXISTS(SELECT 1 FROM group_members m WHERE m.group_id=p.group_id AND m.user_id=?) ORDER BY p.updated_at DESC",[$u['id'],$u['id']]);
 }
 function projectManager(array $u,array $p,bool $deleting=false): void {
     if(!$p['group_id']&&$p['user_id']!==$u['id']&&$deleting)fail(403,'Nur der Eigentümer kann dieses persönliche Projekt löschen.');
     if ($p['group_id'] && $u['role']!=='admin' && $p['created_by']!==$u['id']) fail(403,'Nur der Ersteller oder ein Administrator kann dieses Gruppenprojekt umbenennen oder löschen.');
 }
 function workspaceBytes(array $p): int {
-    return (int)query('SELECT COALESCE(SUM(length(CAST(f.content AS BLOB))),0) FROM files f JOIN projects p ON p.id=f.project_id WHERE '.($p['group_id']?'p.group_id=?':'p.user_id=?'),[$p['group_id']?:$p['user_id']])->fetchColumn();
+    return (int)query('SELECT COALESCE(SUM(length(CAST(f.content AS BLOB))+COALESCE(a.size,0)),0) FROM files f JOIN projects p ON p.id=f.project_id LEFT JOIN workspace_uploads a ON a.file_id=f.id WHERE '.($p['group_id']?'p.group_id=?':'p.user_id=?'),[$p['group_id']?:$p['user_id']])->fetchColumn();
 }
 function filePath(string $path): string {
     if (!$path || strlen($path) > 240 || !preg_match('~^[\pL\pN _./-]+$~u', $path) || str_starts_with($path, '/') || str_contains($path, '//')) fail(422, 'Bitte verwenden Sie einen relativen Dateinamen ohne Sonderzeichen.');
