@@ -11,7 +11,7 @@ try {
     keyBytes(); sessionStart();
     $action = $_GET['action'] ?? 'bootstrap';
     $method = $_SERVER['REQUEST_METHOD'];
-    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table'];
+    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants'];
     if ($method !== 'GET' && $method !== 'POST') fail(405, 'Methode nicht erlaubt.');
     if (!in_array($action, $readActions, true) && $method !== 'POST') fail(405, 'Diese Aktion benötigt POST.');
     if (in_array($action, $readActions, true) && $method !== 'GET') fail(405, 'Diese Aktion benötigt GET.');
@@ -58,7 +58,8 @@ try {
                 'stats'=>one('SELECT COUNT(*) files, COALESCE(SUM(length(CAST(content AS BLOB))),0) bytes FROM files WHERE project_id IN (SELECT id FROM projects WHERE user_id=?) AND kind=\'file\'',[$u['id']]),
                 'runs'=>(int)query("SELECT COUNT(*) FROM events WHERE user_id=? AND event='run'",[$u['id']])->fetchColumn(),
                 'activity'=>all('SELECT event,created_at FROM events WHERE user_id=? ORDER BY id DESC LIMIT 8',[$u['id']])]);
-        case 'projects': needFeature($u,'files'); jsonOut(['projects'=>visibleProjects($u)]);
+        case 'teacher.participants': needFeature($u,'files');jsonOut(['groups'=>teacherParticipants($u)]);
+        case 'projects': needFeature($u,'files'); jsonOut(['projects'=>visibleProjects($u,textField($data,'participant',32,false),textField($data,'group',32,false))]);
         case 'templates':
             needFeature($u,'files');$available=features($u);
             jsonOut(['templates'=>array_values(array_filter(projectTypes(),fn($type)=>$type['active']&&$available[$type['language']==='web'?'html':$type['language']]))]);
@@ -85,7 +86,7 @@ try {
         case 'project.rename':
             needFeature($u,'files'); transaction(function() use($u,$data) { $p=project($u,textField($data,'id',32));projectManager($u,$p);query('UPDATE projects SET name=?,updated_at=? WHERE id=?',[textField($data,'name',80),now(),$p['id']]); }); jsonOut(['ok'=>true]);
         case 'project.delete':
-            needFeature($u,'files'); transaction(function() use($u,$data) { $p=project($u,textField($data,'id',32));projectManager($u,$p);query('DELETE FROM projects WHERE id=?',[$p['id']]);audit($u['id'],'project.delete'); }); jsonOut(['ok'=>true]);
+            needFeature($u,'files'); transaction(function() use($u,$data) { $p=project($u,textField($data,'id',32));projectManager($u,$p,true);query('DELETE FROM projects WHERE id=?',[$p['id']]);audit($u['id'],'project.delete'); }); jsonOut(['ok'=>true]);
         case 'files':
             needFeature($u,'files'); $p=project($u,textField($data,'project',32));
             jsonOut(['project'=>$p,'files'=>all('SELECT id,path,kind,version,length(CAST(content AS BLOB)) bytes,updated_at FROM files WHERE project_id=? ORDER BY kind DESC,path',[$p['id']])]);
@@ -111,7 +112,7 @@ try {
                 else query('INSERT INTO files(id,project_id,path,content,updated_at) VALUES(?,?,?,?,?)',[id(),$p['id'],$path,$content,now()]);
                 query('UPDATE projects SET updated_at=? WHERE id=?',[now(),$p['id']]);
                 return one('SELECT id,path,version,updated_at FROM files WHERE project_id=? AND path=?',[$p['id'],$path]);
-            }); audit($u['id'],'file.save'); jsonOut(['file'=>$out]);
+            }); audit($u['id'],'file.save',$p['user_id']&&$p['user_id']!==$u['id']?['project'=>$p['id'],'owner'=>$p['user_id'],'teaching'=>true]:[]); jsonOut(['file'=>$out]);
         case 'folder.create':
             needFeature($u,'files'); $p=project($u,textField($data,'project',32)); $path=filePath(textField($data,'path',240));
             transaction(function() use($u,$p,$path) {
@@ -214,7 +215,7 @@ try {
                 audit($u['id'],$action); jsonOut(['ok'=>true,'affected'=>$stmt->rowCount()]);
             } catch(PDOException $e) { mysqlError($e); }
         case 'admin.overview':
-            jsonOut(['counts'=>['users'=>(int)query("SELECT COUNT(*) FROM users WHERE role='user'")->fetchColumn(),'groups'=>(int)query('SELECT COUNT(*) FROM groups')->fetchColumn(),'projects'=>(int)query('SELECT COUNT(*) FROM projects')->fetchColumn(),'runs'=>(int)query("SELECT COUNT(*) FROM events WHERE event='run'")->fetchColumn()],
+            jsonOut(['counts'=>['users'=>(int)query("SELECT COUNT(*) FROM users WHERE role IN ('user','teacher')")->fetchColumn(),'groups'=>(int)query('SELECT COUNT(*) FROM groups')->fetchColumn(),'projects'=>(int)query('SELECT COUNT(*) FROM projects')->fetchColumn(),'runs'=>(int)query("SELECT COUNT(*) FROM events WHERE event='run'")->fetchColumn()],
                 'daily'=>all("SELECT substr(created_at,1,10) day,COUNT(*) activity,SUM(event='run') runs FROM events WHERE created_at>=? GROUP BY day ORDER BY day",[gmdate('Y-m-d',time()-13*86400)]),
                 'languages'=>all("SELECT json_extract(details,'$.language') language,COUNT(*) runs FROM events WHERE event='run' GROUP BY language"),
                 'events'=>all('SELECT e.event,e.created_at,u.name FROM events e LEFT JOIN users u ON u.id=e.user_id ORDER BY e.id DESC LIMIT 30'),
@@ -232,7 +233,7 @@ try {
             }); jsonOut(['ok'=>true]);
         case 'admin.users': jsonOut(['users'=>array_map('safeUser',all('SELECT * FROM users ORDER BY name'))]);
         case 'admin.user.save':
-            $uid=textField($data,'id',32,false); $name=textField($data,'name'); $email=emailField($data); $role=$data['role']??'user'; if(!in_array($role,['user','admin'],true)) fail(422,'Ungültige Rolle.');
+            $uid=textField($data,'id',32,false); $name=textField($data,'name'); $email=emailField($data); $role=$data['role']??'user'; if(!in_array($role,['user','teacher','admin'],true)) fail(422,'Ungültige Rolle.');
             $active=(bool)($data['active']??true); $pass=passwordField($data,$uid===''); $flags=featureInput($data['features']??[]); $groups=$data['groups']??[];
             if (!is_array($groups)||count($groups)>1000) fail(422,'Ungültige Gruppenzuordnung.');
             foreach ($groups as $groupId) if (!is_string($groupId)) fail(422,'Ungültige Gruppenzuordnung.');

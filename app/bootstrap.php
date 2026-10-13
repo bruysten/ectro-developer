@@ -38,6 +38,17 @@ function db(): PDO {
     $pdo = new PDO('sqlite:' . dataDir() . '/app.sqlite', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
     $pdo->exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL;');
     $pdo->exec(file_get_contents(__DIR__ . '/schema.sql'));
+    // Rebuild the role constraint without changing user IDs or dependent records.
+    if(!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'")->fetchColumn(), "'teacher'")){
+        $pdo->exec('PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE');
+        try{
+            if(!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'")->fetchColumn(), "'teacher'")){
+                $pdo->exec("CREATE TABLE users_upgrade (id TEXT PRIMARY KEY,name TEXT NOT NULL,email TEXT NOT NULL UNIQUE,password TEXT NOT NULL,role TEXT NOT NULL CHECK(role IN ('user','teacher','admin')),active INTEGER NOT NULL DEFAULT 1,features TEXT NOT NULL DEFAULT '{}',auth_version INTEGER NOT NULL DEFAULT 1,must_change_password INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL,last_login TEXT)");
+                $pdo->exec('INSERT INTO users_upgrade SELECT id,name,email,password,role,active,features,auth_version,must_change_password,created_at,last_login FROM users; DROP TABLE users; ALTER TABLE users_upgrade RENAME TO users');
+                if($pdo->query('PRAGMA foreign_key_check')->fetch())throw new RuntimeException('Role migration foreign key validation failed.');
+            }$pdo->exec('COMMIT');
+        }catch(Throwable $e){$pdo->exec('ROLLBACK');throw $e;}finally{$pdo->exec('PRAGMA foreign_keys=ON');}
+    }
     // Upgrade existing installations without a separate deployment command.
     if (!in_array('group_id',array_column($pdo->query('PRAGMA table_info(projects)')->fetchAll(),'name'),true)) {
         $pdo->exec('PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE');
@@ -159,13 +170,23 @@ function rateLimit(string $bucket, int $limit, int $window): void {
 function audit(?string $uid, string $event, array $details = []): void {
     query('INSERT INTO events(user_id,event,details,created_at) VALUES(?,?,?,?)', [$uid, $event, json_encode($details), now()]);
 }
-function project(array $u, string $pid): array {
-    $p = one('SELECT p.*,g.name group_name FROM projects p LEFT JOIN groups g ON g.id=p.group_id WHERE p.id=? AND (p.user_id=? OR EXISTS(SELECT 1 FROM group_members m WHERE m.group_id=p.group_id AND m.user_id=?))', [$pid, $u['id'],$u['id']]); if (!$p) fail(404, 'Projekt nicht gefunden.'); return $p;
+function teacherTarget(array $u,string $target,string $gid): void {
+    if($u['role']!=='teacher'||!one("SELECT 1 FROM users t JOIN group_members student ON student.user_id=t.id JOIN group_members teacher ON teacher.group_id=student.group_id WHERE t.id=? AND t.role IN ('user','teacher') AND teacher.user_id=? AND student.group_id=?",[$target,$u['id'],$gid]))fail(403,'Dieser Teilnehmer gehört keiner Ihrer ausgewählten Gruppen an.');
 }
-function visibleProjects(array $u): array {
+function teacherParticipants(array $u): array {
+    if($u['role']!=='teacher')fail(403,'Diese Ansicht ist Lehrern vorbehalten.');
+    $groups=all('SELECT g.id,g.name FROM groups g JOIN group_members m ON m.group_id=g.id WHERE m.user_id=? ORDER BY g.name',[$u['id']]);
+    foreach($groups as &$group)$group['members']=all("SELECT u.id,u.name,u.role FROM users u JOIN group_members m ON m.user_id=u.id WHERE m.group_id=? AND u.id<>? AND u.role IN ('user','teacher') ORDER BY u.name,u.id",[$group['id'],$u['id']]);unset($group);return $groups;
+}
+function project(array $u, string $pid): array {
+    $p=one("SELECT p.*,g.name group_name,owner.name owner_name FROM projects p LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users owner ON owner.id=p.user_id WHERE p.id=? AND (p.user_id=? OR EXISTS(SELECT 1 FROM group_members m WHERE m.group_id=p.group_id AND m.user_id=?) OR (?='teacher' AND owner.role IN ('user','teacher') AND EXISTS(SELECT 1 FROM group_members student JOIN group_members teacher ON teacher.group_id=student.group_id WHERE student.user_id=p.user_id AND teacher.user_id=?)))",[$pid,$u['id'],$u['id'],$u['role']==='teacher'&&features($u)['files']?'teacher':'user',$u['id']]);if(!$p)fail(404,'Projekt nicht gefunden.');return $p;
+}
+function visibleProjects(array $u,string $target='',string $gid=''): array {
+    if($target&&$target!==$u['id']){teacherTarget($u,$target,$gid);return all("SELECT p.*,g.name group_name,owner.name owner_name,(SELECT COUNT(*) FROM files f WHERE f.project_id=p.id AND f.kind='file') file_count FROM projects p LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users owner ON owner.id=p.user_id WHERE p.user_id=? OR p.group_id=? ORDER BY p.updated_at DESC",[$target,$gid]);}
     return all("SELECT p.*,g.name group_name,(SELECT COUNT(*) FROM files f WHERE f.project_id=p.id AND f.kind='file') file_count FROM projects p LEFT JOIN groups g ON g.id=p.group_id WHERE p.user_id=? OR EXISTS(SELECT 1 FROM group_members m WHERE m.group_id=p.group_id AND m.user_id=?) ORDER BY p.updated_at DESC",[$u['id'],$u['id']]);
 }
-function projectManager(array $u,array $p): void {
+function projectManager(array $u,array $p,bool $deleting=false): void {
+    if(!$p['group_id']&&$p['user_id']!==$u['id']&&$deleting)fail(403,'Nur der Eigentümer kann dieses persönliche Projekt löschen.');
     if ($p['group_id'] && $u['role']!=='admin' && $p['created_by']!==$u['id']) fail(403,'Nur der Ersteller oder ein Administrator kann dieses Gruppenprojekt umbenennen oder löschen.');
 }
 function workspaceBytes(array $p): int {

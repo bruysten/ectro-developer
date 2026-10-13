@@ -321,6 +321,63 @@ with tempfile.TemporaryDirectory(prefix='ectro-test-') as private:
         check(len(bob.ok('training.table',mode='practice',table='produkte')['rows'])==3, 'Reset restores personal samples')
         admin.ok('admin.settings',{'features':{'database':False},'hosts':['localhost']})
         check(bob.call('training.info')[0]==403 and bob.call('training.reset',{})[0]==403, 'Database feature restriction also covers training')
+        # Teacher access is scoped to current shared-group membership, never an admin shortcut.
+        class_a=admin.ok('admin.group.save',{'name':'Teacher Class A','description':'','features':{}})['id']
+        class_b=admin.ok('admin.group.save',{'name':'Teacher Class B','description':'','features':{}})['id']
+        def teacher_fixture(name,role,groups):
+            ident=admin.ok('admin.user.save',{'name':name,'email':name+'@teacher.test','role':role,'password':'secure-test-password','groups':groups})['id']
+            session=Client(base);session.ok('bootstrap');session.ok('login',{'portal':'user','email':name+'@teacher.test','password':'secure-test-password'});session.ok('password',{'current':'secure-test-password','password':'changed-secure-password'})
+            return ident,session
+        teacher_id,teacher=teacher_fixture('Teacher','teacher',[class_a])
+        pupil_id,pupil=teacher_fixture('Pupil','user',[class_a,class_b])
+        outsider_id,outsider=teacher_fixture('Outsider','user',[class_b])
+        teacher_template=admin.ok('admin.template.save',{'name':'Teacher fixture','description':'','language':'web','active':True,'files':[{'path':'index.html','content':'Student work'}]})['id']
+        private_project=pupil.ok('project.create',{'name':'Pupil personal','template':teacher_template})['id']
+        outside_project=outsider.ok('project.create',{'name':'Outside personal','template':teacher_template})['id']
+        shared_a=pupil.ok('project.create',{'name':'Shared A','template':teacher_template,'group':class_a})['id']
+        shared_b=pupil.ok('project.create',{'name':'Shared B','template':teacher_template,'group':class_b})['id']
+        check(teacher.call('admin.users')[0]==403,'Teacher cannot enter administration')
+        wrong_portal=Client(base);wrong_portal.ok('bootstrap')
+        check(wrong_portal.call('login',{'portal':'admin','email':'Teacher@teacher.test','password':'changed-secure-password'})[0]==401,'Teacher uses frontend portal only')
+        check(pupil.call('teacher.participants')[0]==403,'Learner cannot enumerate teacher participants')
+        members=teacher.ok('teacher.participants')['groups']
+        check(len(members)==1 and members[0]['id']==class_a and [m['id'] for m in members[0]['members']]==[pupil_id],'Teacher sees only own group participants')
+        check(set(members[0]['members'][0])=={'id','name','role'},'Participant picker excludes credentials and email')
+        check(private_project not in [p['id'] for p in teacher.ok('projects')['projects']],'Default teacher list remains own workspace')
+        scoped=teacher.ok('projects',participant=pupil_id,group=class_a)['projects']
+        check(set(p['id'] for p in scoped)=={private_project,shared_a},'Selected participant shows personal and selected group projects only')
+        check(teacher.call('projects',participant=pupil_id,group=class_b)[0]==403,'Cannot browse learner other group')
+        check(teacher.call('projects',participant=outsider_id,group=class_a)[0]==403,'Cannot forge participant selection')
+        check(pupil.call('projects',participant=teacher_id,group=class_a)[0]==403,'Learner cannot forge teacher mode')
+        check(teacher.call('files',project=outside_project)[0]==404 and teacher.call('files',project=shared_b)[0]==404,'Direct project IDs do not bypass teacher scope')
+        opened=teacher.ok('file',project=private_project,path='index.html')['file']
+        teacher.ok('file.save',{'project':private_project,'path':'index.html','content':'Teacher feedback','version':opened['version']})
+        check(pupil.ok('file',project=private_project,path='index.html')['file']['content']=='Teacher feedback','Teacher edits persist in pupil workspace')
+        check(pupil.call('file.save',{'project':private_project,'path':'index.html','content':'Stale pupil edit','version':opened['version']})[0]==409,'Teacher/pupil overlapping writes cannot overwrite silently')
+        check(teacher.ok('project.bundle',{'project':private_project})['files'][0]['content']=='Teacher feedback','Teacher can load authorized preview bundle')
+        teacher.ok('project.rename',{'id':private_project,'name':'Reviewed project'})
+        check(teacher.call('project.delete',{'id':private_project})[0]==403,'Teacher cannot delete pupil personal project')
+        check(teacher.call('project.share',{'id':private_project,'group':class_a})[0]==403,'Teacher cannot transfer pupil ownership')
+        teacher.ok('folder.create',{'project':private_project,'path':'feedback'})
+        teacher.ok('file.save',{'project':private_project,'path':'feedback/review.txt','content':'Review','version':0})
+        teacher.ok('file.rename',{'project':private_project,'path':'feedback/review.txt','new_path':'feedback/notes.txt'})
+        check(any(f['path']=='feedback/notes.txt' for f in pupil.ok('files',project=private_project)['files']),'Teacher file management stays in selected workspace')
+        check(teacher.call('file.save',{'project':private_project,'path':'index.html','content':'CSRF bypass','version':opened['version']},csrf=False)[0]==403,'Teacher writes require CSRF')
+        admin.ok('admin.settings',{'features':{'files':False},'hosts':['localhost']})
+        check(teacher.call('file',project=private_project,path='index.html')[0]==404 and teacher.call('project.bundle',{'project':private_project})[0]==404,'Files feature revokes direct teacher reads and preview bundles')
+        admin.ok('admin.settings',{'features':{'files':True},'hosts':['localhost']})
+        admin.ok('admin.group.save',{'id':class_a,'name':'Teacher Class A','description':'','features':{},'users':[pupil_id]})
+        check(teacher.call('file',project=private_project,path='index.html')[0]==404,'Removing teacher membership revokes open file access')
+        check(teacher.call('file.save',{'project':private_project,'path':'index.html','content':'After revoke','version':2})[0]==404,'Removing membership revokes saving immediately')
+        check(teacher.call('project.bundle',{'project':private_project})[0]==404,'Removing membership revokes preview bundle')
+        check(teacher.ok('teacher.participants')['groups']==[],'Removed group disappears from teacher picker')
+        admin.ok('admin.group.save',{'id':class_a,'name':'Teacher Class A','description':'','features':{},'users':[teacher_id]})
+        check(teacher.call('files',project=private_project)[0]==404,'Removing participant membership also revokes access')
+        admin.ok('admin.user.save',{'id':teacher_id,'name':'Teacher','email':'Teacher@teacher.test','role':'user','password':'','groups':[class_a]})
+        check(teacher.call('teacher.participants')[0]==401,'Changing teacher role revokes existing session')
+        downgraded=Client(base);downgraded.ok('bootstrap');downgraded.ok('login',{'portal':'user','email':'Teacher@teacher.test','password':'changed-secure-password'})
+        check(downgraded.call('teacher.participants')[0]==403,'Downgraded user cannot use teacher picker')
+        check(downgraded.call('files',project=private_project)[0]==404,'Downgraded user cannot read former pupil files')
         print(f'{CHECKS} API/security integration checks passed.')
     finally:
         server.terminate();server.wait(timeout=10)

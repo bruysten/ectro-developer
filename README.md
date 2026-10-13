@@ -75,3 +75,7 @@ Das Entrosphere-Design-System wird mit originalen Farb-, Typografie-, Abstands-,
 Im Gruppenchat lassen sich Dateien mit optionaler Nachricht teilen. Jeder Anhang bietet Vorschau und Originaldownload. PDF-Seiten werden lokal über PDF.js dargestellt; Code, CSV/JSON und andere Textdateien als Text, moderne Office-/OpenDocument-Dateien als begrenzte Textvorschau. Für alte binäre Office-Formate und Archive steht der Download bereit. Dateien und Nachrichten sind nur der Gruppe und Administratoren zugänglich.
 
 Unter **Admin → Freigaben → Chat-Dateien** lassen sich Teilen, erlaubte Endungen und Uploadgröße einstellen. Das effektive Limit berücksichtigt die PHP-Uploadgrenzen; je Gruppe stehen 100 MB für Anhänge zur Verfügung. Die Gruppenkarte führt zur Chatverwaltung: einzelne Nachrichten samt Anhang löschen oder den gesamten Verlauf mit Rückfrage zurücksetzen. Es wird kein Serverpaket benötigt.
+
+### Lehrerzugang
+
+Im Adminbereich beim Anlegen oder Bearbeiten eines Benutzers die Rolle **Lehrer** wählen und die zu betreuenden Gruppen zuordnen. Lehrer melden sich am normalen Benutzer-Login an. In Projekte, Dateien und Editor wählen sie Gruppe und Teilnehmer, sehen deren persönliche Projekte und bearbeiten Dateien direkt im vorhandenen Editor. „Mein Workspace“ führt zurück zu den eigenen Projekten. Der Zugriff endet mit dem Entzug der gemeinsamen Gruppenzugehörigkeit; konkurrierende Änderungen werden durch die Versionsprüfung geschützt. Die Rollen-Erweiterung wird beim nächsten App-Aufruf automatisch auf bestehenden Installationen eingerichtet.
