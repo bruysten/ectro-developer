@@ -9,6 +9,7 @@ Automatisch geprüft:
 - 300 deterministische Vergleiche des PHP-ChangeSet-Protokolls mit CodeMirror, einschließlich Emoji, mehrzeiligem Text, Einfügungen und Löschungen.
 - Migration einer bestehenden SQLite-Datenbank mit unveränderten persönlichen Projekt- und Dateidaten, gültigen Fremdschlüsseln und Löschkaskaden.
 - 35 MySQL-Verbindungskonfigurations-/Fehlerchecks: Auswahl und Gültigkeit der offiziellen Hetzner-CA, Schutz gegen ähnlich benannte fremde Hosts, explizite CA-Konfiguration, lokaler Betrieb, fehlende CA und getrennte Fehlermeldungen ohne Offenlegung roher Treibertexte. Eine echte Verbindung zur produktiven Hetzner-Datenbank wurde nicht geprüft.
+- 26 Validierungschecks für explizite Tabellenspalten und Schlüssel; zusätzlich 8 echte MariaDB-Ausführungschecks im isolierten CI-Service: ausschließlich gewählte Spalten, Primär-/UNIQUE-/Suchindizes, AUTO_INCREMENT und zusammengesetzte Schlüssel einschließlich abgelehnter Duplikate.
 - 16 SQL-Policy-Checks, einschließlich Multi-Statements, Dateisystemzugriff, Systemschemata, UDFs und Ressourcenfallen.
 - PHP-Syntaxprüfung aller ausgelieferten PHP-Dateien.
 - SHA-256-Prüfung der 44 mitgelieferten Frontend-/Runtime-/Font-/Lizenzassets und des Datenbank-CA-Zertifikats.
@@ -23,6 +24,7 @@ Im Codex-In-App-Browser praktisch geprüft:
 - Simulierter Netzwerkausfall in einem Tab, parallele Änderungen im anderen Tab, Wiederverbindung und Neuladen: der lokale Entwurf bleibt erhalten und beide Editoren gleichen sich ab.
 - Einklappbare Navigation im Lernenden- und Adminbereich: 76-Pixel-Icon-Leiste, Tastaturbedienung und Beschriftungen, Auf-/Zuklappen im offenen Editor, gespeicherte Ansicht nach Neuladen, getrennte Einstellungen je Portal und vollständiges mobiles Menü.
 - Admin-Projekttypverwaltung: Standardtypen öffnen, eigene Vorlage anlegen, Code bearbeiten, Startdateien ergänzen und umbenennen, speichern und erneut öffnen. Ein daraus im Frontend angelegtes Projekt enthält die geprüften HTML- und CSS-Startdateien. Mobile Verwaltung bei 390 Pixeln ohne horizontalen Überlauf.
+- Tabellen-Dialog mit lokalen synthetischen Verbindungsmetadaten: leere Startspalte ohne implizite ID, selbst definierte ID mit Primärschlüssel und Hochzählen, UNIQUE, NULL-Regeln, zusammengesetzter Primärschlüssel, Entfernen von Spalten und Abbruch.
 - Code-Schriftgröße im Lernenden-Editor: Plus/Minus verändern Schrift und Zeilennummern gemeinsam; Dateiwechselsicherheit und gespeicherte Größe nach erneutem Öffnen, Grenzen bei 10/28 Pixeln mit gesperrten Buttons, Rücksetzen auf 13 Pixel und unveränderter Speicherstatus praktisch geprüft.
 - Verschiebbare Grenzen zwischen Dateiliste/Arbeitsbereich und Editor/Run-Ausgabe: Mausziehen und Pfeiltasten, gespeicherte Größen nach Neuladen, Doppelklick zum Zurücksetzen, breite Aufteilung bei 1700 Pixeln, Ziehen neben laufender Website-Vorschau sowie mobile Mindestgrößen ohne Seitenüberbreite.
 - Responsive Darstellung bei 390 Pixeln Breite: Navigation bedienbar, keine horizontale Seitenüberbreite.
@@ -30,4 +32,4 @@ Im Codex-In-App-Browser praktisch geprüft:
 - Python-Projekt: tatsächliche Python-3.13-Ausführung mit Datum und Schleife, lesbarer Output.
 - HTML/CSS/JS: gerenderte Website und funktionierender JavaScript-Button in der isolierten Vorschau.
 
-Nicht verifiziert: Live-Deployment auf dem individuellen MA130, echte MySQL/MariaDB-Tabellenoperationen, Verhalten unter hoher paralleler Last, unabhängiges Penetrationstest-Audit und alle Browser-/Gerätekombinationen. Der MySQL-Treiber war lokal vorhanden; ein echter Datenbankserver und produktive Zugangsdaten lagen nicht vor. Keine Aussage „maximal sicher“ ersetzt ein solches Betriebsaudit.
+Nicht verifiziert: Live-Deployment auf dem individuellen MA130, produktive MySQL/MariaDB-Tabellenoperationen, Verhalten unter hoher paralleler Last, unabhängiges Penetrationstest-Audit und alle Browser-/Gerätekombinationen. Der MySQL-Treiber war lokal vorhanden; ein echter Datenbankserver und produktive Zugangsdaten lagen nicht vor. Keine Aussage „maximal sicher“ ersetzt ein solches Betriebsaudit.

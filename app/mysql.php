@@ -57,6 +57,32 @@ function mysqlError(PDOException $e): never {
     $message = match ($code) { 1064 => 'Die SQL-Syntax ist nicht gültig.', 1062 => 'Dieser eindeutige Wert existiert bereits.', 1146 => 'Die Tabelle existiert nicht.', 1054 => 'Die Spalte existiert nicht.', 1044,1142,1227 => 'Der Datenbankbenutzer hat dafür keine Berechtigung.', 1451,1452 => 'Eine Fremdschlüssel-Beziehung verhindert diese Änderung.', 1205,1317,1969,3024 => 'Die Abfrage wurde wegen Zeitüberschreitung beendet.', default => 'Die Datenbank konnte diese Anfrage nicht ausführen.' };
     fail(422, $message . ' (MySQL ' . $code . ')');
 }
+function createTableSql(string $table, mixed $fields): string {
+    $table=identifier($table);
+    if (!is_array($fields) || !array_is_list($fields) || count($fields)<1 || count($fields)>30) fail(422,'Bitte definieren Sie 1 bis 30 Spalten.');
+    $defs=[];$primary=[];$indexes=[];$names=[];$auto=[];
+    foreach ($fields as $field) {
+        if (!is_array($field)) fail(422,'Ungültige Spalte.');
+        $raw=textField($field,'name',64);$name=identifier($raw);$folded=strtolower($raw);
+        if (isset($names[$folded])) fail(422,'Spaltennamen dürfen nicht doppelt vorkommen.');$names[$folded]=true;
+        $type=$field['type']??'';$key=$field['key']??'none';
+        if (!in_array($type,['VARCHAR(255)','TEXT','INT','BIGINT UNSIGNED','DECIMAL(10,2)','DATE','DATETIME','BOOLEAN'],true)) fail(422,'Ungültiger Spaltentyp.');
+        if (!in_array($key,['none','primary','unique','index'],true)) fail(422,'Ungültiger Schlüsseltyp.');
+        if ($type==='TEXT' && $key!=='none') fail(422,'Für Schlüssel bitte VARCHAR(255) statt TEXT verwenden.');
+        $nullable=$field['nullable']??($key!=='primary');$increment=$field['auto_increment']??false;
+        if (!is_bool($nullable)||!is_bool($increment)) fail(422,'Ungültige Spaltenoptionen.');
+        if ($key==='primary' && $nullable) fail(422,'Primärschlüssel dürfen nicht leer (NULL) sein.');
+        if ($increment && ($key!=='primary'||!in_array($type,['INT','BIGINT UNSIGNED'],true))) fail(422,'Automatisches Hochzählen benötigt einen ganzzahligen Primärschlüssel.');
+        $defs[]=$name.' '.$type.($nullable?' NULL':' NOT NULL').($increment?' AUTO_INCREMENT':'');
+        if ($key==='primary') $primary[]=$name;
+        if ($increment) $auto[]=$name;
+        if ($key==='unique') $indexes[]='UNIQUE KEY ('.$name.')';
+        if ($key==='index') $indexes[]='KEY ('.$name.')';
+    }
+    if ($auto && (count($auto)>1||count($primary)!==1)) fail(422,'Automatisches Hochzählen ist nur mit einem einzelnen Primärschlüssel möglich.');
+    if ($primary) $defs[]='PRIMARY KEY ('.implode(',',$primary).')';
+    return 'CREATE TABLE '.$table.' ('.implode(',',array_merge($defs,$indexes)).') ENGINE=InnoDB DEFAULT CHARSET=utf8mb4';
+}
 function tableColumns(PDO $pdo, string $table): array {
     try { return $pdo->query('SHOW COLUMNS FROM ' . identifier($table))->fetchAll(); } catch (PDOException $e) { mysqlError($e); }
 }
