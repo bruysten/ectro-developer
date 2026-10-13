@@ -60,6 +60,7 @@ jobs:
           node tests/editor-changes.mjs
           node tests/chat-preview.mjs
           node tests/sql-composer.mjs
+          node tests/chat-bubble.mjs
           node tests/color.mjs
           node tests/preview-assets.mjs
       - name: Verify prebuilt assets
