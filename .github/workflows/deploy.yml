@@ -62,6 +62,7 @@ jobs:
           node tests/editor-changes.mjs
           node tests/chat-preview.mjs
           node tests/sql-composer.mjs
+          node tests/profile-picture.mjs
           node tests/mail-templates.mjs
           node tests/chat-bubble.mjs
           node tests/color.mjs

@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/profile.php';
 
 const APP_ROOT = __DIR__ . '/..';
 const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat'];
@@ -137,7 +138,7 @@ function emailField(array $data): string {
     $v = strtolower(textField($data, 'email', 254)); if (!filter_var($v, FILTER_VALIDATE_EMAIL)) fail(422, 'Bitte geben Sie eine gültige E-Mail-Adresse ein.'); return $v;
 }
 function safeUser(array $u): array {
-    return ['id' => $u['id'], 'name' => $u['name'], 'email' => $u['email'], 'role' => $u['role'], 'active' => (bool)$u['active'],
+    return ['profile'=>profileData($u['id']),'id' => $u['id'], 'name' => $u['name'], 'email' => $u['email'], 'role' => $u['role'], 'active' => (bool)$u['active'],
         'features' => json_decode($u['features'], true),
         'created_at' => $u['created_at'], 'last_login' => $u['last_login'], 'must_change_password' => (bool)$u['must_change_password'],
         'groups' => all('SELECT g.id,g.name FROM groups g JOIN group_members m ON m.group_id=g.id WHERE m.user_id=? ORDER BY g.name', [$u['id']])];
