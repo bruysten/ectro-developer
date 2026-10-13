@@ -63,8 +63,14 @@ Nur bekannte, geprüfte Release-IDs einsetzen. Alte Releases werden bewusst nich
 
 ## MySQL-Kurse
 
-In konsoleH pro Lernendem eine eigene Datenbank und einen Benutzer mit Rechten ausschließlich auf dieser Datenbank anlegen. Im Adminbereich unter **Freigaben** den benötigten Host freigeben. Der Lernende trägt seine Verbindung unter **Datenbanken** ein. Für den vorgesehenen lokalen Betrieb `localhost` verwenden. Für entfernte Hosts ist TLS samt vertrauenswürdigem CA-Zertifikat erforderlich; `mysql_tls_ca` kann in der privaten Konfiguration angepasst werden. Direktes MySQL aus PHP-/Python-Browser-Scripts ist nicht enthalten; siehe README.
+In konsoleH pro Lernendem eine eigene Datenbank und einen Benutzer mit Rechten ausschließlich auf dieser Datenbank anlegen. Im Adminbereich unter **Freigaben** den benötigten Host freigeben. Der Lernende trägt seine Verbindung unter **Datenbanken** ein. Für den vorgesehenen lokalen Betrieb `localhost` verwenden. Für Hosts wie `mj7p.your-database.de` wird automatisch das mitgelieferte offizielle Hetzner-Datenbank-CA-Zertifikat verwendet; dafür ist keine Serverinstallation nötig. Optional kann `mysql_hetzner_tls_ca` in der privaten Konfiguration überschrieben werden. Andere entfernte Hosts benötigen TLS samt vertrauenswürdigem CA-Zertifikat über `mysql_tls_ca`. Zertifikat- und Hostprüfung bleiben aktiv. Direktes MySQL aus PHP-/Python-Browser-Scripts ist nicht enthalten; siehe README.
 
 ## Prüfen nach dem ersten Deployment
 
 Mit einem echten Lernenden-Zugang HTML/JS, PHP und Python ausführen und eine HTML/PHP-Datei in der Browser-Vorschau öffnen. Eine Kursdatenbank verbinden, Tabelle und Datensatz anlegen und editieren. Zwei Benutzer einer Gruppe und einen Benutzer einer fremden Gruppe für den Chat verwenden. Sicherstellen, dass `/app/`, `/var/` und `/config.local.php` über die Domain nicht erreichbar sind. Die aktuelle automatisierte Suite prüft die API mit SQLite; eine echte MySQL-Instanz und der konkrete Hetzner-Server sind lokal nicht verifiziert worden.
+
+### Fehler beim Verbinden
+
+Die App unterscheidet Anmeldung (1045/1698), fehlende Datenbankrechte (1044), unbekannte Datenbank (1049), DNS (2005), Erreichbarkeit (2002/2003), Verbindungsabbruch (2006/2013) und TLS (2026 bzw. mysqlnd-SSL-Fehler). Die Meldungen zeigen keinen rohen Treiberfehler und keine Zugangsdaten. Ein fehlender PDO-MySQL-Treiber wird gesondert gemeldet. Bei Hetzner die Verbindungsdaten in konsoleH verwenden; das Hauptpasswort wird benötigt, wenn Lernende auch Tabellenstrukturen verwalten sollen.
+
+Quelle der mitgelieferten CA: [Hetzner MariaDB/MySQL](https://docs.hetzner.com/de/managed/databases/mariadb-mysql/), abgerufen am 13.10.2026. SHA-256-Zertifikatfingerprint: `0C:2F:66:73:68:A8:03:14:E2:45:5E:1D:FF:FE:89:64:85:4D:9D:11:2F:C6:F5:A3:68:CF:D2:AE:93:6A:74:27`; gültig bis 04.06.2032. Das Zertifikat wird mit dem Release ausgeliefert und zur Laufzeit nicht heruntergeladen.

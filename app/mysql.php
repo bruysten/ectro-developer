@@ -1,15 +1,41 @@
 <?php
 declare(strict_types=1);
 function allowedHosts(): array { return settings()['db_allowed_hosts'] ?? config()['db_allowed_hosts']; }
+function mysqlTlsCa(string $host, ?array $cfg = null): ?string {
+    if (in_array($host,['localhost','127.0.0.1'],true)) return null;
+    $cfg ??= config();
+    // Trust the provider CA only for its database hostname namespace.
+    $hetzner = preg_match('/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.your-database\.de$/i',$host) === 1;
+    $ca = $hetzner ? ($cfg['mysql_hetzner_tls_ca'] ?? APP_ROOT.'/app/certs/hetzner-mysql-ca.pem') : ($cfg['mysql_tls_ca'] ?? null);
+    if (!is_string($ca) || !is_file($ca) || !is_readable($ca)) fail(503,'Das TLS-CA-Zertifikat für diesen Datenbank-Host ist nicht verfügbar. Bitte die Kursleitung informieren.');
+    return $ca;
+}
+function mysqlConnectionFailure(PDOException $e): array {
+    $code = (int)($e->errorInfo[1] ?? $e->getCode());
+    // Some mysqlnd versions report certificate failures as transport error 2002.
+    if ($code===2026 || ($code===2002 && preg_match('/\b(SSL|TLS|certificate|certificates)\b/i',$e->getMessage()))) {
+        return [503,'Die verschlüsselte Datenbankverbindung ist fehlgeschlagen. Bitte TLS-Zertifikat und Datenbank-Hostname prüfen. (MySQL '.$code.')'];
+    }
+    $message = match ($code) {
+        1045,1698 => 'Der Datenbankserver hat die Anmeldung abgelehnt. Bitte Datenbankbenutzer und das zugehörige Passwort prüfen.',
+        1044 => 'Der Datenbankbenutzer hat keinen Zugriff auf diese Datenbank. Bitte die Zuordnung in der Hosting-Verwaltung prüfen.',
+        1049 => 'Die angegebene Datenbank wurde auf diesem Server nicht gefunden. Bitte den Datenbanknamen prüfen.',
+        2005 => 'Der Datenbank-Hostname konnte nicht aufgelöst werden. Bitte Hostname und DNS prüfen.',
+        2002,2003 => 'Der Datenbankserver ist auf Port 3306 nicht erreichbar. Bitte Hostname, Netzwerkfreigabe und Serverstatus prüfen.',
+        2006,2013 => 'Die Verbindung zum Datenbankserver wurde unterbrochen. Bitte erneut versuchen.',
+        default => 'Die Datenbankverbindung konnte nicht hergestellt werden. Bitte die Kursleitung informieren.',
+    };
+    return [in_array($code,[2002,2003,2005,2006,2013],true)?503:422,$message.($code>0?' (MySQL '.$code.')':'')];
+}
 function mysqlConnection(array $u, ?array $conn = null): PDO {
     $conn ??= one('SELECT * FROM connections WHERE user_id=?', [$u['id']]);
     if (!$conn) fail(422, 'Bitte hinterlegen Sie zuerst Ihre Datenbankverbindung.');
     if (!in_array($conn['host'], allowedHosts(), true)) fail(403, 'Dieser Datenbank-Host ist nicht freigegeben.');
     if (!preg_match('/^[a-zA-Z0-9_-]{1,64}$/', $conn['db_name']) || !preg_match('/^[a-zA-Z0-9_.@-]{1,80}$/', $conn['username'])) fail(422, 'Ungültige Verbindungsdaten.');
+    if (!in_array('mysql',PDO::getAvailableDrivers(),true)) fail(503,'Der PHP-MySQL-Treiber ist auf dem Server nicht verfügbar. Bitte PDO-MySQL in der Hosting-Verwaltung aktivieren.');
+    $ca=mysqlTlsCa($conn['host']);
     $options=[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC, PDO::ATTR_TIMEOUT=>5, PDO::ATTR_EMULATE_PREPARES=>false, PDO::MYSQL_ATTR_MULTI_STATEMENTS=>false, PDO::MYSQL_ATTR_LOCAL_INFILE=>false];
-    if (!in_array($conn['host'],['localhost','127.0.0.1'],true)) {
-        $ca=config()['mysql_tls_ca'];
-        if (!is_string($ca)||!is_readable($ca)) fail(503,'Für entfernte Datenbank-Hosts muss die Kursleitung eine vertrauenswürdige TLS-CA konfigurieren.');
+    if ($ca !== null) {
         $options[PDO::MYSQL_ATTR_SSL_CA]=$ca;$options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT]=true;
     }
     try {
@@ -21,7 +47,7 @@ function mysqlConnection(array $u, ?array $conn = null): PDO {
         }
         try { $pdo->exec('SET SESSION max_statement_time=5'); } catch (PDOException) { try { $pdo->exec('SET SESSION MAX_EXECUTION_TIME=5000'); } catch (PDOException) {} }
         return $pdo;
-    } catch (PDOException) { fail(422, 'Die Verbindung ist fehlgeschlagen. Bitte prüfen Sie Host, Datenbank, Benutzer und Passwort.'); }
+    } catch (PDOException $e) { [$status,$message]=mysqlConnectionFailure($e);fail($status,$message); }
 }
 function identifier(string $value): string {
     if (!preg_match('/^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/', $value)) fail(422, 'Bitte verwenden Sie Buchstaben, Zahlen und Unterstriche für Tabellen- und Spaltennamen.'); return '`' . $value . '`';
