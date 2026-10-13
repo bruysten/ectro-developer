@@ -8,9 +8,10 @@ Automatisch geprüft:
 - 36 Checks für Gruppenprojekte und zwei echte CodeMirror-Zustände gegen eine isolierte PHP-API: gleichzeitige und überlappende Änderungen, Offline-Nachlauf, Unicode, Wiederherstellung nach verlorener Bestätigung, Zugriffsisolation, Mitgliedschaftsentzug, Umbenennen und Lebensdauer von Gruppenprojekten sowie vollständige Projektlöschung einschließlich Änderungsverlauf und Editor-Präsenz.
 - 300 deterministische Vergleiche des PHP-ChangeSet-Protokolls mit CodeMirror, einschließlich Emoji, mehrzeiligem Text, Einfügungen und Löschungen.
 - Migration einer bestehenden SQLite-Datenbank mit unveränderten persönlichen Projekt- und Dateidaten, gültigen Fremdschlüsseln und Löschkaskaden.
+- 35 MySQL-Verbindungskonfigurations-/Fehlerchecks: Auswahl und Gültigkeit der offiziellen Hetzner-CA, Schutz gegen ähnlich benannte fremde Hosts, explizite CA-Konfiguration, lokaler Betrieb, fehlende CA und getrennte Fehlermeldungen ohne Offenlegung roher Treibertexte. Eine echte Verbindung zur produktiven Hetzner-Datenbank wurde nicht geprüft.
 - 16 SQL-Policy-Checks, einschließlich Multi-Statements, Dateisystemzugriff, Systemschemata, UDFs und Ressourcenfallen.
 - PHP-Syntaxprüfung aller ausgelieferten PHP-Dateien.
-- SHA-256-Prüfung der mitgelieferten Frontend-/Runtime-/Font-/Lizenzassets.
+- SHA-256-Prüfung der 44 mitgelieferten Frontend-/Runtime-/Font-/Lizenzassets und des Datenbank-CA-Zertifikats.
 - Syntaxprüfung des Remote-Deployment-Scripts mit `bash -n`.
 
 Im Codex-In-App-Browser praktisch geprüft:

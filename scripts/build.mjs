@@ -22,6 +22,6 @@ for(const pkg of ['@php-wasm/universal','@php-wasm/web-8-4','codemirror','@codem
 }
 await writeFile('public/assets/THIRD-PARTY-LICENSES.txt',licenses.join('\n\n'));
 async function files(dir){let out=[];for(const e of await readdir(dir,{withFileTypes:true})){const p=path.join(dir,e.name);out.push(...e.isDirectory()?await files(p):[p]);}return out;}
-const sums={};for(const p of await files('public/assets'))sums[p]=createHash('sha256').update(await readFile(p)).digest('hex');
+const sums={};for(const p of [...await files('public/assets'),...await files('app/certs')])sums[p]=createHash('sha256').update(await readFile(p)).digest('hex');
 await writeFile('docs/asset-integrity.json',JSON.stringify(sums,null,2)+'\n');
 console.log('Ready-to-run assets built. No npm or Composer required on the server.');

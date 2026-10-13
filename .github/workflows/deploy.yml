@@ -21,6 +21,8 @@ jobs:
         run: php -r 'foreach (["pdo_sqlite","pdo_mysql","mbstring","sodium"] as $e) { if (!extension_loaded($e)) { fwrite(STDERR, "Missing $e\n"); exit(1); } }'
       - name: API and security integration tests
         run: python3 tests/integration.py
+      - name: MySQL connection configuration and errors
+        run: php tests/mysql-connection.php
       - name: SQL policy checks
         run: php tests/sql-policy.php
       - name: Existing database migration
