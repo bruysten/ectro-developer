@@ -219,3 +219,5 @@ html[data-workspace-resizing] iframe { pointer-events:none!important; }
 @media(max-width:560px) { .editor-layout>[data-resize="files"] { height:8px;flex:none; } }
 
 .project-actions { display:flex;align-items:center;gap:4px;flex-shrink:0; }
+
+.toolbar .project-selector { grid-template-columns:auto minmax(0,1fr);align-items:center;gap:12px;max-width:100%; }
