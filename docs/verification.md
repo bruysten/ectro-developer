@@ -21,6 +21,7 @@ Im Codex-In-App-Browser praktisch geprüft:
 - Simulierter Netzwerkausfall in einem Tab, parallele Änderungen im anderen Tab, Wiederverbindung und Neuladen: der lokale Entwurf bleibt erhalten und beide Editoren gleichen sich ab.
 - Einklappbare Navigation im Lernenden- und Adminbereich: 76-Pixel-Icon-Leiste, Tastaturbedienung und Beschriftungen, Auf-/Zuklappen im offenen Editor, gespeicherte Ansicht nach Neuladen, getrennte Einstellungen je Portal und vollständiges mobiles Menü.
 - Admin-Projekttypverwaltung: Standardtypen öffnen, eigene Vorlage anlegen, Code bearbeiten, Startdateien ergänzen und umbenennen, speichern und erneut öffnen. Ein daraus im Frontend angelegtes Projekt enthält die geprüften HTML- und CSS-Startdateien. Mobile Verwaltung bei 390 Pixeln ohne horizontalen Überlauf.
+- Verschiebbare Grenzen zwischen Dateiliste/Arbeitsbereich und Editor/Run-Ausgabe: Mausziehen und Pfeiltasten, gespeicherte Größen nach Neuladen, Doppelklick zum Zurücksetzen, breite Aufteilung bei 1700 Pixeln, Ziehen neben laufender Website-Vorschau sowie mobile Mindestgrößen ohne Seitenüberbreite.
 - Responsive Darstellung bei 390 Pixeln Breite: Navigation bedienbar, keine horizontale Seitenüberbreite.
 - PHP-Projekt: tatsächliche PHP-8.4-Ausführung, dynamische HTML-Liste und lokale CSS-Datei.
 - Python-Projekt: tatsächliche Python-3.13-Ausführung mit Datum und Schleife, lesbarer Output.
