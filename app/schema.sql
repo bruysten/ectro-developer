@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS users (
  id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, password TEXT NOT NULL,
- role TEXT NOT NULL CHECK(role IN ('user','admin')), active INTEGER NOT NULL DEFAULT 1,
+ role TEXT NOT NULL CHECK(role IN ('user','teacher','admin')), active INTEGER NOT NULL DEFAULT 1,
  features TEXT NOT NULL DEFAULT '{}', auth_version INTEGER NOT NULL DEFAULT 1,
  must_change_password INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, last_login TEXT
 );
@@ -24,3 +24,5 @@ INSERT OR IGNORE INTO settings(key,value) VALUES('features','{"files":true,"edit
 CREATE TABLE IF NOT EXISTS chat_attachments (id TEXT PRIMARY KEY,message_id INTEGER NOT NULL UNIQUE REFERENCES messages(id) ON DELETE CASCADE,name TEXT NOT NULL,extension TEXT NOT NULL,size INTEGER NOT NULL,content BLOB NOT NULL);
 CREATE TABLE IF NOT EXISTS chat_state (group_id TEXT PRIMARY KEY REFERENCES groups(id) ON DELETE CASCADE,revision INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS chat_presence (group_id TEXT REFERENCES groups(id) ON DELETE CASCADE,user_id TEXT REFERENCES users(id) ON DELETE CASCADE,touched INTEGER NOT NULL,PRIMARY KEY(group_id,user_id));
+
+CREATE INDEX IF NOT EXISTS group_members_user ON group_members(user_id,group_id);
