@@ -491,6 +491,49 @@ with tempfile.TemporaryDirectory(prefix='ectro-test-') as private:
         check(admin.call('admin.mail.template.delete',{'id':new_template,'version':99})[0]==409,'Delete protects edited template')
         admin.ok('admin.mail.template.delete',{'id':new_template,'version':int(template['version'])})
         check(all(t['id']!=new_template for t in admin.ok('admin.mail.templates')['templates']),'Mail template deletion persists')
+        # Self-service profiles cannot modify account permissions or other users.
+        profile_owner_id,profile_owner=teacher_fixture('ProfileTeacher','teacher',[])
+        current=profile_owner.ok('profile')['user']
+        check(current['role']=='teacher' and current['profile']['version']==0,'Actual teacher role and empty profile returned')
+        profile_payload={'version':0,'name':'Profile display','first_name':'Alex','last_name':'Example','bio':'Learning <script>is text</script>','urls':[{'label':'LinkedIn','url':'https://www.linkedin.com/in/example'},{'label':'Blog','url':'https://blog.example/'}]}
+        check(profile_owner.call('profile.save',profile_payload,csrf=False)[0]==403,'Profile writes require CSRF')
+        check(profile_owner.call('profile.save',dict(profile_payload,role='admin'))[0]==422,'Profile cannot escalate role')
+        check(profile_owner.call('profile.save',dict(profile_payload,id=outsider_id))[0]==422,'Profile cannot target another user')
+        check(profile_owner.call('profile.save',dict(profile_payload,email='replace@example.test'))[0]==422,'Profile cannot replace login email')
+        for url in ['javascript:alert(1)','data:text/html,unsafe','https://user:pass@example.test','not-a-url']:
+            check(profile_owner.call('profile.save',dict(profile_payload,urls=[{'url':url}]))[0]==422,'Unsafe profile link rejected')
+        check(profile_owner.call('profile.save',dict(profile_payload,urls=[{'url':'https://example.test'}]*9))[0]==422,'Profile links are bounded')
+        saved=profile_owner.ok('profile.save',profile_payload)['user']
+        check(saved['role']=='teacher' and saved['name']=='Profile display' and saved['email']=='profileteacher@teacher.test','Profile updates display without account access changes')
+        check(saved['profile']['first_name']=='Alex' and saved['profile']['last_name']=='Example' and len(saved['profile']['urls'])==2,'Names and multiple links saved')
+        check(profile_owner.call('profile.save',profile_payload)[0]==409,'Concurrent profile edit protected')
+        # Generate a valid 128-pixel PNG without extra image-library requirements.
+        import struct,zlib
+        def png_chunk(kind,data):
+            return struct.pack('!I',len(data))+kind+data+struct.pack('!I',zlib.crc32(kind+data)&0xffffffff)
+        png=b'\x89PNG\r\n\x1a\n'+png_chunk(b'IHDR',struct.pack('!IIBBBBB',128,128,8,2,0,0,0))+png_chunk(b'IDAT',zlib.compress((b'\0'+b'\xb2\x02\x6c'*128)*128))+png_chunk(b'IEND',b'')
+        payload=dict(profile_payload,version=1,picture='data:image/png;base64,'+base64.b64encode(png).decode())
+        with_photo=profile_owner.ok('profile.save',payload)['user']
+        check(with_photo['profile']['has_picture'] and with_photo['profile']['picture_version']==1,'Uploaded picture saved privately')
+        def profile_photo(client,ident):
+            try: response=client.opener.open(client.base+'/profile-photo.php?'+urllib.parse.urlencode({'id':ident}))
+            except urllib.error.HTTPError as error: response=error
+            return response.code,response.headers,response.read()
+        code,headers,photo=profile_photo(profile_owner,profile_owner_id)
+        check(code==200 and photo==png and headers['Content-Type']=='image/png','Owner can load exact profile picture')
+        check('no-store' in headers['Cache-Control'] and headers['X-Content-Type-Options']=='nosniff','Private image response cannot cache or sniff executable content')
+        check(profile_photo(outsider,profile_owner_id)[0]==404,'Other learners cannot fetch private profile picture')
+        check(profile_photo(admin,profile_owner_id)[0]==200,'Admin can fetch managed user picture')
+        check(profile_photo(Client(base),profile_owner_id)[0]==401,'Anonymous picture access rejected')
+        for picture in ['data:image/svg+xml;base64,'+base64.b64encode(b'<svg></svg>').decode(),'data:image/png;base64,invalid','data:image/jpeg;base64,'+base64.b64encode(png).decode()]:
+            check(profile_owner.call('profile.save',dict(profile_payload,version=2,picture=picture))[0]==422,'Executable, malformed or mismatched picture rejected')
+        removed=profile_owner.ok('profile.save',dict(profile_payload,version=2,picture='remove'))['user']
+        check(not removed['profile']['has_picture'] and profile_photo(profile_owner,profile_owner_id)[0]==404,'Picture removal clears stored bytes')
+        check(profile_owner.ok('profile')['user']['profile']['bio']=='Learning <script>is text</script>','Bio remains plain text')
+        admin.ok('admin.user.delete',{'id':profile_owner_id})
+        profile_db=sqlite3.connect(pathlib.Path(private)/'app.sqlite')
+        check(profile_db.execute('SELECT COUNT(*) FROM user_profiles WHERE user_id=?',[profile_owner_id]).fetchone()[0]==0,'User deletion removes profile and picture')
+        profile_db.close()
         print(f'{CHECKS} API/security integration checks passed.')
     finally:
         server.terminate();server.wait(timeout=10)
