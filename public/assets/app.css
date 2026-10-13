@@ -268,3 +268,5 @@ html[data-workspace-resizing] iframe { pointer-events:none!important; }
 [hidden] { display:none!important; }
 
 .pdf-preview-controls { display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:16px;flex-wrap:wrap; }.pdf-preview-canvas { display:block;max-width:100%;height:auto;margin:auto; }
+
+.column-type-options { margin-top:16px; }

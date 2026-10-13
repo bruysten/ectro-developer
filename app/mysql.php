@@ -54,8 +54,27 @@ function identifier(string $value): string {
 }
 function mysqlError(PDOException $e): never {
     $code = (int)($e->errorInfo[1] ?? 0);
-    $message = match ($code) { 1064 => 'Die SQL-Syntax ist nicht gültig.', 1062 => 'Dieser eindeutige Wert existiert bereits.', 1146 => 'Die Tabelle existiert nicht.', 1054 => 'Die Spalte existiert nicht.', 1044,1142,1227 => 'Der Datenbankbenutzer hat dafür keine Berechtigung.', 1451,1452 => 'Eine Fremdschlüssel-Beziehung verhindert diese Änderung.', 1205,1317,1969,3024 => 'Die Abfrage wurde wegen Zeitüberschreitung beendet.', default => 'Die Datenbank konnte diese Anfrage nicht ausführen.' };
+    $message = match ($code) { 1071 => 'Der gemeinsame Schlüssel ist zu lang. Bitte kürzere VARCHAR-Längen wählen.', 1118,1074 => 'Die Tabellenzeile ist zu groß. Bitte kürzere VARCHAR-Längen oder TEXT verwenden.', 1064 => 'Die SQL-Syntax ist nicht gültig.', 1062 => 'Dieser eindeutige Wert existiert bereits.', 1146 => 'Die Tabelle existiert nicht.', 1054 => 'Die Spalte existiert nicht.', 1044,1142,1227 => 'Der Datenbankbenutzer hat dafür keine Berechtigung.', 1451,1452 => 'Eine Fremdschlüssel-Beziehung verhindert diese Änderung.', 1205,1317,1969,3024 => 'Die Abfrage wurde wegen Zeitüberschreitung beendet.', default => 'Die Datenbank konnte diese Anfrage nicht ausführen.' };
     fail(422, $message . ' (MySQL ' . $code . ')');
+}
+function columnSqlType(array $field): string {
+    $type=$field['type']??'';
+    if (in_array($type,['VARCHAR','VARCHAR(255)'],true)) {
+        $length=array_key_exists('length',$field)?$field['length']:255;
+        if (!is_int($length)||$length<1||$length>16383) fail(422,'Max. Zeichen muss eine ganze Zahl zwischen 1 und 16383 sein.');
+        if (($field['key']??'none')!=='none' && $length>768) fail(422,'Für eine VARCHAR-Spalte mit Schlüssel bitte höchstens 768 Zeichen verwenden.');
+        if (array_key_exists('precision',$field)||array_key_exists('scale',$field)) fail(422,'VARCHAR benötigt nur eine Zeichenlänge.');
+        return 'VARCHAR('.$length.')';
+    }
+    if (in_array($type,['DECIMAL','DECIMAL(10,2)'],true)) {
+        $precision=array_key_exists('precision',$field)?$field['precision']:10;$scale=array_key_exists('scale',$field)?$field['scale']:2;
+        if (!is_int($precision)||$precision<1||$precision>65||!is_int($scale)||$scale<0||$scale>30||$scale>$precision) fail(422,'DECIMAL benötigt 1–65 Stellen insgesamt und 0–30 Nachkommastellen, höchstens so viele wie Stellen insgesamt.');
+        if (array_key_exists('length',$field)) fail(422,'DECIMAL benötigt Stellen insgesamt und Nachkommastellen.');
+        return 'DECIMAL('.$precision.','.$scale.')';
+    }
+    if (!in_array($type,['TEXT','INT','BIGINT UNSIGNED','DATE','DATETIME','BOOLEAN'],true)) fail(422,'Ungültiger Spaltentyp.');
+    foreach(['length','precision','scale'] as $option) if(array_key_exists($option,$field)) fail(422,'Dieser Datentyp benötigt keine Längenangabe.');
+    return $type;
 }
 function createTableSql(string $table, mixed $fields): string {
     $table=identifier($table);
@@ -65,10 +84,9 @@ function createTableSql(string $table, mixed $fields): string {
         if (!is_array($field)) fail(422,'Ungültige Spalte.');
         $raw=textField($field,'name',64);$name=identifier($raw);$folded=strtolower($raw);
         if (isset($names[$folded])) fail(422,'Spaltennamen dürfen nicht doppelt vorkommen.');$names[$folded]=true;
-        $type=$field['type']??'';$key=$field['key']??'none';
-        if (!in_array($type,['VARCHAR(255)','TEXT','INT','BIGINT UNSIGNED','DECIMAL(10,2)','DATE','DATETIME','BOOLEAN'],true)) fail(422,'Ungültiger Spaltentyp.');
+        $type=columnSqlType($field);$key=$field['key']??'none';
         if (!in_array($key,['none','primary','unique','index'],true)) fail(422,'Ungültiger Schlüsseltyp.');
-        if ($type==='TEXT' && $key!=='none') fail(422,'Für Schlüssel bitte VARCHAR(255) statt TEXT verwenden.');
+        if ($type==='TEXT' && $key!=='none') fail(422,'Für Schlüssel bitte VARCHAR statt TEXT verwenden.');
         $nullable=$field['nullable']??($key!=='primary');$increment=$field['auto_increment']??false;
         if (!is_bool($nullable)||!is_bool($increment)) fail(422,'Ungültige Spaltenoptionen.');
         if ($key==='primary' && $nullable) fail(422,'Primärschlüssel dürfen nicht leer (NULL) sein.');
