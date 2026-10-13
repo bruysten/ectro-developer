@@ -248,10 +248,10 @@ function rowDialog(row=null){
   return modal(row?'Datensatz bearbeiten':'Neuer Datensatz',`<div class="form">${cols.map((c,i)=>`${field(esc(c.Field)+' · '+esc(c.Type),'v'+i,row?.[c.Field]??'', 'text', '', 'maxlength="100000"')}<label style="font-size:11px"><input type="checkbox" name="null${i}" ${row&&row[c.Field]===null?'checked':''} ${c.Null!=='YES'?'disabled':''}> NULL</label>`).join('')}</div>`,async data=>{const values=Object.fromEntries(cols.map((c,i)=>[c.Field,data.has('null'+i)?null:data.get('v'+i)]));await api('db.row.save',{table,values,keys});toast('Datensatz gespeichert.');await loadRows();});
 }
 function newTable(){
-  const types=['VARCHAR(255)','TEXT','INT','BIGINT UNSIGNED','DECIMAL(10,2)','DATE','DATETIME','BOOLEAN'];
+  const types=['VARCHAR','TEXT','INT','BIGINT UNSIGNED','DECIMAL','DATE','DATETIME','BOOLEAN'];
   const hints={none:'Normale Spalte ohne Schlüssel.',primary:'Identifiziert jeden Datensatz eindeutig. Mehrere Primärspalten bilden gemeinsam einen Schlüssel.',unique:'Verhindert doppelte Werte in dieser Spalte. Bei erlaubtem NULL sind mehrere leere Werte möglich.',index:'Beschleunigt die Suche in dieser Spalte. Doppelte Werte sind erlaubt.'};
   return modal('Neue Tabelle',`${field('Tabellenname','table','','text','','required maxlength="64" placeholder="zum_beispiel"')}<div class="notice" id="table-key-summary"></div><div class="form" id="table-fields"></div><div style="margin-top:16px">${button('Spalte hinzufügen','add-column','secondary','add')}</div>`,async(data,form)=>{
-    const fields=$$('[data-column]',form).map(row=>({name:$('[name="column"]',row).value,type:$('[name="type"]',row).value,key:$('[name="key"]',row).value,nullable:$('[name="nullable"]',row).checked,auto_increment:$('[name="auto_increment"]',row).checked}));
+    const fields=$$('[data-column]',form).map(row=>{const type=$('[name="type"]',row).value;return {name:$('[name="column"]',row).value,type,key:$('[name="key"]',row).value,nullable:$('[name="nullable"]',row).checked,auto_increment:$('[name="auto_increment"]',row).checked,...(type==='VARCHAR'?{length:Number($('[name="length"]',row).value)}:{}),...(type==='DECIMAL'?{precision:Number($('[name="precision"]',row).value),scale:Number($('[name="scale"]',row).value)}:{})};});
     await api('db.table.create',{table:data.get('table'),fields});toast('Tabelle erstellt.');await loadTables();
   },'Tabelle erstellen',{className:'table-create-dialog',after:dialog=>{
     const rows=()=>$$('[data-column]',dialog);
@@ -261,11 +261,15 @@ function newTable(){
       rows().forEach((row,i)=>{
         $('.column-number',row).textContent='SPALTE '+String(i+1).padStart(2,'0');
         const key=$('[name="key"]',row),type=$('[name="type"]',row),nullable=$('[name="nullable"]',row),increment=$('[name="auto_increment"]',row);
+        $$('[data-type-option]',row).forEach(label=>{const relevant=label.dataset.typeOption===type.value;label.hidden=!relevant;$('input',label).disabled=!relevant;});
+        $('.column-type-options',row).hidden=!['VARCHAR','DECIMAL'].includes(type.value);
+        $('[name="length"]',row).max=key.value==='none'?'16383':'768';
+        const precision=$('[name="precision"]',row),scale=$('[name="scale"]',row);scale.max=String(Math.min(30,Number(precision.value)||0));
         for(const option of key.options)option.disabled=type.value==='TEXT'&&option.value!=='none';
         if(type.value==='TEXT')key.value='none';
         nullable.disabled=key.value==='primary';if(nullable.disabled)nullable.checked=false;
         increment.disabled=key.value!=='primary'||!['INT','BIGINT UNSIGNED'].includes(type.value)||primary.length!==1;if(increment.disabled)increment.checked=false;
-        $('.column-key-hint',row).textContent=type.value==='TEXT'?'Für Schlüssel verwenden Sie VARCHAR(255) statt TEXT.':hints[key.value];
+        $('.column-key-hint',row).textContent=type.value==='TEXT'?'Für Schlüssel verwenden Sie VARCHAR statt TEXT.':hints[key.value];
         $('[data-action="remove-column"]',row).disabled=rows().length===1;
       });
       const count=rows().filter(row=>$('[name="key"]',row).value==='primary').length;
@@ -275,8 +279,8 @@ function newTable(){
     const add=()=>{
       if(rows().length>=30)return;
       const node=document.createElement('section');node.className='table-column';node.dataset.column='';
-      node.innerHTML=`<div class="table-column-head"><span class="meta column-number"></span>${ib('close','remove-column','Spalte entfernen')}</div><div class="form-grid">${field('Spaltenname','column','','text','','required maxlength="64" placeholder="z. B. id oder name"')}<label class="field"><span>Datentyp</span><select name="type">${types.map(type=>`<option>${type}</option>`).join('')}</select></label></div><label class="field column-key"><span>Schlüssel</span><select name="key"><option value="none">Kein Schlüssel</option><option value="primary">Primärschlüssel · PRIMARY KEY</option><option value="unique">Eindeutiger Wert · UNIQUE</option><option value="index">Suchindex · INDEX</option></select><small class="column-key-hint"></small></label><div class="column-options"><label><input type="checkbox" name="nullable" checked> Leer erlaubt (NULL)</label><label><input type="checkbox" name="auto_increment"> Automatisch hochzählen</label></div>`;
-      $('#table-fields',dialog).append(node);node.onchange=update;bind('remove-column',()=>{node.remove();update();},node);update();
+      node.innerHTML=`<div class="table-column-head"><span class="meta column-number"></span>${ib('close','remove-column','Spalte entfernen')}</div><div class="form-grid">${field('Spaltenname','column','','text','','required maxlength="64" placeholder="z. B. id oder name"')}<label class="field"><span>Datentyp</span><select name="type">${types.map(type=>`<option>${type}</option>`).join('')}</select></label></div><div class="form-grid column-type-options"><label class="field" data-type-option="VARCHAR"><span>Max. Zeichen</span><input name="length" type="number" value="255" required min="1" max="16383" step="1"></label><label class="field" data-type-option="DECIMAL" hidden><span>Stellen insgesamt</span><input name="precision" type="number" value="10" required min="1" max="65" step="1" disabled></label><label class="field" data-type-option="DECIMAL" hidden><span>Nachkommastellen</span><input name="scale" type="number" value="2" required min="0" max="10" step="1" disabled></label></div><label class="field column-key"><span>Schlüssel</span><select name="key"><option value="none">Kein Schlüssel</option><option value="primary">Primärschlüssel · PRIMARY KEY</option><option value="unique">Eindeutiger Wert · UNIQUE</option><option value="index">Suchindex · INDEX</option></select><small class="column-key-hint"></small></label><div class="column-options"><label><input type="checkbox" name="nullable" checked> Leer erlaubt (NULL)</label><label><input type="checkbox" name="auto_increment"> Automatisch hochzählen</label></div>`;
+      $('#table-fields',dialog).append(node);node.onchange=update;node.oninput=update;bind('remove-column',()=>{node.remove();update();},node);update();
     };
     bind('add-column',()=>{add();rows().at(-1)?.querySelector('[name="column"]').focus();},dialog);add();$('[name="table"]',dialog).focus();
   }});
