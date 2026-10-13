@@ -530,6 +530,43 @@ with tempfile.TemporaryDirectory(prefix='ectro-test-') as private:
         removed=profile_owner.ok('profile.save',dict(profile_payload,version=2,picture='remove'))['user']
         check(not removed['profile']['has_picture'] and profile_photo(profile_owner,profile_owner_id)[0]==404,'Picture removal clears stored bytes')
         check(profile_owner.ok('profile')['user']['profile']['bio']=='Learning <script>is text</script>','Bio remains plain text')
+        # Team sharing is explicit and constrained to current group memberships.
+        team_group=admin.ok('admin.group.save',{'name':'Profile team','users':[profile_owner_id,outsider_id]})['id']
+        check(not profile_owner.ok('profile')['user']['profile']['team_consent'],'Profile sharing defaults to off')
+        check(outsider.ok('team',group=team_group)['members']==[],'Unconsented profiles omitted')
+        check(outsider.call('team.profile',group=team_group,id=profile_owner_id)[0]==404,'Private profile cannot be read by group member')
+        private_version=removed['profile']['version']
+        check(profile_owner.call('profile.save',dict(profile_payload,version=private_version,team_consent='true'))[0]==422,'Consent requires explicit boolean')
+        shared=profile_owner.ok('profile.save',dict(profile_payload,version=private_version,team_consent=True,picture='data:image/png;base64,'+base64.b64encode(png).decode()))['user']
+        members=outsider.ok('team',group=team_group)['members']
+        check(len(members)==1 and members[0]['id']==profile_owner_id,'Consented teacher appears in group directory')
+        public=outsider.ok('team.profile',group=team_group,id=profile_owner_id)['profile']
+        check(public['bio']==profile_payload['bio'] and 'email' not in public and 'features' not in public,'Shared profile excludes account data')
+        check(outsider.call('team.profile',group='f'*32,id=profile_owner_id)[0]==404,'Unrelated group profile access denied')
+        def team_photo(client,group):
+            try: response=client.opener.open(client.base+'/profile-photo.php?'+urllib.parse.urlencode({'id':profile_owner_id,'group':group}))
+            except urllib.error.HTTPError as error: response=error
+            return response.code
+        check(team_photo(outsider,team_group)==200,'Consented group picture available')
+        check(team_photo(outsider,'f'*32)==404,'Picture access checks group membership')
+        admin.ok('admin.settings',{'features':{'team':False},'hosts':['localhost']})
+        check(outsider.call('team',group=team_group)[0]==403 and team_photo(outsider,team_group)==403,'Feature disable blocks API and shared pictures')
+        admin.ok('admin.settings',{'features':{},'hosts':['localhost']})
+        admin.ok('admin.group.save',{'id':team_group,'name':'Profile team','features':{'team':False},'users':[profile_owner_id,outsider_id]})
+        check(outsider.call('team.profile',group=team_group,id=profile_owner_id)[0]==403,'Group feature restriction blocks profile access')
+        admin.ok('admin.group.save',{'id':team_group,'name':'Profile team','features':{},'users':[profile_owner_id]})
+        check(outsider.call('team',group=team_group)[0]==404 and team_photo(outsider,team_group)==404,'Removed membership revokes directory and picture access')
+        admin.ok('admin.group.save',{'id':team_group,'name':'Profile team','features':{},'users':[profile_owner_id,outsider_id]})
+        admin.ok('admin.user.save',{'id':outsider_id,'name':'Outsider','email':'Outsider@teacher.test','role':'user','active':True,'groups':[team_group],'features':{'team':False}})
+        outsider.ok('login',{'portal':'user','email':'Outsider@teacher.test','password':'changed-secure-password'})
+        check(outsider.call('team',group=team_group)[0]==403,'Personal feature restriction blocks directory access')
+        admin.ok('admin.user.save',{'id':outsider_id,'name':'Outsider','email':'Outsider@teacher.test','role':'user','active':True,'groups':[team_group],'features':{}})
+        outsider.ok('login',{'portal':'user','email':'Outsider@teacher.test','password':'changed-secure-password'})
+        preserved=profile_owner.ok('profile.save',dict(profile_payload,version=shared['profile']['version']))['user']
+        check(preserved['profile']['team_consent'],'Older profile clients preserve existing consent')
+        profile_owner.ok('profile.save',dict(profile_payload,version=preserved['profile']['version'],team_consent=False))
+        check(outsider.ok('team',group=team_group)['members']==[] and team_photo(outsider,team_group)==404,'Withdrawal removes directory entry and revokes known photo URL')
+        check(outsider.call('team.profile',group=team_group,id=profile_owner_id)[0]==404,'Withdrawal revokes known profile URL')
         admin.ok('admin.user.delete',{'id':profile_owner_id})
         profile_db=sqlite3.connect(pathlib.Path(private)/'app.sqlite')
         check(profile_db.execute('SELECT COUNT(*) FROM user_profiles WHERE user_id=?',[profile_owner_id]).fetchone()[0]==0,'User deletion removes profile and picture')

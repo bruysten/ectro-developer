@@ -13,7 +13,7 @@ try {
     keyBytes(); sessionStart();
     $action = $_GET['action'] ?? 'bootstrap';
     $method = $_SERVER['REQUEST_METHOD'];
-    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info','admin.mail','admin.mail.templates','profile'];
+    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info','admin.mail','admin.mail.templates','profile','team','team.profile'];
     if ($method !== 'GET' && $method !== 'POST') fail(405, 'Methode nicht erlaubt.');
     if (!in_array($action, $readActions, true) && $method !== 'POST') fail(405, 'Diese Aktion benötigt POST.');
     if (in_array($action, $readActions, true) && $method !== 'GET') fail(405, 'Diese Aktion benötigt GET.');
@@ -55,6 +55,8 @@ try {
     }
     if ($u['must_change_password']) fail(403,'Bitte ändern Sie zuerst Ihr vorläufiges Passwort.');
     switch ($action) {
+        case 'team': needFeature($u,'team');$groups=safeUser($u)['groups'];$gid=textField($data,'group',32,false);jsonOut(['groups'=>$groups,'members'=>$gid?teamMembers($u,$gid):[]]);
+        case 'team.profile': jsonOut(['profile'=>teamProfile($u,textField($data,'group',32),textField($data,'id',32))]);
         case 'profile': jsonOut(['user'=>safeUser($u)]);
         case 'profile.save': jsonOut(['ok'=>true,'user'=>saveProfile($u,$data)]);
         case 'dashboard':

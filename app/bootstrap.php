@@ -3,7 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/profile.php';
 
 const APP_ROOT = __DIR__ . '/..';
-const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat'];
+const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team'];
 const FILE_LIMIT = 524288;
 const SPACE_LIMIT = 20971520;
 

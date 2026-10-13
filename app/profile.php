@@ -1,8 +1,11 @@
 <?php
 declare(strict_types=1);
+const PROFILE_CONSENT_VERSION='2026-10-13';
+const PROFILE_CONSENT_TEXT='Ich willige ein, dass die BRUYSTENPARTNERS GmbH & Co. KG meine Profilangaben (Name, Beschreibung und Links) und mein Profilbild serverseitig speichert und den Mitgliedern meiner Lerngruppen einschließlich der Lehrkräfte zur Vernetzung anzeigt.';
 function profileData(string $uid):array {
     $p=one('SELECT first_name,last_name,bio,urls,picture_version,version,picture IS NOT NULL AS has_picture FROM user_profiles WHERE user_id=?',[$uid]);
-    return $p?['first_name'=>$p['first_name'],'last_name'=>$p['last_name'],'bio'=>$p['bio'],'urls'=>json_decode($p['urls'],true),'picture_version'=>(int)$p['picture_version'],'has_picture'=>(bool)$p['has_picture'],'version'=>(int)$p['version']]:['first_name'=>'','last_name'=>'','bio'=>'','urls'=>[],'picture_version'=>0,'has_picture'=>false,'version'=>0];
+    $sharing=one('SELECT consent_version FROM profile_sharing WHERE user_id=?',[$uid]);
+    return ['team_consent'=>$sharing!==null&&$sharing['consent_version']===PROFILE_CONSENT_VERSION,'consent_text'=>PROFILE_CONSENT_TEXT]+($p?['first_name'=>$p['first_name'],'last_name'=>$p['last_name'],'bio'=>$p['bio'],'urls'=>json_decode($p['urls'],true),'picture_version'=>(int)$p['picture_version'],'has_picture'=>(bool)$p['has_picture'],'version'=>(int)$p['version']]:['first_name'=>'','last_name'=>'','bio'=>'','urls'=>[],'picture_version'=>0,'has_picture'=>false,'version'=>0]);
 }
 function profilePicture(mixed $value):?array {
     if($value===null)return null;if($value==='remove')return ['content'=>null,'mime'=>null];
@@ -13,15 +16,40 @@ function profilePicture(mixed $value):?array {
     return ['content'=>$bytes,'mime'=>$mime];
 }
 function saveProfile(array $u,array $data):array {
-    foreach(array_keys($data) as $field)if(!in_array($field,['name','first_name','last_name','bio','urls','picture','version'],true))fail(422,'Dieses Profilfeld kann nicht geändert werden.');
+    foreach(array_keys($data) as $field)if(!in_array($field,['name','first_name','last_name','bio','urls','picture','version','team_consent'],true))fail(422,'Dieses Profilfeld kann nicht geändert werden.');
+    if(array_key_exists('team_consent',$data)&&!is_bool($data['team_consent']))fail(422,'Bitte die Profilfreigabe prüfen.');
+    $consent=$data['team_consent']??null;
     $name=textField($data,'name',120);$first=textField($data,'first_name',80,false);$last=textField($data,'last_name',80,false);$bio=textField($data,'bio',2000,false);
     foreach([$name,$first,$last] as $value)if(preg_match('/[\x00-\x1f\x7f]/',$value))fail(422,'Bitte Namen ohne Steuerzeichen eingeben.');
     $urls=$data['urls']??[];if(!is_array($urls)||!array_is_list($urls)||count($urls)>8)fail(422,'Bitte höchstens acht Profil-Links angeben.');$clean=[];
     foreach($urls as $link){if(!is_array($link))fail(422,'Bitte die Profil-Links prüfen.');$label=textField($link,'label',60,false);$url=textField($link,'url',500);$parts=parse_url($url);if(!filter_var($url,FILTER_VALIDATE_URL)||!$parts||!in_array($parts['scheme']??'', ['https','http'],true)||isset($parts['user'])||isset($parts['pass']))fail(422,'Profil-Links müssen mit https:// oder http:// beginnen und dürfen keine Zugangsdaten enthalten.');$clean[]=['label'=>$label?:$parts['host'],'url'=>$url];}
     $picture=profilePicture($data['picture']??null);$version=$data['version']??null;if(!is_int($version)||$version<0)fail(422,'Bitte das Profil neu öffnen.');
-    transaction(function()use($u,$name,$first,$last,$bio,$clean,$picture,$version){$old=one('SELECT version FROM user_profiles WHERE user_id=?',[$u['id']]);if(($old?(int)$old['version']:0)!==$version)fail(409,'Ihr Profil wurde inzwischen geändert. Bitte erneut öffnen.');
+    transaction(function()use($u,$name,$first,$last,$bio,$clean,$picture,$version,$consent){$old=one('SELECT version FROM user_profiles WHERE user_id=?',[$u['id']]);if(($old?(int)$old['version']:0)!==$version)fail(409,'Ihr Profil wurde inzwischen geändert. Bitte erneut öffnen.');
         query('INSERT INTO user_profiles(user_id,first_name,last_name,bio,urls,version,updated_at) VALUES(?,?,?,?,?,1,?) ON CONFLICT(user_id) DO UPDATE SET first_name=excluded.first_name,last_name=excluded.last_name,bio=excluded.bio,urls=excluded.urls,version=user_profiles.version+1,updated_at=excluded.updated_at',[$u['id'],$first,$last,$bio,json_encode($clean),now()]);
         if($picture!==null){$statement=db()->prepare('UPDATE user_profiles SET picture=?,picture_mime=?,picture_version=picture_version+1 WHERE user_id=?');$statement->bindValue(1,$picture['content'],$picture['content']===null?PDO::PARAM_NULL:PDO::PARAM_LOB);$statement->bindValue(2,$picture['mime']);$statement->bindValue(3,$u['id']);$statement->execute();}
+        if($consent!==null){
+            $previous=one('SELECT consent_version FROM profile_sharing WHERE user_id=?',[$u['id']]);
+            if($consent){
+                if(!$previous||$previous['consent_version']!==PROFILE_CONSENT_VERSION){
+                    query('INSERT INTO profile_sharing(user_id,consent_version,consent_text,granted_at) VALUES(?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET consent_version=excluded.consent_version,consent_text=excluded.consent_text,granted_at=excluded.granted_at',[$u['id'],PROFILE_CONSENT_VERSION,PROFILE_CONSENT_TEXT,now()]);
+                    audit($u['id'],'profile.consent.grant',['version'=>PROFILE_CONSENT_VERSION,'text'=>PROFILE_CONSENT_TEXT]);
+                }
+            }elseif($previous){query('DELETE FROM profile_sharing WHERE user_id=?',[$u['id']]);audit($u['id'],'profile.consent.withdraw',['version'=>$previous['consent_version']]);}
+        }
         query('UPDATE users SET name=? WHERE id=?',[$name,$u['id']]);audit($u['id'],'profile.save');
     });return safeUser(one('SELECT * FROM users WHERE id=?',[$u['id']]));
+}
+
+function teamGroup(array $u,string $gid):void {
+    needFeature($u,'team');
+    if(!one('SELECT 1 FROM group_members WHERE group_id=? AND user_id=?',[$gid,$u['id']]))fail(404,'Gruppe nicht verfügbar.');
+}
+function teamMembers(array $u,string $gid):array {
+    teamGroup($u,$gid);
+    return all('SELECT u.id,u.name,u.role,p.picture_version,p.picture IS NOT NULL AS has_picture FROM users u JOIN group_members m ON m.user_id=u.id JOIN profile_sharing s ON s.user_id=u.id JOIN user_profiles p ON p.user_id=u.id WHERE m.group_id=? AND u.active=1 AND s.consent_version=? ORDER BY u.name COLLATE NOCASE,u.id',[$gid,PROFILE_CONSENT_VERSION]);
+}
+function teamProfile(array $u,string $gid,string $uid):array {
+    teamGroup($u,$gid);
+    $person=one('SELECT u.id,u.name,u.role,p.first_name,p.last_name,p.bio,p.urls,p.picture_version,p.picture IS NOT NULL AS has_picture FROM users u JOIN group_members m ON m.user_id=u.id JOIN profile_sharing s ON s.user_id=u.id JOIN user_profiles p ON p.user_id=u.id WHERE m.group_id=? AND u.id=? AND u.active=1 AND s.consent_version=?',[$gid,$uid,PROFILE_CONSENT_VERSION]);
+    if(!$person)fail(404,'Profil nicht verfügbar.');$person['urls']=json_decode($person['urls'],true);return $person;
 }
