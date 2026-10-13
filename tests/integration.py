@@ -287,6 +287,40 @@ with tempfile.TemporaryDirectory(prefix='ectro-test-') as private:
         check(len(recent['messages'])==100 and recent['has_more'] and len(older['messages'])==5 and not older['has_more'], 'All history pages available')
         check(not ({m['id'] for m in recent['messages']} & {m['id'] for m in older['messages']}), 'History pages do not overlap')
         admin.ok('admin.chat.reset',{'group':other_group})
+        # Personal SQL training runs real SQL without touching the connected database.
+        training=bob.ok('training.info')
+        check(training['tables']==['produkte','kontakte'] and not training['has_connection'], 'Training available without external database')
+        sample=bob.ok('training.table',mode='practice',table='produkte')
+        check(len(sample['rows'])==3 and sample['columns'][0]['Extra']=='auto_increment', 'Practice schema and sample records')
+        selection={'table':'produkte','action':'select','columns':['name','preis'],'conditions':[{'column':'kategorie','operator':'=','value':'Büro'}],'order':[{'column':'preis','direction':'DESC'}],'limit':10}
+        selected=bob.ok('training.preview',{'mode':'practice','model':selection})
+        check(len(selected['rows'])==2 and selected['rows'][0]['name']=='Schreibtischlampe', 'Read-only live selection and ordering')
+        check(len(bob.ok('training.table',mode='practice',table='produkte')['rows'])==3, 'Live preview does not write')
+        insert={'table':'produkte','action':'insert','values':{'name':"O'Brien",'preis':'12.5'},'rows':[{'name':"O'Brien",'preis':'12.5'},{'name':'Second','preis':'3.2'}]}
+        check(bob.ok('training.execute',{'mode':'practice','model':insert})['affected']==2, 'Real multi-row practice INSERT')
+        rows=bob.ok('training.table',mode='practice',table='produkte')['rows']
+        check(len(rows)==5 and rows[-2]['name']=="O'Brien" and rows[-2]['preis']==12.5, 'Inserted values and defaults visible')
+        check(bob.call('training.execute',{'mode':'practice','model':{'table':'produkte','action':'delete'}})[0]==422, 'Unqualified DELETE blocked')
+        change={'table':'produkte','action':'update','values':{'bestand':'99'},'conditions':[{'column':'id','operator':'>','value':'0'}],'limit':1}
+        check(bob.ok('training.execute',{'mode':'practice','model':change})['affected']==1, 'Practice UPDATE obeys LIMIT')
+        check(sum(r['bestand']==99 for r in bob.ok('training.table',mode='practice',table='produkte')['rows'])==1, 'UPDATE changes only limited selection')
+        remove={'table':'produkte','action':'delete','conditions':[{'column':'id','operator':'=','value':str(rows[-1]['id'])}],'limit':1}
+        check(bob.ok('training.execute',{'mode':'practice','model':remove})['affected']==1, 'Qualified practice DELETE')
+        check(bob.call('training.table',mode='practice',table='training_meta')[0]==404, 'Practice metadata inaccessible')
+        check(bob.call('training.execute',{'mode':'practice','model':insert},csrf=False)[0]==403, 'Training writes require CSRF')
+        check(anonymous.call('training.info')[0]==401, 'Training requires authentication')
+        invalid_batch={'table':'kontakte','action':'insert','values':{'name':'Rollback','email':'new@example.test'},'rows':[{'name':'Rollback','email':'new@example.test'},{'name':'Duplicate','email':'mara@example.test'}]}
+        check(bob.call('training.execute',{'mode':'practice','model':invalid_batch})[0]==422, 'Duplicate batch rejected')
+        check(len(bob.ok('training.table',mode='practice',table='kontakte')['rows'])==3, 'Failed batch fully rolls back')
+        peer=admin.ok('admin.user.save',{'name':'Training Peer','email':'training-peer@test.invalid','password':'secure-test-password','groups':[]})['id']
+        peer_client=Client(base);peer_client.ok('bootstrap');peer_client.ok('login',{'portal':'user','email':'training-peer@test.invalid','password':'secure-test-password'});peer_client.ok('password',{'current':'secure-test-password','password':'changed-secure-password'})
+        check(len(peer_client.ok('training.table',mode='practice',table='produkte')['rows'])==3, 'Practice data isolated by authenticated user')
+        admin.ok('admin.user.delete',{'id':peer})
+        check(not (pathlib.Path(private)/'sql-training'/f'{peer}.sqlite').exists(), 'Deleting user removes personal practice storage')
+        bob.ok('training.reset',{})
+        check(len(bob.ok('training.table',mode='practice',table='produkte')['rows'])==3, 'Reset restores personal samples')
+        admin.ok('admin.settings',{'features':{'database':False},'hosts':['localhost']})
+        check(bob.call('training.info')[0]==403 and bob.call('training.reset',{})[0]==403, 'Database feature restriction also covers training')
         print(f'{CHECKS} API/security integration checks passed.')
     finally:
         server.terminate();server.wait(timeout=10)

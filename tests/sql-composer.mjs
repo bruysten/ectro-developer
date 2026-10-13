@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {previewQuery} from '../src/sql-composer.js';
+const cols=[{Field:'id',Type:'INT',Null:'NO',Default:null,Extra:'auto_increment'},{Field:'name',Type:'VARCHAR(80)',Null:'NO',Default:null,Extra:''},{Field:'price',Type:'DECIMAL',Null:'YES',Default:'0',Extra:''}];
+let checks=0;
+const base={table:'products',action:'insert',values:{name:"O'Brien"},conditions:[],columns:[],order:[],limit:20,distinct:false};
+let result=previewQuery(base,cols);assert.ok(result.ready&&result.sql.includes("'O''Brien'"));checks++;
+assert.ok(!previewQuery({...base,values:{}},cols).ready);checks++;
+assert.ok(!previewQuery({...base,values:{price:'2'}},cols).ready);checks++;
+assert.ok(previewQuery({...base,values:{name:'First',price:null}},cols).ready);checks++;
+assert.ok(!previewQuery({...base,values:{name:null}},cols).ready);checks++;
+assert.ok(!previewQuery({...base,values:{name:'First',price:'text'}},cols).ready);checks++;
+assert.ok(!previewQuery({...base,action:'delete'},cols).ready);checks++;
+assert.ok(!previewQuery({...base,action:'update'},cols).ready);checks++;
+result=previewQuery({...base,action:'select',columns:['name'],distinct:true,conditions:[{column:'id',operator:'>=',value:'2'}],order:[{column:'price',direction:'DESC'}],limit:10},cols);assert.ok(result.ready&&result.sql.includes('SELECT DISTINCT `name`')&&result.sql.includes('ORDER BY `price` DESC')&&result.sql.endsWith('LIMIT 10;'));checks++;
+assert.ok(!previewQuery({...base,limit:101},cols).ready);checks++;
+result=previewQuery({...base,rows:[{name:'First'},{name:'Second'}]},cols);assert.ok(result.ready&&result.sql.includes("('First'),\n  ('Second')"));checks++;
+console.log(`${checks} contextual SQL preview checks passed.`);

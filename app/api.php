@@ -4,13 +4,14 @@ require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/templates.php';
 require_once __DIR__ . '/mysql.php';
 require_once __DIR__ . '/chat.php';
+require_once __DIR__ . '/sql-training.php';
 require_once __DIR__ . '/collaboration.php';
 secureHeaders();
 try {
     keyBytes(); sessionStart();
     $action = $_GET['action'] ?? 'bootstrap';
     $method = $_SERVER['REQUEST_METHOD'];
-    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat'];
+    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table'];
     if ($method !== 'GET' && $method !== 'POST') fail(405, 'Methode nicht erlaubt.');
     if (!in_array($action, $readActions, true) && $method !== 'POST') fail(405, 'Diese Aktion benötigt POST.');
     if (in_array($action, $readActions, true) && $method !== 'GET') fail(405, 'Diese Aktion benötigt GET.');
@@ -152,6 +153,25 @@ try {
         case 'admin.chat': $gid=textField($data,'group',32);chatAccess($u,$gid,true);jsonOut([...chatHistory($gid,max(0,(int)($data['before']??0))),'members'=>chatMembers($gid),'sharing'=>chatSharing()]);
         case 'admin.chat.delete': moderateChat($u,textField($data,'group',32),max(0,(int)($data['message']??0)));jsonOut(['ok'=>true]);
         case 'admin.chat.reset': moderateChat($u,textField($data,'group',32));jsonOut(['ok'=>true]);
+        case 'training.info':
+            needFeature($u,'database');rateLimit('training.info.'.$u['id'],60,60);$mode=textField($data,'mode',20,false)?:'practice';$my=trainingConnection($u,$mode);
+            jsonOut(['tables'=>trainingTables($my,$mode),'has_connection'=>(bool)one('SELECT user_id FROM connections WHERE user_id=?',[$u['id']]),'mode'=>$mode]);
+        case 'training.table':
+            needFeature($u,'database');rateLimit('training.read.'.$u['id'],120,60);$mode=textField($data,'mode',20);$my=trainingConnection($u,$mode);$table=textField($data,'table',64);$columns=trainingColumns($my,$mode,$table);
+            try{jsonOut(['columns'=>$columns,'rows'=>$my->query('SELECT * FROM '.identifier($table).' LIMIT 100')->fetchAll()]);}catch(PDOException $e){mysqlError($e);}
+        case 'training.preview':
+            needFeature($u,'database');rateLimit('training.preview.'.$u['id'],120,60);$mode=textField($data,'mode',20);$my=trainingConnection($u,$mode);$model=$data['model']??null;if(!is_array($model))fail(422,'Ungültiger Query-Entwurf.');
+            $columns=trainingColumns($my,$mode,textField($model,'table',64));if(!in_array($model['action']??'', ['insert','select','update','delete'],true))fail(422,'Unbekannte SQL-Aktion.');if(($model['action']??'')==='insert')jsonOut(['rows'=>[]]);
+            $model['action']='select';$query=composeTrainingSql($model,$columns,$mode);try{$stmt=$my->prepare($query['sql']);$stmt->execute($query['params']);jsonOut(['rows'=>$stmt->fetchAll()]);}catch(PDOException $e){if($mode==='mysql')mysqlError($e);fail(422,'Die Auswahl konnte nicht gelesen werden.');}
+        case 'training.execute':
+            needFeature($u,'database');rateLimit('training.write.'.$u['id'],40,60);$mode=textField($data,'mode',20);$my=trainingConnection($u,$mode);$model=$data['model']??null;if(!is_array($model))fail(422,'Ungültiger Query-Entwurf.');
+            $columns=trainingColumns($my,$mode,textField($model,'table',64));$query=composeTrainingSql($model,$columns,$mode);
+            try{
+                $my->beginTransaction();$stmt=$my->prepare($query['sql']);$stmt->execute($query['params']);$rows=$stmt->columnCount()?$stmt->fetchAll():[];$affected=$query['action']==='select'?0:$stmt->rowCount();if($mode==='practice'&&$query['action']!=='select'){if((int)$my->query('PRAGMA page_count')->fetchColumn()*(int)$my->query('PRAGMA page_size')->fetchColumn()>20971520)fail(413,'Der persönliche Übungsspeicher ist voll. Bitte die Startdaten wiederherstellen.');foreach(['produkte','kontakte'] as $t)if((int)$my->query('SELECT COUNT(*) FROM '.$t)->fetchColumn()>1000)fail(413,'Im Übungsbereich sind höchstens 1000 Datensätze pro Tabelle möglich.');}$my->commit();
+                audit($u['id'],'db.query',['training'=>true,'mode'=>$mode,'action'=>$query['action']]);jsonOut(['rows'=>$rows,'affected'=>$affected,'action'=>$query['action']]);
+            }catch(ApiError $e){if($my->inTransaction())$my->rollBack();throw $e;}catch(PDOException $e){if($my->inTransaction())$my->rollBack();if($mode==='mysql')mysqlError($e);fail(422,'Die Abfrage konnte nicht ausgeführt werden. Bitte Pflichtfelder und eindeutige Werte prüfen.');}
+        case 'training.reset':
+            needFeature($u,'database');rateLimit('training.reset.'.$u['id'],5,60);$my=practiceDatabase($u);$my->beginTransaction();try{$my->exec('DELETE FROM produkte;DELETE FROM kontakte;DELETE FROM sqlite_sequence');seedPractice($my);$my->commit();}catch(Throwable $e){$my->rollBack();throw $e;}jsonOut(['ok'=>true]);
         case 'db.info':
             needFeature($u,'database'); jsonOut(['connection'=>one('SELECT host,db_name,username FROM connections WHERE user_id=?',[$u['id']]),'hosts'=>allowedHosts()]);
         case 'db.connect':
@@ -232,7 +252,7 @@ try {
             transaction(function() use($uid,$u) { $target=one('SELECT * FROM users WHERE id=?',[$uid]); if (!$target) fail(404,'Benutzer nicht gefunden.');
                 if ($target['role']==='admin' && (int)query("SELECT COUNT(*) FROM users WHERE role='admin' AND active=1")->fetchColumn()<=1) fail(422,'Der letzte Admin kann nicht gelöscht werden.');
                 foreach(all('SELECT DISTINCT group_id FROM messages WHERE user_id=?',[$uid]) as $group)query('INSERT INTO chat_state(group_id,revision) VALUES(?,1) ON CONFLICT(group_id) DO UPDATE SET revision=revision+1',[$group['group_id']]);
-                query('DELETE FROM users WHERE id=?',[$uid]); audit($u['id'],'admin.user.delete'); }); jsonOut(['ok'=>true]);
+                query('DELETE FROM users WHERE id=?',[$uid]); audit($u['id'],'admin.user.delete'); }); removePracticeData($uid); jsonOut(['ok'=>true]);
         case 'admin.groups':
             $groups=all('SELECT g.*,(SELECT COUNT(*) FROM group_members WHERE group_id=g.id) members FROM groups g ORDER BY name');
             $members=[];
