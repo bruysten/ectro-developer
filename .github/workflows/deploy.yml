@@ -52,6 +52,7 @@ jobs:
           npm ci --ignore-scripts
           node tests/collaboration.mjs
           node tests/editor-changes.mjs
+          node tests/chat-preview.mjs
       - name: Verify prebuilt assets
         run: python3 scripts/preflight.py
   deploy:

@@ -3,17 +3,19 @@ declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/templates.php';
 require_once __DIR__ . '/mysql.php';
+require_once __DIR__ . '/chat.php';
 require_once __DIR__ . '/collaboration.php';
 secureHeaders();
 try {
     keyBytes(); sessionStart();
     $action = $_GET['action'] ?? 'bootstrap';
     $method = $_SERVER['REQUEST_METHOD'];
-    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template'];
+    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat'];
     if ($method !== 'GET' && $method !== 'POST') fail(405, 'Methode nicht erlaubt.');
     if (!in_array($action, $readActions, true) && $method !== 'POST') fail(405, 'Diese Aktion benötigt POST.');
     if (in_array($action, $readActions, true) && $method !== 'GET') fail(405, 'Diese Aktion benötigt GET.');
-    $data = $method === 'POST' ? input() : $_GET;
+    if($action==='chat.upload' && ($postLimit=iniBytes((string)ini_get('post_max_size')))>0 && (int)($_SERVER['CONTENT_LENGTH']??0)>$postLimit)fail(413,'Der Upload überschreitet das PHP-Uploadlimit.');
+    $data = $method === 'POST' ? ($action==='chat.upload'?$_POST:input()) : $_GET;
     if ($method === 'POST') csrf();
     if ($action === 'bootstrap') {
         $u = currentUser(); $hasAdmin = (bool)query("SELECT 1 FROM users WHERE role='admin' LIMIT 1")->fetchColumn();
@@ -139,14 +141,17 @@ try {
         case 'run.record':
             needFeature($u,'editor'); $language=textField($data,'language',20); if (!in_array($language,['html','php','python','javascript'])) fail(422,'Unbekannte Sprache.');
             needFeature($u,$language==='javascript'?'html':$language); project($u,textField($data,'project',32)); rateLimit('run',100,60); audit($u['id'],'run',['language'=>$language]); jsonOut(['ok'=>true]);
+        case 'chat.upload': chatUpload($u,$data);jsonOut(['ok'=>true]);
         case 'chat':
         case 'chat.send':
-            needFeature($u,'chat'); $gid=textField($data,'group',32);
-            if (!one('SELECT 1 FROM group_members WHERE group_id=? AND user_id=?',[$gid,$u['id']])) fail(403,'Sie sind nicht Mitglied dieser Gruppe.');
+            $gid=textField($data,'group',32);chatAccess($u,$gid);
             if ($action==='chat.send') { rateLimit('chat.'.$u['id'],30,60); query('INSERT INTO messages(group_id,user_id,body,created_at) VALUES(?,?,?,?)',[$gid,$u['id'],textField($data,'body',2000),now()]); audit($u['id'],'chat.send'); jsonOut(['ok'=>true]); }
-            $after=max(0,(int)($data['after']??0));
-            $messages=$after ? all('SELECT m.id,m.user_id,m.body,m.created_at,u.name FROM messages m JOIN users u ON u.id=m.user_id WHERE m.group_id=? AND m.id>? ORDER BY m.id LIMIT 100',[$gid,$after]) : array_reverse(all('SELECT m.id,m.user_id,m.body,m.created_at,u.name FROM messages m JOIN users u ON u.id=m.user_id WHERE m.group_id=? ORDER BY m.id DESC LIMIT 100',[$gid]));
-            jsonOut(['messages'=>$messages]);
+            query('INSERT INTO chat_presence VALUES(?,?,?) ON CONFLICT(group_id,user_id) DO UPDATE SET touched=excluded.touched',[$gid,$u['id'],time()]);
+            $revision=(int)(one('SELECT revision FROM chat_state WHERE group_id=?',[$gid])['revision']??0);$reset=isset($data['revision'])&&(int)$data['revision']!==$revision;
+            jsonOut([...chatHistory($gid,$reset?0:max(0,(int)($data['before']??0)),$reset?0:max(0,(int)($data['after']??0))),'reset'=>$reset,'members'=>chatMembers($gid),'sharing'=>chatSharing()]);
+        case 'admin.chat': $gid=textField($data,'group',32);chatAccess($u,$gid,true);jsonOut([...chatHistory($gid,max(0,(int)($data['before']??0))),'members'=>chatMembers($gid),'sharing'=>chatSharing()]);
+        case 'admin.chat.delete': moderateChat($u,textField($data,'group',32),max(0,(int)($data['message']??0)));jsonOut(['ok'=>true]);
+        case 'admin.chat.reset': moderateChat($u,textField($data,'group',32));jsonOut(['ok'=>true]);
         case 'db.info':
             needFeature($u,'database'); jsonOut(['connection'=>one('SELECT host,db_name,username FROM connections WHERE user_id=?',[$u['id']]),'hosts'=>allowedHosts()]);
         case 'db.connect':
@@ -193,7 +198,7 @@ try {
                 'daily'=>all("SELECT substr(created_at,1,10) day,COUNT(*) activity,SUM(event='run') runs FROM events WHERE created_at>=? GROUP BY day ORDER BY day",[gmdate('Y-m-d',time()-13*86400)]),
                 'languages'=>all("SELECT json_extract(details,'$.language') language,COUNT(*) runs FROM events WHERE event='run' GROUP BY language"),
                 'events'=>all('SELECT e.event,e.created_at,u.name FROM events e LEFT JOIN users u ON u.id=e.user_id ORDER BY e.id DESC LIMIT 30'),
-                'settings'=>settings(),'hosts'=>allowedHosts(),'health'=>['php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'sqlite'=>true,'mysql'=>extension_loaded('pdo_mysql'),'encryption'=>extension_loaded('sodium'),'private_storage'=>is_writable(dataDir())]]);
+                'sharing'=>chatSharing(),'settings'=>settings(),'hosts'=>allowedHosts(),'health'=>['php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'sqlite'=>true,'mysql'=>extension_loaded('pdo_mysql'),'encryption'=>extension_loaded('sodium'),'private_storage'=>is_writable(dataDir())]]);
         case 'admin.templates': jsonOut(['templates'=>projectTypes()]);
         case 'admin.template': jsonOut(['template'=>projectType(textField($data,'id',32))]);
         case 'admin.template.save': jsonOut(['id'=>saveProjectType($u,$data),'ok'=>true]);
@@ -226,6 +231,7 @@ try {
             $uid=textField($data,'id',32); if ($uid===$u['id']) fail(422,'Sie können Ihren eigenen Zugang nicht löschen.');
             transaction(function() use($uid,$u) { $target=one('SELECT * FROM users WHERE id=?',[$uid]); if (!$target) fail(404,'Benutzer nicht gefunden.');
                 if ($target['role']==='admin' && (int)query("SELECT COUNT(*) FROM users WHERE role='admin' AND active=1")->fetchColumn()<=1) fail(422,'Der letzte Admin kann nicht gelöscht werden.');
+                foreach(all('SELECT DISTINCT group_id FROM messages WHERE user_id=?',[$uid]) as $group)query('INSERT INTO chat_state(group_id,revision) VALUES(?,1) ON CONFLICT(group_id) DO UPDATE SET revision=revision+1',[$group['group_id']]);
                 query('DELETE FROM users WHERE id=?',[$uid]); audit($u['id'],'admin.user.delete'); }); jsonOut(['ok'=>true]);
         case 'admin.groups':
             $groups=all('SELECT g.*,(SELECT COUNT(*) FROM group_members WHERE group_id=g.id) members FROM groups g ORDER BY name');
@@ -257,7 +263,8 @@ try {
             $flags=featureInput($data['features']??[]); $hosts=$data['hosts']??[];
             if (!is_array($hosts)||count($hosts)>20) fail(422,'Bitte geben Sie höchstens 20 Hosts an.');
             foreach($hosts as $host) if (!is_string($host)||!preg_match('/^[a-zA-Z0-9.-]{1,253}$/',$host)) fail(422,'Ungültiger Host.');
-            transaction(function() use($flags,$hosts,$u) { query("UPDATE settings SET value=? WHERE key='features'",[$flags]); query("INSERT INTO settings VALUES('db_allowed_hosts',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode(array_values(array_unique($hosts)))]); audit($u['id'],'admin.settings'); }); jsonOut(['ok'=>true]);
+            $sharing=isset($data['chat_sharing'])?chatSharingInput($data['chat_sharing']):null;
+            transaction(function() use($flags,$hosts,$u,$sharing) { query("UPDATE settings SET value=? WHERE key='features'",[$flags]); query("INSERT INTO settings VALUES('db_allowed_hosts',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode(array_values(array_unique($hosts)))]); if($sharing!==null)query("INSERT INTO settings VALUES('chat_sharing',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($sharing)]);audit($u['id'],'admin.settings'); }); jsonOut(['ok'=>true]);
         default: fail(404,'Unbekannte Aktion.');
     }
 } catch (ApiError $e) { jsonOut(['error'=>$e->getMessage()],$e->status); }

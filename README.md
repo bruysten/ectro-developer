@@ -69,3 +69,9 @@ Bestehende SQLite-Datenbanken werden beim ersten Zugriff automatisch und transak
 Die generierten Dateien unter `public/assets/` und `docs/asset-integrity.json` anschließend mit versionieren. Ein Build auf dem Server findet nicht statt. Schriften lassen sich bei Bedarf lokal mit `python3 scripts/vendor-fonts.py` neu bündeln.
 
 Das Entrosphere-Design-System wird mit originalen Farb-, Typografie-, Abstands-, Effekt- und Komponententokens verwendet. Die Website-Layoutvorgaben wurden für eine kompakte, responsive Lernanwendung interpretiert. Schriften und Icons werden selbst gehostet. [Drittanbieter und Lizenzen](docs/third-party.md).
+
+### Chat-Dateien und Moderation
+
+Im Gruppenchat lassen sich Dateien mit optionaler Nachricht teilen. Jeder Anhang bietet Vorschau und Originaldownload. PDF-Seiten werden lokal über PDF.js dargestellt; Code, CSV/JSON und andere Textdateien als Text, moderne Office-/OpenDocument-Dateien als begrenzte Textvorschau. Für alte binäre Office-Formate und Archive steht der Download bereit. Dateien und Nachrichten sind nur der Gruppe und Administratoren zugänglich.
+
+Unter **Admin → Freigaben → Chat-Dateien** lassen sich Teilen, erlaubte Endungen und Uploadgröße einstellen. Das effektive Limit berücksichtigt die PHP-Uploadgrenzen; je Gruppe stehen 100 MB für Anhänge zur Verfügung. Die Gruppenkarte führt zur Chatverwaltung: einzelne Nachrichten samt Anhang löschen oder den gesamten Verlauf mit Rückfrage zurücksetzen. Es wird kein Serverpaket benötigt.

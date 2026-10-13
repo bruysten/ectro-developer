@@ -1,12 +1,12 @@
 import {build} from 'esbuild';
-import {mkdir,copyFile,readdir,writeFile,readFile} from 'node:fs/promises';
+import {mkdir,copyFile,cp,readdir,writeFile,readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import path from 'node:path';
 const root=path.resolve(import.meta.dirname,'..');
 process.chdir(root);
 await mkdir('public/assets/runtime/php/8_4_25',{recursive:true});
 await mkdir('public/assets/runtime/python',{recursive:true});
-await build({entryPoints:['src/app.js','src/preview.js'],outdir:'public/assets',bundle:true,format:'esm',target:'es2022',minify:true,legalComments:'eof'});
+await build({entryPoints:['src/app.js','src/preview.js','src/chat-preview-worker.js','src/pdf-preview.js'],outdir:'public/assets',bundle:true,format:'esm',target:'es2022',minify:true,legalComments:'eof'});
 // Keep the loader as a separate ESM file so import.meta.url resolves its local WASM binary.
 await build({entryPoints:['src/php-runtime.js'],outfile:'public/assets/runtime/php/runtime.js',bundle:true,format:'esm',target:'es2022',minify:true,
   external:['worker_threads','../node_modules/@php-wasm/web-8-4/asyncify/php_8_4.js'],legalComments:'eof'});
@@ -16,8 +16,11 @@ await writeFile('public/assets/runtime/php/runtime.js',runtime);
 await copyFile('node_modules/@php-wasm/web-8-4/asyncify/php_8_4.js','public/assets/runtime/php/loader.js');
 await copyFile('node_modules/@php-wasm/web-8-4/asyncify/8_4_25/php_8_4.wasm','public/assets/runtime/php/8_4_25/php_8_4.wasm');
 for(const name of ['pyodide.js','pyodide.asm.js','pyodide.asm.wasm','python_stdlib.zip','pyodide-lock.json'])await copyFile('node_modules/pyodide/'+name,'public/assets/runtime/python/'+name);
+await mkdir('public/assets/runtime/pdf',{recursive:true});
+await copyFile('node_modules/pdfjs-dist/build/pdf.worker.min.mjs','public/assets/runtime/pdf/pdf.worker.mjs');
+await cp('node_modules/pdfjs-dist/standard_fonts','public/assets/runtime/pdf/fonts',{recursive:true});
 const licenses=[];
-for(const pkg of ['@php-wasm/universal','@php-wasm/web-8-4','codemirror','@codemirror/view','@codemirror/collab']){
+for(const pkg of ['@php-wasm/universal','@php-wasm/web-8-4','codemirror','@codemirror/view','@codemirror/collab','fflate','pdfjs-dist']){
   try {licenses.push(pkg+'\n'+await readFile('node_modules/'+pkg+'/LICENSE','utf8'));}catch{}
 }
 await writeFile('public/assets/THIRD-PARTY-LICENSES.txt',licenses.join('\n\n'));
