@@ -1,0 +1,8 @@
+import assert from 'node:assert/strict';
+import {mailPreview} from '../src/mail-templates.js';
+assert.equal(mailPreview('Hallo {name}, {email}',{name:'Alex',email:'alex@example.test'}),'Hallo Alex, alex@example.test');
+assert.equal(mailPreview('{name} {password}',{name:'{password}',password:'sample'}),'{password} sample');
+assert.equal(mailPreview('{unknown}',{}),'{unknown}');
+assert.equal(mailPreview('{name} {name}',{name:'<script>unsafe</script>'}),'<script>unsafe</script> <script>unsafe</script>');
+assert.ok(!mailPreview('{password}').includes('undefined'));
+console.log('5 mail template preview substitution checks passed.');

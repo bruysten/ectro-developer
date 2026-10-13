@@ -451,6 +451,46 @@ with tempfile.TemporaryDirectory(prefix='ectro-test-') as private:
         admin.ok('admin.settings',{'features':{},'hosts':['localhost']})
         check(admin.ok('admin.overview')['session_hours']==24,'Older settings clients preserve duration when omitted')
         admin.ok('admin.settings',{'features':{},'hosts':['localhost'],'session_hours':8})
+        # Mailjet setup and local templates: no real external sends in integration tests.
+        mail_info=admin.ok('admin.mail')
+        check(not mail_info['config']['enabled'] and not mail_info['config']['has_keys'],'Mailjet disabled by default')
+        mail_templates=admin.ok('admin.mail.templates')['templates']
+        check(len(mail_templates)==2 and any('Du' in t['name'] for t in mail_templates) and any('Sie' in t['name'] for t in mail_templates),'Du/Sie default templates')
+        mail_teacher_id,mail_teacher=teacher_fixture('MailTeacher','teacher',[])
+        check(mail_teacher.call('admin.mail')[0]==403 and mail_teacher.call('admin.mail.templates')[0]==403,'Teacher cannot read mail administration')
+        check(outsider.call('admin.mail.save',{'enabled':True})[0]==403,'Learner cannot configure delivery')
+        check(admin.call('admin.mail.save',{'enabled':False},csrf=False)[0]==403,'Mail setup requires CSRF')
+        check(admin.call('admin.mail.template.save',{'name':'Bad'},csrf=False)[0]==403,'Template changes require CSRF')
+        new_template=admin.ok('admin.mail.template.save',{'name':'Custom welcome','subject':'Welcome {name}','body':'{name} {email} {password} {login_url}'})['id']
+        check(admin.call('admin.mail.template.save',{'id':new_template,'version':99,'name':'Custom welcome','subject':'Welcome {name}','body':'{email} {password} {login_url}'})[0]==409,'Template stale version rejected')
+        check(admin.call('admin.mail.template.save',{'name':'Unknown','subject':'{unsafe}','body':'{email} {password} {login_url}'})[0]==422,'Unknown template variables rejected')
+        check(admin.call('admin.mail.template.save',{'name':'No password','subject':'Welcome','body':'{email} {login_url}'})[0]==422,'Access templates require credentials')
+        check(admin.call('admin.user.save',{'name':'Mail learner','email':'mail-learner@test.invalid','password':'temporary-mail-password','mail_template':new_template,'creation_token':'12345678-1234-1234-1234-123456789012'})[0]==422,'Disabled Mailjet prevents requested mail and user creation')
+        check(not any(x['email']=='mail-learner@test.invalid' for x in admin.ok('admin.users')['users']),'Validation does not create unintended user')
+        fake_key='a'*32;fake_secret='b'*32
+        mail_config={'version':0,'enabled':False,'sender_email':'sender@example.test','sender_name':'Training','app_url':'https://academy.example','api_key':fake_key,'api_secret':fake_secret}
+        result=admin.ok('admin.mail.save',mail_config)
+        check(result['config']['has_keys'] and 'api_key' not in result['config'] and 'api_secret' not in result['config'],'Configured keys are never echoed')
+        check('mailjet' not in admin.ok('admin.overview')['settings'],'General settings exclude encrypted Mailjet credentials')
+        check(admin.call('admin.mail.save',mail_config)[0]==409,'Concurrent Mailjet settings protected')
+        mail_config.update(version=1,api_key='',api_secret='')
+        admin.ok('admin.mail.save',mail_config)
+        check(admin.ok('admin.mail')['config']['has_keys'],'Blank keys preserve saved connection')
+        check(admin.call('admin.mail.save',dict(mail_config,version=2,app_url='https://user@academy.example'))[0]==422,'Login URL rejects embedded credentials')
+        db_mail=sqlite3.connect(pathlib.Path(private)/'app.sqlite')
+        encoded=db_mail.execute("SELECT value FROM settings WHERE key='mailjet'").fetchone()[0]
+        check(fake_key not in encoded and fake_secret not in encoded,'Key material encrypted at rest')
+        # A prepared failed job exercises idempotency without contacting Mailjet.
+        replay_user=admin.ok('admin.user.save',{'name':'Replay learner','email':'replay@test.invalid','password':'temporary-replay-password'})['id']
+        replay_token='22345678-1234-1234-1234-123456789012';replay_mail='c'*32
+        db_mail.execute("INSERT INTO welcome_mails(id,user_id,created_by,request_key,recipient,template_name,auth_version,status,created_at,updated_at) VALUES(?,?,?,?,?,'Custom welcome',1,'failed','2026','2026')",[replay_mail,replay_user,me['id'],replay_token,'replay@test.invalid']);db_mail.commit();db_mail.close()
+        repeated=admin.ok('admin.user.save',{'name':'Replay learner','email':'replay@test.invalid','password':'temporary-replay-password','mail_template':new_template,'creation_token':replay_token})
+        check(repeated['id']==replay_user and repeated['mail']['status']=='failed','Repeated create request returns saved user without resending')
+        check(admin.call('admin.mail.retry',{'id':'f'*32})[0]==404,'Retry requires existing job')
+        template=next(t for t in admin.ok('admin.mail.templates')['templates'] if t['id']==new_template)
+        check(admin.call('admin.mail.template.delete',{'id':new_template,'version':99})[0]==409,'Delete protects edited template')
+        admin.ok('admin.mail.template.delete',{'id':new_template,'version':int(template['version'])})
+        check(all(t['id']!=new_template for t in admin.ok('admin.mail.templates')['templates']),'Mail template deletion persists')
         print(f'{CHECKS} API/security integration checks passed.')
     finally:
         server.terminate();server.wait(timeout=10)
