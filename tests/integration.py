@@ -414,6 +414,9 @@ with tempfile.TemporaryDirectory(prefix='ectro-test-') as private:
         group_status,group_asset=workspace_upload(pupil,shared_a,'group.png',b'\x89PNG\r\n\x1a\nfixture')
         check(group_status==201 and workspace_download(teacher,group_asset['file']['id'])[0]==200,'Group assets readable by current group members')
         check(workspace_download(outsider,group_asset['file']['id'])[0]==404,'Other groups cannot download group asset')
+        image_bundle=teacher.ok('project.bundle',{'project':shared_a})
+        check(image_bundle['assets']==[{'id':group_asset['file']['id'],'path':'group.png','mime':'image/png','size':len(b'\x89PNG\r\n\x1a\nfixture')}],'Authorized preview bundle includes safe image metadata')
+        check(all(f['path']!='group.png' for f in image_bundle['files']),'Image bytes are not treated as executable text')
         # A disposable full-size blob verifies storage accounting without repeated HTTP uploads.
         quota_db=sqlite3.connect(pathlib.Path(private)/'app.sqlite')
         quota_db.execute("INSERT INTO files(id,project_id,path,kind,updated_at) VALUES(?,?,'quota.png','asset','2026')",['a'*32,private_project])
@@ -426,6 +429,7 @@ with tempfile.TemporaryDirectory(prefix='ectro-test-') as private:
         check(admin.call('admin.settings',{'features':{},'hosts':['localhost'],'workspace_uploads':{'enabled':True,'types':['png'],'max_mb':21}})[0]==422,'Upload size setting is bounded by workspace quota')
         admin.ok('admin.settings',{'features':{'files':False},'hosts':['localhost']})
         check(teacher.call('file',project=private_project,path='index.html')[0]==404 and teacher.call('project.bundle',{'project':private_project})[0]==404,'Files feature revokes direct teacher reads and preview bundles')
+        check(pupil.ok('project.bundle',{'project':private_project})['assets']==[],'Disabled files feature excludes even own image metadata')
         admin.ok('admin.settings',{'features':{'files':True},'hosts':['localhost']})
         admin.ok('admin.group.save',{'id':class_a,'name':'Teacher Class A','description':'','features':{},'users':[pupil_id]})
         check(teacher.call('file',project=private_project,path='index.html')[0]==404,'Removing teacher membership revokes open file access')
