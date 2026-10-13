@@ -65,6 +65,7 @@ jobs:
           node tests/profile-picture.mjs
           node tests/mail-templates.mjs
           node tests/chat-bubble.mjs
+          node tests/color-context.mjs
           node tests/color.mjs
           node tests/preview-assets.mjs
       - name: Verify prebuilt assets

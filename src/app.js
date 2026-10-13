@@ -1,3 +1,4 @@
+import {hasColorContext} from './color-context.js';
 import {mountProfilePicture} from './profile-picture.js';
 import {mailPreview} from './mail-templates.js';
 import {createChatBubble} from './chat-bubble.js';
@@ -24,6 +25,9 @@ const FEATURES={files:['Dateien & Projekte','Eigene Dateien und Projekte verwalt
 const EVENTS={'file.upload':'Datei hochgeladen','chat.upload':'Datei im Chat geteilt','admin.chat.delete':'Chatnachricht entfernt','admin.chat.reset':'Gruppenchat zurückgesetzt','login':'Angemeldet','project.share':'Projekt mit Gruppe geteilt','project.create':'Projekt angelegt','project.delete':'Projekt gelöscht','file.save':'Datei gespeichert','run':'Code ausgeführt','chat.send':'Nachricht gesendet','db.connect':'Datenbank verbunden','db.query':'SQL ausgeführt','profile.save':'Profil aktualisiert','password.change':'Passwort geändert','admin.user.save':'Benutzer gespeichert','admin.user.delete':'Benutzer gelöscht','admin.group.save':'Gruppe gespeichert','admin.group.delete':'Gruppe gelöscht','admin.template.save':'Projekttyp gespeichert','admin.template.delete':'Projekttyp gelöscht','admin.settings':'Freigaben geändert','setup.complete':'Einrichtung abgeschlossen','db.table.create':'Tabelle erstellt','db.row.save':'Datensatz gespeichert','db.row.delete':'Datensatz gelöscht'};
 let chatEpoch=0,chatBubble=null,chatRoom=null,chatMount=null,disposeChat=null;
 function resetChat(){++chatEpoch;chatBubble?.destroy();chatBubble=null;disposeChat?.();disposeChat=null;chatRoom=null;chatMount=null;}
+let colorHelperTimer=null;
+function refreshColorHelper(content=editor?.state.doc.toString()??''){const helper=$('[data-action="color-picker"]');if(helper)helper.hidden=!activeFile||!hasColorContext(activeFile.path,content);}
+function scheduleColorHelper(content){clearTimeout(colorHelperTimer);const view=editor,file=activeFile;colorHelperTimer=setTimeout(()=>{if(editor===view&&activeFile===file)refreshColorHelper(content);},120);}
 let disposeTraining=null;
 let collaboration=null,disposeLayout=null,dbTimer=null,dbListSequence=0,dbRowSequence=0,dbTables=[];
 let user,csrf,flags={},routeVersion=0,runVersion=0,openVersion=0,editor=null,activeFile=null,activeProject=null,dirty=false,chatTimer=null,runJob=null,files=[],projects=[],dbInfo=null,selectedTable=null,dbOffset=0,chatGroup=null;
@@ -54,7 +58,7 @@ function modal(title,body,onSubmit,label='Speichern',options={}) {
 }
 async function confirm(title,copy,label='Löschen'){return modal(title,`<p>${esc(copy)}</p>`,async()=>{},label);}
 async function leaveDirty(){if(dirty&&collaboration)try{await collaboration.flush();}catch{}return !dirty||await confirm('Ungespeicherte Änderungen','Ihre letzten Änderungen sind noch nicht gespeichert. Möchten Sie die Datei trotzdem verlassen?','Verlassen');}
-function resetWorkspace(){disposeTraining?.();disposeTraining=null;clearInterval(dbTimer);dbTimer=null;++dbListSequence;++dbRowSequence;disposeLayout?.();disposeLayout=null;collaboration?.destroy();collaboration=null;++runVersion;++openVersion;editor?.destroy();editor=null;activeFile=null;dirty=false;runJob?.stop();runJob=null;}
+function resetWorkspace(){clearTimeout(colorHelperTimer);colorHelperTimer=null;disposeTraining?.();disposeTraining=null;clearInterval(dbTimer);dbTimer=null;++dbListSequence;++dbRowSequence;disposeLayout?.();disposeLayout=null;collaboration?.destroy();collaboration=null;++runVersion;++openVersion;editor?.destroy();editor=null;activeFile=null;dirty=false;runJob?.stop();runJob=null;}
 async function boot(){
   try{const data=await api('bootstrap');user=data.user;csrf=data.csrf;flags=data.features;
     if(!user){login(data.setup_required);return;}
@@ -253,16 +257,17 @@ async function openFile(path){
   const pid=activeProject,seq=++openVersion;const result=await get('file',{project:pid,path});if(seq!==openVersion||!$('#code-editor')||pid!==activeProject)return;
   ++runVersion;runJob?.stop();runJob=null;
   collaboration?.destroy();collaboration=null;editor?.destroy();activeFile=result.file;dirty=false;sessionStorage.setItem('file',path);
-  $('[data-action="color-picker"]').hidden=!/\.(html?|css)$/i.test(path);
+  clearTimeout(colorHelperTimer);
   $('#filename').textContent=path;$('#save-state').textContent='Gespeichert';$('#save-state').classList.remove('dirty');$('#language').textContent=({html:'HTML',css:'CSS',js:'JAVASCRIPT',php:'PHP 8.4',py:'PYTHON 3.13'})[path.split('.').pop()]||'TEXT';
   $$('.tree-file').forEach(el=>el.classList.toggle('active',el.dataset.path===path));
   const shared=projects.find(p=>p.id===pid)?.group_id;
   const document=shared?sharedDocument(user.id,pid,activeFile):null;
   $('#sync-recovery').hidden=true;$('#mobile-sync-state').hidden=!shared;$('#mobile-sync-state').textContent='Verbinden …';$('#collaboration-people').textContent='';
-  editor=createEditor($('#code-editor'),document?.content??activeFile.content,path,()=>{if(collaboration){collaboration.changed();return;}dirty=true;$('#save-state').textContent='Ungespeichert';$('#save-state').classList.add('dirty');},()=>saveFile().catch(e=>toast(e.message,true)),()=>runFile().catch(e=>toast(e.message,true)),document?[sharedExtension(document)]:[]);
+  editor=createEditor($('#code-editor'),document?.content??activeFile.content,path,content=>{scheduleColorHelper(content);if(collaboration){collaboration.changed();return;}dirty=true;$('#save-state').textContent='Ungespeichert';$('#save-state').classList.add('dirty');},()=>saveFile().catch(e=>toast(e.message,true)),()=>runFile().catch(e=>toast(e.message,true)),document?[sharedExtension(document)]:[]);
+  refreshColorHelper();
   if(document){
     const file=activeFile;
-    collaboration=synchronizeEditor(editor,document,async payload=>{const response=await fetch('/api/?action=file.sync',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},credentials:'same-origin',body:JSON.stringify({project:pid,file:file.id,...payload}),signal:AbortSignal.timeout(15000)});const data=await response.json();if(!response.ok)throw Object.assign(Error(data.error||'Synchronisation fehlgeschlagen.'),{status:response.status});if(data.path&&activeFile===file){file.path=data.path;$('#filename').textContent=data.path;sessionStorage.setItem('file',data.path);}return data;},state=>{if(activeFile!==file)return;dirty=state.dirty;$('#save-state').textContent=state.recover?'Synchronisation pausiert':state.text;$('#save-state').title=state.text;$('#mobile-sync-state').textContent=state.text;$('#sync-recovery > span').textContent=state.recover?state.text:'Ihr Entwurf bleibt erhalten.';$('#save-state').classList.toggle('dirty',dirty);$('#sync-recovery').hidden=!state.recover;if(state.people)$('#collaboration-people').textContent=state.people.length>1?'Gemeinsam: '+state.people.map(p=>p.name).join(', '):'Gruppenprojekt';});
+    collaboration=synchronizeEditor(editor,document,async payload=>{const response=await fetch('/api/?action=file.sync',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},credentials:'same-origin',body:JSON.stringify({project:pid,file:file.id,...payload}),signal:AbortSignal.timeout(15000)});const data=await response.json();if(!response.ok)throw Object.assign(Error(data.error||'Synchronisation fehlgeschlagen.'),{status:response.status});if(data.path&&activeFile===file){file.path=data.path;refreshColorHelper();$('#filename').textContent=data.path;sessionStorage.setItem('file',data.path);}return data;},state=>{if(activeFile!==file)return;dirty=state.dirty;$('#save-state').textContent=state.recover?'Synchronisation pausiert':state.text;$('#save-state').title=state.text;$('#mobile-sync-state').textContent=state.text;$('#sync-recovery > span').textContent=state.recover?state.text:'Ihr Entwurf bleibt erhalten.';$('#save-state').classList.toggle('dirty',dirty);$('#sync-recovery').hidden=!state.recover;if(state.people)$('#collaboration-people').textContent=state.people.length>1?'Gemeinsam: '+state.people.map(p=>p.name).join(', '):'Gruppenprojekt';});
     collaboration.start();
   }
 }
