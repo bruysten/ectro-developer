@@ -109,6 +109,16 @@ try {
   check((await bob.client.call('file.sync',{...payload,client:b.clientID,updates:[]})).status===404,'Membership removal immediately revokes open-file sync');
   check((await bob.client.call('project.bundle',{project:pid})).status===404,'Membership removal revokes preview');
   await admin.ok('admin.group.save',{id:group,name:'Team',users:[alice.id,bob.id]});
+  // Delete a disposable group project with live editor presence and persisted changes.
+  const doomed=(await alice.client.ok('project.create',{name:'Delete with files',template:'web',group})).id;
+  const doomedFile=(await alice.client.ok('file',null,{project:doomed,path:'index.html'})).file;
+  await alice.client.ok('file.sync',{project:doomed,file:doomedFile.id,client:'delete-test-client',version:doomedFile.version,updates:[ChangeSet.of({from:0,insert:'Deleted '},doomedFile.content.length).toJSON()]});
+  const storageCounts=()=>{const result=spawnSync('php',['-r',"require 'app/bootstrap.php';echo json_encode([one('SELECT COUNT(*) n FROM files WHERE project_id=?',[$argv[1]])['n'],one('SELECT COUNT(*) n FROM file_updates WHERE file_id=?',[$argv[2]])['n'],one('SELECT COUNT(*) n FROM file_editors WHERE file_id=?',[$argv[2]])['n']]);",doomed,doomedFile.id],{env,encoding:'utf8'});assert.equal(result.status,0,result.stderr);return JSON.parse(result.stdout);};
+  check(storageCounts().every(n=>n>0),'Deletion fixture contains project files, change history and editor presence');
+  await alice.client.ok('project.delete',{id:doomed});
+  check(storageCounts().every(n=>n===0),'Project deletion cascades to files, change history and editor presence');
+  check((await bob.client.call('file.sync',{project:doomed,file:doomedFile.id,client:'delete-test-peer',version:doomedFile.version,updates:[]})).status===404,'Open group editor cannot recreate deleted project');
+  check((await bob.client.ok('file',null,{project:pid,path:'renamed.txt'})).file.content===current.content,'Other group project survives whole-project deletion');
   await admin.ok('admin.user.delete',{id:alice.id});
   check((await bob.client.ok('files',null,{project:pid})).project.created_by===null,'Group project survives creator deletion');
   check((await bob.client.ok('file',null,{project:pid,path:'renamed.txt'})).file.content===current.content,'Group files survive creator deletion');
