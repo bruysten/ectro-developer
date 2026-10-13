@@ -46,6 +46,8 @@ jobs:
         run: php tests/sql-training.php
       - name: SQL policy checks
         run: php tests/sql-policy.php
+      - name: Configurable session duration
+        run: php tests/session-duration.php
       - name: Existing database migration
         run: php tests/project-migration.php
       - uses: actions/setup-node@v4

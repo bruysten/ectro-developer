@@ -91,6 +91,8 @@ function sessionStart(): void {
     if (session_status() === PHP_SESSION_ACTIVE) return;
     $path = dataDir() . '/sessions'; if (!is_dir($path)) mkdir($path, 0700, true);
     ini_set('session.use_strict_mode', '1'); ini_set('session.use_only_cookies', '1');
+    // PHP garbage collection must not shorten any supported login duration.
+    ini_set('session.gc_maxlifetime',(string)max((int)ini_get('session.gc_maxlifetime'),168*3600));
     session_save_path($path); session_name('ectro_session');
     session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'secure' => config()['environment'] !== 'development', 'httponly' => true, 'samesite' => 'Strict']);
     session_start();
@@ -101,8 +103,8 @@ function currentUser(): ?array {
     if (empty($_SESSION['uid'])) return null;
     $u = one('SELECT * FROM users WHERE id=?', [$_SESSION['uid']]);
     if (!$u || !$u['active'] || (int)$u['auth_version'] !== ($_SESSION['auth_version'] ?? -1)
-        || time() - ($_SESSION['last_seen'] ?? 0) > 3600 || time() - ($_SESSION['created'] ?? 0) > 43200) {
-        unset($_SESSION['uid']); return null;
+        || time() - ($_SESSION['created'] ?? 0) >= sessionHours()*3600) {
+        unset($_SESSION['uid'],$_SESSION['auth_version'],$_SESSION['created'],$_SESSION['last_seen']); return null;
     }
     $_SESSION['last_seen'] = time(); return $u;
 }
@@ -139,6 +141,13 @@ function safeUser(array $u): array {
         'features' => json_decode($u['features'], true),
         'created_at' => $u['created_at'], 'last_login' => $u['last_login'], 'must_change_password' => (bool)$u['must_change_password'],
         'groups' => all('SELECT g.id,g.name FROM groups g JOIN group_members m ON m.group_id=g.id WHERE m.user_id=? ORDER BY g.name', [$u['id']])];
+}
+function sessionHours(): int {
+    $hours=settings()['session_hours']??8;
+    return is_int($hours)&&$hours>=1&&$hours<=168?$hours:8;
+}
+function sessionHoursInput(mixed $hours): int {
+    if(!is_int($hours)||$hours<1||$hours>168)fail(422,'Die Anmeldedauer muss zwischen 1 und 168 Stunden liegen.');return $hours;
 }
 function settings(): array {
     $out = []; foreach (all('SELECT * FROM settings') as $r) $out[$r['key']] = json_decode($r['value'], true); return $out;

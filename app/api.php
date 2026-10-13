@@ -222,7 +222,7 @@ try {
                 'daily'=>all("SELECT substr(created_at,1,10) day,COUNT(*) activity,SUM(event='run') runs FROM events WHERE created_at>=? GROUP BY day ORDER BY day",[gmdate('Y-m-d',time()-13*86400)]),
                 'languages'=>all("SELECT json_extract(details,'$.language') language,COUNT(*) runs FROM events WHERE event='run' GROUP BY language"),
                 'events'=>all('SELECT e.event,e.created_at,u.name FROM events e LEFT JOIN users u ON u.id=e.user_id ORDER BY e.id DESC LIMIT 30'),
-                'sharing'=>chatSharing(),'uploads'=>workspaceUploads(),'settings'=>settings(),'hosts'=>allowedHosts(),'health'=>['php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'sqlite'=>true,'mysql'=>extension_loaded('pdo_mysql'),'encryption'=>extension_loaded('sodium'),'private_storage'=>is_writable(dataDir())]]);
+                'sharing'=>chatSharing(),'uploads'=>workspaceUploads(),'session_hours'=>sessionHours(),'settings'=>settings(),'hosts'=>allowedHosts(),'health'=>['php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'sqlite'=>true,'mysql'=>extension_loaded('pdo_mysql'),'encryption'=>extension_loaded('sodium'),'private_storage'=>is_writable(dataDir())]]);
         case 'admin.templates': jsonOut(['templates'=>projectTypes()]);
         case 'admin.template': jsonOut(['template'=>projectType(textField($data,'id',32))]);
         case 'admin.template.save': jsonOut(['id'=>saveProjectType($u,$data),'ok'=>true]);
@@ -289,7 +289,8 @@ try {
             foreach($hosts as $host) if (!is_string($host)||!preg_match('/^[a-zA-Z0-9.-]{1,253}$/',$host)) fail(422,'Ungültiger Host.');
             $sharing=isset($data['chat_sharing'])?chatSharingInput($data['chat_sharing']):null;
             $uploads=isset($data['workspace_uploads'])?workspaceUploadsInput($data['workspace_uploads']):null;
-            transaction(function() use($flags,$hosts,$u,$sharing,$uploads) { query("UPDATE settings SET value=? WHERE key='features'",[$flags]); query("INSERT INTO settings VALUES('db_allowed_hosts',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode(array_values(array_unique($hosts)))]); if($sharing!==null)query("INSERT INTO settings VALUES('chat_sharing',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($sharing)]);if($uploads!==null)query("INSERT INTO settings VALUES('workspace_uploads',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($uploads)]);audit($u['id'],'admin.settings'); }); jsonOut(['ok'=>true]);
+            $sessionHours=array_key_exists('session_hours',$data)?sessionHoursInput($data['session_hours']):null;
+            transaction(function() use($flags,$hosts,$u,$sharing,$uploads,$sessionHours) { query("UPDATE settings SET value=? WHERE key='features'",[$flags]); query("INSERT INTO settings VALUES('db_allowed_hosts',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode(array_values(array_unique($hosts)))]); if($sharing!==null)query("INSERT INTO settings VALUES('chat_sharing',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($sharing)]);if($uploads!==null)query("INSERT INTO settings VALUES('workspace_uploads',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($uploads)]);if($sessionHours!==null)query("INSERT INTO settings VALUES('session_hours',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($sessionHours)]);audit($u['id'],'admin.settings'); }); jsonOut(['ok'=>true]);
         default: fail(404,'Unbekannte Aktion.');
     }
 } catch (ApiError $e) { jsonOut(['error'=>$e->getMessage()],$e->status); }
