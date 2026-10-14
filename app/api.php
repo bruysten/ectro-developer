@@ -13,7 +13,7 @@ try {
     keyBytes(); sessionStart();
     $action = $_GET['action'] ?? 'bootstrap';
     $method = $_SERVER['REQUEST_METHOD'];
-    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info','admin.mail','admin.mail.templates','profile','team','team.profile','converter.config'];
+    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.overview','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info','admin.mail','admin.mail.templates','profile','team','team.profile','converter.config'];
     if ($method !== 'GET' && $method !== 'POST') fail(405, 'Methode nicht erlaubt.');
     if (!in_array($action, $readActions, true) && $method !== 'POST') fail(405, 'Diese Aktion benötigt POST.');
     if (in_array($action, $readActions, true) && $method !== 'GET') fail(405, 'Diese Aktion benötigt GET.');
@@ -193,6 +193,9 @@ try {
         case 'db.tables':
             needFeature($u,'database'); rateLimit('mysql.'.$u['id'],60,60); $my=mysqlConnection($u);
             try { jsonOut(['tables'=>$my->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN)]); } catch(PDOException $e) { mysqlError($e); }
+        case 'db.overview':
+            needFeature($u,'database'); rateLimit('mysql.'.$u['id'],60,60); $my=mysqlConnection($u);
+            try{$rows=$my->query('SELECT TABLE_NAME,COLUMN_NAME,COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() ORDER BY TABLE_NAME,ORDINAL_POSITION')->fetchAll();$tables=[];foreach($rows as $row){$name=$row['TABLE_NAME'];$tables[$name]??=['name'=>$name,'columns'=>[]];$tables[$name]['columns'][]=['name'=>$row['COLUMN_NAME'],'type'=>$row['COLUMN_TYPE']];}jsonOut(['tables'=>array_values($tables)]);}catch(PDOException $e){mysqlError($e);}
         case 'db.query.preview':
             needFeature($u,'database'); rateLimit('mysql.preview.'.$u['id'],120,60); $my=mysqlConnection($u);
             $table=textField($data,'table',64);$columns=tableColumns($my,$table);$known=array_column($columns,'Field');
