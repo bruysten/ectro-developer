@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id
 CREATE INDEX IF NOT EXISTS events_date ON events(created_at);
 CREATE TABLE IF NOT EXISTS rate_limits (key TEXT PRIMARY KEY, hits INTEGER NOT NULL, expires INTEGER NOT NULL);
 INSERT OR IGNORE INTO settings(key,value) VALUES('features','{"files":true,"editor":true,"html":true,"php":true,"python":true,"database":true,"chat":true}');
+INSERT OR IGNORE INTO settings(key,value) VALUES('converter_formats','["csv","tsv","json","xml"]');
 
 CREATE TABLE IF NOT EXISTS chat_attachments (id TEXT PRIMARY KEY,message_id INTEGER NOT NULL UNIQUE REFERENCES messages(id) ON DELETE CASCADE,name TEXT NOT NULL,extension TEXT NOT NULL,size INTEGER NOT NULL,content BLOB NOT NULL);
 CREATE TABLE IF NOT EXISTS chat_state (group_id TEXT PRIMARY KEY REFERENCES groups(id) ON DELETE CASCADE,revision INTEGER NOT NULL DEFAULT 0);
