@@ -11,6 +11,7 @@ import {resizeWorkspace} from './workspace-layout.js';
 import {sharedDocument,sharedExtension,synchronizeEditor} from './collaboration.js';
 import {execute,createPreviewFrame} from './runner.js';
 import {convertData,formatLabel} from './data-converter.js';
+import {sqlInsertion} from './sql-insertion.js';
 const $=(q,root=document)=>root.querySelector(q),$$=(q,root=document)=>[...root.querySelectorAll(q)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const icon=name=>`<span class="icon" aria-hidden="true">${name}</span>`;
@@ -42,24 +43,31 @@ async function openSqlBuilder(){
   const view=editor,file=activeFile,source=view.state.doc.toString(),selection=view.state.selection.main;
   const connection=await api('db.info');if(!connection.connection)throw Error('Verbinden Sie zuerst Ihre Datenbank.');
   const {tables}=await api('db.tables');if(!tables.length)throw Error('In der verbundenen Datenbank gibt es noch keine Tabellen.');
-  const selected=new Set();let columns=[];
+  const selected=new Set();let columns=[],sqlText='';
   const body=`<div class="sql-builder-intro"><span class="meta">SQL // VISUELL BAUEN</span><p>Wählen Sie eine Tabelle und fügen Sie Spalten per Drag-and-drop hinzu. Die Vorschau liest nur Daten.</p></div><div class="sql-builder-layout"><aside class="sql-builder-source"><label class="field"><span>Tabelle</span><select name="sql-table">${tables.map(t=>'<option value="'+esc(t)+'">'+esc(t)+'</option>').join('')}</select></label><div class="sql-builder-caption"><span>SPALTEN</span><small>Ziehen oder anklicken</small></div><div class="sql-builder-fields" aria-label="Verfügbare Spalten"></div></aside><section class="sql-builder-main"><div class="sql-builder-caption"><span>ABFRAGE</span><button type="button" class="link" data-sql-clear>Auswahl zurücksetzen</button></div><div class="sql-builder-drop" tabindex="0" role="list" aria-label="Ausgewählte SQL-Spalten">Alle Spalten</div><div class="sql-builder-query"><span class="meta">LIVE // SQL</span><pre data-sql-query></pre></div><div class="sql-builder-caption"><span>DATENVORSCHAU</span><small data-sql-count></small></div><div class="sql-builder-preview" data-sql-preview aria-live="polite"><div class="notice">Vorschau wird geladen …</div></div></section></div><p class="sql-builder-footnote">Die Vorschau ist schreibgeschützt und zeigt höchstens 20 Zeilen.</p>`;
-  return modal('SQL-Abfrage bauen',body,async()=>{
+  return modal('SQL-Abfrage bauen',body,async data=>{
     if(editor!==view||activeFile!==file||view.state.doc.toString()!==source)throw Error('Der Code wurde währenddessen geändert. Öffnen Sie den SQL-Helper erneut.');
-    const sql=$('[data-sql-query]',$('#modal')).textContent.trim();if(!sql)throw Error('Wählen Sie zuerst eine Tabelle.');
-    const insert=sql.endsWith(';')?sql:sql+';';
+    if(!sqlText)throw Error('Wählen Sie zuerst eine Tabelle.');
+    const insert=sqlInsertion(sqlText,{asPhp:data.has('sql-as-php'),source,from:selection.from,to:selection.to});
     view.dispatch({changes:{from:selection.from,to:selection.to,insert},selection:{anchor:selection.from+insert.length},userEvent:'input'});
     view.focus();
-  },'Abfrage einsetzen',{className:'sql-builder-dialog',after:dialog=>{
+  },'Abfrage einsetzen',{className:'sql-builder-dialog',footer:'<label class="sql-builder-php-option"><input type="checkbox" name="sql-as-php"> Als PHP einfügen</label>',after:dialog=>{
     const table=$('[name="sql-table"]',dialog),fieldList=$('.sql-builder-fields',dialog),drop=$('.sql-builder-drop',dialog),query=$('[data-sql-query]',dialog),preview=$('[data-sql-preview]',dialog),count=$('[data-sql-count]',dialog);
     let seq=0,timer=0;
+    const asPhp=$('[name="sql-as-php"]',dialog);
+    const drawQuery=()=>{
+      $('.sql-builder-query .meta',dialog).textContent=asPhp.checked?'LIVE // PHP':'LIVE // SQL';
+      query.textContent=sqlInsertion(sqlText,{asPhp:asPhp.checked,source,from:selection.from,to:selection.to});
+      $('.sql-builder-footnote',dialog).textContent='Die Vorschau ist schreibgeschützt und zeigt höchstens 20 Zeilen.'+(asPhp.checked?' Der PHP-Code nutzt die vorhandene Verbindung $conn.':'');
+    };
+    asPhp.onchange=drawQuery;
     const drawSelection=()=>{drop.innerHTML=selected.size?[...selected].map(name=>'<span class="sql-builder-chip" role="listitem">'+esc(name)+'<button type="button" data-remove-column="'+esc(name)+'" aria-label="'+esc(name)+' entfernen">×</button></span>').join(''):'Alle Spalten';drop.classList.toggle('is-empty',!selected.size);$$('[data-remove-column]',drop).forEach(button=>button.onclick=()=>{selected.delete(button.dataset.removeColumn);drawSelection();schedulePreview();});};
     const schedulePreview=()=>{clearTimeout(timer);timer=setTimeout(()=>loadPreview(),180);};
     const loadPreview=async()=>{
-      const current=++seq,t=table.value;if(!t){query.textContent='';preview.innerHTML='<div class="notice">Wählen Sie eine Tabelle.</div>';count.textContent='';return;}
-      query.textContent='SELECT '+(selected.size?[...selected].map(n=>'`'+n.replaceAll('`','``')+'`').join(', '):'*')+' FROM `'+t.replaceAll('`','``')+'` LIMIT 20;';
+      const current=++seq,t=table.value;if(!t){sqlText='';drawQuery();preview.innerHTML='<div class="notice">Wählen Sie eine Tabelle.</div>';count.textContent='';return;}
+      sqlText='SELECT '+(selected.size?[...selected].map(n=>'`'+n.replaceAll('`','``')+'`').join(', '):'*')+' FROM `'+t.replaceAll('`','``')+'` LIMIT 20;';drawQuery();
       preview.innerHTML='<div class="notice">Vorschau wird geladen …</div>';count.textContent='';
-      try{const data=await api('db.query.preview',{table:t,columns:[...selected],limit:20});if(current!==seq)return;query.textContent=data.sql+';';preview.innerHTML=data.rows.length?dataTable(data.rows):'<div class="notice">Keine passenden Datensätze.</div>';count.textContent=data.rows.length+' Zeilen';}
+      try{const data=await api('db.query.preview',{table:t,columns:[...selected],limit:20});if(current!==seq)return;sqlText=data.sql;drawQuery();preview.innerHTML=data.rows.length?dataTable(data.rows):'<div class="notice">Keine passenden Datensätze.</div>';count.textContent=data.rows.length+' Zeilen';}
       catch(error){if(current!==seq)return;preview.innerHTML='<div class="error">'+esc(error.message)+'</div>';}
     };
     const loadColumns=async()=>{
@@ -97,7 +105,7 @@ function bind(action,fn,root=document){$$(`[data-action="${action}"]`,root).forE
 function empty(title,copy,glyph='folder_open',cta=''){return `<div class="empty">${icon(glyph)}<h3>${title}</h3><p>${copy}</p>${cta}</div>`;}
 function pageHead(index,title,copy,cta=''){return `<div class="page-head"><div><div class="meta">${index} // ${admin?'ADMINISTRATION':'MEIN WORKSPACE'}</div><h1>${title}</h1><p>${copy}</p></div>${cta}</div>`;}
 function modal(title,body,onSubmit,label='Speichern',options={}) {
-  const dialog=$('#modal');dialog.className=options.className||'';dialog.setAttribute('aria-labelledby','modal-title');dialog.innerHTML=`<form id="modal-form"><div class="dialog-head"><h2 id="modal-title">${title}</h2>${ib('close','close-modal','Schließen')}</div><div class="dialog-body">${body}<div class="error" role="alert"></div></div><div class="dialog-foot">${button('Abbrechen','close-modal')}${button(label,'submit-modal','primary')}</div></form>`;
+  const dialog=$('#modal');dialog.className=options.className||'';dialog.setAttribute('aria-labelledby','modal-title');dialog.innerHTML=`<form id="modal-form"><div class="dialog-head"><h2 id="modal-title">${title}</h2>${ib('close','close-modal','Schließen')}</div><div class="dialog-body">${body}<div class="error" role="alert"></div></div><div class="dialog-foot">${options.footer||''}${button('Abbrechen','close-modal')}${button(label,'submit-modal','primary')}</div></form>`;
   let closed;const result=new Promise(r=>closed=r);const close=()=>{dialog.close();closed(false);};bind('close-modal',close,dialog);dialog.oncancel=()=>closed(false);
   const form=$('#modal-form');const submit=$('[data-action="submit-modal"]',form);submit.type='submit';
   form.onsubmit=async e=>{e.preventDefault();submit.disabled=true;$('.error',form).textContent='';try{await onSubmit(new FormData(form),form);dialog.close();closed(true);}catch(err){$('.error',form).textContent=err.message;}finally{submit.disabled=false;}};
