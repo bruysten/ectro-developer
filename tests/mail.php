@@ -29,6 +29,6 @@ try{
     query("UPDATE users SET auth_version=1 WHERE id='learner'");
     $mail['id']=id();$mail['request']='52345678-1234-1234-1234-123456789012';queueWelcome($mail,'learner',$admin,'alex@example.test');query("UPDATE welcome_mails SET status='sending',updated_at=? WHERE id=?",[gmdate('Y-m-d\TH:i:s\Z',time()-121),$mail['id']]);cleanWelcomeMails();checkMail(welcomeStatus($mail['id'])['status']==='uncertain','Interrupted send is uncertain, never auto-retried');
     $before=$calls;deliverWelcome($mail['id'],$admin,false,$sender);checkMail($calls===$before,'Uncertain send requires explicit retry');
-    $mail['id']=id();$mail['request']='62345678-1234-1234-1234-123456789012';queueWelcome($mail,'learner',$admin,'alex@example.test');query("UPDATE users SET must_change_password=0 WHERE id='learner'");cleanWelcomeMails();checkMail(welcomeStatus($mail['id'])['status']==='cancelled','First password change cancels prepared access mail');
+    $mail['id']=id();$mail['request']='62345678-1234-1234-1234-123456789012';queueWelcome($mail,'learner',$admin,'alex@example.test');query("UPDATE users SET must_change_password=0,auth_version=auth_version+1 WHERE id='learner'");cleanWelcomeMails();checkMail(welcomeStatus($mail['id'])['status']==='cancelled','First password change cancels prepared access mail');
     checkMail(!str_contains(json_encode(all('SELECT * FROM events')),$variables['password']),'Audit contains no credentials');echo "$checks Mailjet/template/queue checks passed.\n";
 }finally{foreach(glob($dir.'/*') as $f)unlink($f);rmdir($dir);}

@@ -36,6 +36,8 @@ jobs:
         run: python3 tests/integration.py
       - name: MySQL connection configuration and errors
         run: php tests/mysql-connection.php
+      - name: MySQLi server runner and local file restrictions
+        run: python3 tests/php-runner.py
       - name: Table schema and MariaDB constraints
         env:
           MYSQL_SCHEMA_TEST_DSN: mysql:host=127.0.0.1;port=3306;dbname=ectro_schema_test
