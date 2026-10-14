@@ -20,11 +20,11 @@ Eine Entwicklungsumgebung für Schulungen und Online-Trainings. HTML/CSS/JavaScr
 
 ## Ausführung und bewusste Grenzen
 
-Lernenden-Code läuft **im Browser**, in einem Worker innerhalb eines Iframes ohne gemeinsame Origin. HTML/JavaScript-Ausgaben erhalten eine weitere isolierte Vorschau. Die Anwendung führt keine hochgeladenen PHP-/Python-Dateien mit den Serverrechten der Anwendung aus.
+PHP läuft standardmäßig im Browser; Administratoren können PHP alternativ auf dem Server ausführen lassen. Python bleibt browserbasiert. HTML-/JavaScript-Ausgaben erhalten eine isolierte Vorschau.
 
 Damit sind keine Docker-Installation, Rootrechte, Prozessdienste, npm, Composer oder pip auf dem Hetzner-Server nötig. Es handelt sich um eine Lernumgebung, nicht um einen öffentlichen Hostingdienst für beliebige Serveranwendungen. [Details zu Laufzeiten und Sicherheit](docs/architecture.md).
 
-**MySQL ist im Datenbankmanager live nutzbar. Die Browser-PHP-/Python-Scripts haben keine direkte PDO-/TCP-Verbindung zu MySQL.** Server-Netzwerk, Shell, Python-Pakete von pip, persistente Laufzeit-Dateiänderungen, PHP-Sessions über mehrere Runs und POST-Formulare in der Vorschau sind nicht Teil dieser Ausführung. GET-Formulare, Links zwischen lokalen HTML/PHP-Seiten und PHP-Includes innerhalb eines Projekts werden unterstützt. Die Vorschau bündelt lokale klassische CSS-/JS-Dateien; npm-/ES-Modul-Projekte benötigen einen vorherigen Build.
+Server-PHP erfordert PHP-CLI 8.2+ mit MySQLi und `proc_open`. Jeder Lauf bekommt ein privates temporäres Verzeichnis sowie Zeit-, Speicher- und Ausgabelimits. Gespeicherte Projektdateien bleiben in der Datenbank; Includes und GET-Parameter funktionieren. Server-PHP läuft mit den Rechten des Hostingkontos und ist nur für vertrauenswürdige Lerngruppen gedacht. PHP-Sessions und Dateiänderungen sind nicht dauerhaft; POST-Formulare in der Vorschau werden nicht unterstützt. Die Vorschau bündelt lokale klassische CSS-/JS-Dateien; npm-/ES-Modul-Projekte benötigen einen vorherigen Build.
 
 Aktuell werden UTF-8-Textdateien bis 512 KB, 300 Einträge pro Projekt, jeweils 30 Projekte und 20 MB pro persönlichem oder Gruppen-Workspace unterstützt. Binäre Medienuploads sind nicht implementiert. Python bringt die Standardbibliothek mit. Ein frischer Run startet eine frische Laufzeit; Änderungen aus Scripts werden nicht automatisch in die gespeicherten Dateien zurückgeschrieben.
 
