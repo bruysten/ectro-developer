@@ -4,8 +4,8 @@ const MAIL_VARIABLES=['name','email','password','login_url','groups','role','app
 function mailDefaults():array {
     $common="\n\nLogin: {login_url}\nE-Mail: {email}\nVorläufiges Passwort: {password}\n\n";
     return [
-        ['name'=>'Willkommen · Du','subject'=>'Dein Zugang zu {app_name}','body'=>"Hallo {name},\n\ndein Zugang zu {app_name} ist bereit.".$common."Bitte ändere dein Passwort beim ersten Login.\n\nViel Freude beim Lernen und Entwickeln!\nDein {app_name}-Team"],
-        ['name'=>'Willkommen · Sie','subject'=>'Ihr Zugang zu {app_name}','body'=>"Guten Tag {name},\n\nIhr Zugang zu {app_name} ist bereit.".$common."Bitte ändern Sie Ihr Passwort beim ersten Login.\n\nWir wünschen Ihnen viel Freude beim Lernen und Entwickeln!\nIhr {app_name}-Team"]
+        ['name'=>'Willkommen · Du','subject'=>'Dein Zugang zu {app_name}','body'=>"Hallo {name},\n\ndein Zugang zu {app_name} ist bereit.".$common."Melde dich mit diesen Zugangsdaten an. Du kannst dein Passwort nach dem Login in deinem Profil ändern.\n\nViel Freude beim Lernen und Entwickeln!\nDein {app_name}-Team"],
+        ['name'=>'Willkommen · Sie','subject'=>'Ihr Zugang zu {app_name}','body'=>"Guten Tag {name},\n\nIhr Zugang zu {app_name} ist bereit.".$common."Melden Sie sich mit diesen Zugangsdaten an. Sie können Ihr Passwort nach dem Login in Ihrem Profil ändern.\n\nWir wünschen Ihnen viel Freude beim Lernen und Entwickeln!\nIhr {app_name}-Team"]
     ];
 }
 function initializeMailTemplates():void {
@@ -74,7 +74,7 @@ function queueWelcome(array $mail,string $uid,array $admin,string $email):void {
 function cleanWelcomeMails():void {
     query("UPDATE welcome_mails SET status='expired',payload=NULL,error='Die Zugangsmail ist abgelaufen. Bitte neue Zugangsdaten festlegen.',updated_at=? WHERE payload IS NOT NULL AND created_at<?",[now(),gmdate('Y-m-d\TH:i:s\Z',time()-86400)]);
     query("UPDATE welcome_mails SET status='uncertain',error='Der Versand wurde unterbrochen. Vor erneutem Versand bitte in Mailjet prüfen.',updated_at=? WHERE status='sending' AND updated_at<?",[now(),gmdate('Y-m-d\TH:i:s\Z',time()-120)]);
-    query("UPDATE welcome_mails SET status='cancelled',payload=NULL,error='Der Zugang wurde inzwischen geändert. Diese Zugangsmail wird nicht mehr versendet.',updated_at=? WHERE payload IS NOT NULL AND EXISTS(SELECT 1 FROM users u WHERE u.id=welcome_mails.user_id AND (u.auth_version!=welcome_mails.auth_version OR u.must_change_password=0 OR u.active=0 OR u.email!=welcome_mails.recipient))",[now()]);
+    query("UPDATE welcome_mails SET status='cancelled',payload=NULL,error='Der Zugang wurde inzwischen geändert. Diese Zugangsmail wird nicht mehr versendet.',updated_at=? WHERE payload IS NOT NULL AND EXISTS(SELECT 1 FROM users u WHERE u.id=welcome_mails.user_id AND (u.auth_version!=welcome_mails.auth_version OR u.active=0 OR u.email!=welcome_mails.recipient))",[now()]);
 }
 function welcomeStatus(string $id):array {
     $row=one('SELECT id,status,error FROM welcome_mails WHERE id=?',[$id]);return $row?['id'=>$id,'status'=>$row['status'],'message'=>$row['error']]:['status'=>'cancelled','message'=>'Der Benutzer existiert nicht mehr.'];
