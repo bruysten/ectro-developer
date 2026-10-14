@@ -15,6 +15,7 @@ Eine Entwicklungsumgebung für Schulungen und Online-Trainings. HTML/CSS/JavaScr
 - Verschiebbare Trennlinien zwischen Dateiliste, Editor und Ausgabe, gespeicherte Größen, Tastaturbedienung und Doppelklick zum Zurücksetzen.
 - HTML/CSS/JavaScript-Vorschau, PHP 8.4 und Python 3.13 über mitgeliefertes WebAssembly; Run, Stop, Ausgabe und Website-Vorschau in einem eigenen Fenster.
 - MySQL-Verbindung, Tabellenanlage mit expliziten Spalten und Primär-/UNIQUE-/Suchschlüsseln (keine automatisch ergänzte ID), SQL-Konsole und Datensätze anlegen, bearbeiten und löschen. Bearbeiten/Löschen benötigt einen Primärschlüssel; zusammengesetzte Schlüssel werden berücksichtigt.
+- Daten-Converter für CSV, TSV, JSON und XML. Der Adminbereich schaltet das Werkzeug und die verfügbaren Formate frei; die Umwandlung bleibt im Browser.
 - Gruppenchat mit inkrementeller AJAX-Aktualisierung.
 
 ## Ausführung und bewusste Grenzen
