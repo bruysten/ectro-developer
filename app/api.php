@@ -8,12 +8,13 @@ require_once __DIR__ . '/workspace-uploads.php';
 require_once __DIR__ . '/sql-training.php';
 require_once __DIR__ . '/collaboration.php';
 require_once __DIR__ . '/mail.php';
+require_once __DIR__ . '/php-runner.php';
 secureHeaders();
 try {
     keyBytes(); sessionStart();
     $action = $_GET['action'] ?? 'bootstrap';
     $method = $_SERVER['REQUEST_METHOD'];
-    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.overview','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info','admin.mail','admin.mail.templates','profile','team','team.profile','converter.config'];
+    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.overview','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info','admin.mail','admin.mail.templates','profile','team','team.profile','converter.config','php.mode'];
     if ($method !== 'GET' && $method !== 'POST') fail(405, 'Methode nicht erlaubt.');
     if (!in_array($action, $readActions, true) && $method !== 'POST') fail(405, 'Diese Aktion benötigt POST.');
     if (in_array($action, $readActions, true) && $method !== 'GET') fail(405, 'Diese Aktion benötigt GET.');
@@ -22,7 +23,7 @@ try {
     if ($method === 'POST') csrf();
     if ($action === 'bootstrap') {
         $u = currentUser(); $hasAdmin = (bool)query("SELECT 1 FROM users WHERE role='admin' LIMIT 1")->fetchColumn();
-        jsonOut(['user' => $u ? safeUser($u) : null, 'csrf' => $_SESSION['csrf'], 'features' => $u ? features($u) : [], 'setup_required' => !$hasAdmin]);
+        jsonOut(['user' => $u ? safeUser($u) : null, 'csrf' => $_SESSION['csrf'], 'features' => $u ? features($u) : [], 'setup_required' => !$hasAdmin,'php_execution_mode'=>phpExecutionMode()]);
     }
     if ($action === 'setup') {
         rateLimit('setup',10,900);
@@ -54,6 +55,7 @@ try {
         $_SESSION['auth_version'] = (int)$u['auth_version']+1; session_regenerate_id(true); audit($u['id'],'password.change'); jsonOut(['ok'=>true]);
     }
     if ($u['must_change_password']) fail(403,'Bitte ändern Sie zuerst Ihr vorläufiges Passwort.');
+    if ($action === 'php.mode') jsonOut(['mode'=>phpExecutionMode()]);
     switch ($action) {
         case 'converter.config': needFeature($u,'converter');jsonOut(['formats'=>converterFormats()]);
         case 'team': needFeature($u,'team');$groups=safeUser($u)['groups'];$gid=textField($data,'group',32,false);jsonOut(['groups'=>$groups,'members'=>$gid?teamMembers($u,$gid):[]]);
@@ -146,6 +148,8 @@ try {
         case 'file.delete':
             needFeature($u,'files'); $p=project($u,textField($data,'project',32)); $path=filePath(textField($data,'path',240));
             transaction(function() use($u,$p,$path) { project($u,$p['id']);query('DELETE FROM files WHERE project_id=? AND (path=? OR path GLOB ?)',[$p['id'],$path,$path.'/*']); query('UPDATE projects SET updated_at=? WHERE id=?',[now(),$p['id']]); }); jsonOut(['ok'=>true]);
+        case 'php.execute':
+            jsonOut(runProjectPhp($u,$data));
         case 'project.bundle':
             needFeature($u,'editor'); $p=project($u,textField($data,'project',32));
             jsonOut(['files'=>all('SELECT path,content FROM files WHERE project_id=? AND kind=\'file\'',[$p['id']]),'assets'=>previewImageAssets($u,$p)]);
@@ -241,7 +245,7 @@ try {
                 'daily'=>all("SELECT substr(created_at,1,10) day,COUNT(*) activity,SUM(event='run') runs FROM events WHERE created_at>=? GROUP BY day ORDER BY day",[gmdate('Y-m-d',time()-13*86400)]),
                 'languages'=>all("SELECT json_extract(details,'$.language') language,COUNT(*) runs FROM events WHERE event='run' GROUP BY language"),
                 'events'=>all('SELECT e.event,e.created_at,u.name FROM events e LEFT JOIN users u ON u.id=e.user_id ORDER BY e.id DESC LIMIT 30'),
-                'sharing'=>chatSharing(),'uploads'=>workspaceUploads(),'session_hours'=>sessionHours(),'settings'=>array_diff_key(settings(),['mailjet'=>true]),'converter_formats'=>converterFormats(),'hosts'=>allowedHosts(),'health'=>['php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'sqlite'=>true,'mysql'=>extension_loaded('pdo_mysql'),'encryption'=>extension_loaded('sodium'),'private_storage'=>is_writable(dataDir())]]);
+                'sharing'=>chatSharing(),'uploads'=>workspaceUploads(),'session_hours'=>sessionHours(),'settings'=>array_diff_key(settings(),['mailjet'=>true]),'converter_formats'=>converterFormats(),'hosts'=>allowedHosts(),'php_runner'=>phpRunnerStatus(),'health'=>['php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'sqlite'=>true,'mysql'=>extension_loaded('pdo_mysql'),'encryption'=>extension_loaded('sodium'),'private_storage'=>is_writable(dataDir())]]);
         case 'admin.templates': jsonOut(['templates'=>projectTypes()]);
         case 'admin.template': jsonOut(['template'=>projectType(textField($data,'id',32))]);
         case 'admin.template.save': jsonOut(['id'=>saveProjectType($u,$data),'ok'=>true]);
@@ -325,13 +329,14 @@ try {
         case 'admin.group.delete': query('DELETE FROM groups WHERE id=?',[textField($data,'id',32)]); audit($u['id'],'admin.group.delete'); jsonOut(['ok'=>true]);
         case 'admin.settings':
             $flags=featureInput($data['features']??[]); $hosts=$data['hosts']??[];
+            $phpMode=$data['php_execution_mode']??null;if($phpMode!==null&&!in_array($phpMode,['browser','server'],true))fail(422,'Ungültiger PHP-Ausführungsort.');$phpStatus=$phpMode==='server'?phpRunnerStatus():null;if($phpStatus&&!$phpStatus['available'])fail(503,$phpStatus['message']);
             if (!is_array($hosts)||count($hosts)>20) fail(422,'Bitte geben Sie höchstens 20 Hosts an.');
             foreach($hosts as $host) if (!is_string($host)||!preg_match('/^[a-zA-Z0-9.-]{1,253}$/',$host)) fail(422,'Ungültiger Host.');
             $sharing=isset($data['chat_sharing'])?chatSharingInput($data['chat_sharing']):null;
             $uploads=isset($data['workspace_uploads'])?workspaceUploadsInput($data['workspace_uploads']):null;
             $converterFormats=array_key_exists('converter_formats',$data)?converterFormatsInput($data['converter_formats']):null;
             $sessionHours=array_key_exists('session_hours',$data)?sessionHoursInput($data['session_hours']):null;
-            transaction(function() use($flags,$hosts,$u,$sharing,$uploads,$sessionHours,$converterFormats) { query("UPDATE settings SET value=? WHERE key='features'",[$flags]); query("INSERT INTO settings VALUES('db_allowed_hosts',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode(array_values(array_unique($hosts)))]); if($sharing!==null)query("INSERT INTO settings VALUES('chat_sharing',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($sharing)]);if($uploads!==null)query("INSERT INTO settings VALUES('workspace_uploads',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($uploads)]);if($sessionHours!==null)query("INSERT INTO settings VALUES('session_hours',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($sessionHours)]);if($converterFormats!==null)query("INSERT INTO settings VALUES('converter_formats',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($converterFormats)]);audit($u['id'],'admin.settings'); }); jsonOut(['ok'=>true]);
+            transaction(function() use($flags,$hosts,$u,$sharing,$uploads,$sessionHours,$converterFormats,$phpMode) { query("UPDATE settings SET value=? WHERE key='features'",[$flags]); query("INSERT INTO settings VALUES('db_allowed_hosts',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode(array_values(array_unique($hosts)))]);if($phpMode!==null)query("INSERT INTO settings VALUES('php_execution_mode',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($phpMode)]); if($sharing!==null)query("INSERT INTO settings VALUES('chat_sharing',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($sharing)]);if($uploads!==null)query("INSERT INTO settings VALUES('workspace_uploads',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($uploads)]);if($sessionHours!==null)query("INSERT INTO settings VALUES('session_hours',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($sessionHours)]);if($converterFormats!==null)query("INSERT INTO settings VALUES('converter_formats',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($converterFormats)]);audit($u['id'],'admin.settings'); }); jsonOut(['ok'=>true]);
         default: fail(404,'Unbekannte Aktion.');
     }
 } catch (ApiError $e) { jsonOut(['error'=>$e->getMessage()],$e->status); }

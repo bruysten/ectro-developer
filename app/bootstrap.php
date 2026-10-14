@@ -154,6 +154,9 @@ function sessionHoursInput(mixed $hours): int {
 function settings(): array {
     $out = []; foreach (all('SELECT * FROM settings') as $r) $out[$r['key']] = json_decode($r['value'], true); return $out;
 }
+function phpExecutionMode(): string {
+    return (settings()['php_execution_mode'] ?? 'browser') === 'server' ? 'server' : 'browser';
+}
 function features(array $u): array {
     $s = settings(); $flags = array_fill_keys(FEATURES, true);
     foreach (($s['features'] ?? []) as $f => $v) if (array_key_exists($f, $flags)) $flags[$f] = (bool)$v;
