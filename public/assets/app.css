@@ -337,3 +337,5 @@ html[data-workspace-resizing] iframe { pointer-events:none!important; }
 .team-consent>span { min-width:0;max-width:60ch;overflow-wrap:anywhere; }
 .profile-sharing>p,.profile-sharing>small { grid-column:2;display:block;max-width:60ch;margin:0;font-size:12px;line-height:1.65; }
 .profile-sharing>small { margin-top:4px;font-size:11px; }
+
+#db-rows th,#query-result th { text-transform:none;letter-spacing:normal; }
