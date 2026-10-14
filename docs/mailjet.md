@@ -42,7 +42,7 @@ Unter **Mailjet → Zugangsmails** stehen die letzten 50 Vorgänge:
 - **Status unklar** entsteht beispielsweise bei einer unterbrochenen Netzwerkantwort. Es erfolgt keine automatische Wiederholung. Vor manuellem Wiederholen zuerst Mailjet prüfen, um doppelte Mails zu vermeiden.
 - **Abgelaufen** / **Zugang geändert** können nicht mehr gesendet werden. Neue Zugangsdaten müssen über die Benutzerverwaltung festgelegt und gegebenenfalls separat übermittelt werden.
 
-Nach Annahme werden die vorbereiteten Zugangsdaten entfernt. Nicht angenommene Mails sind höchstens 24 Stunden lang wiederholbar. Bereinigung erfolgt bei Zugriff auf die Mailverwaltung und vor jedem Versand. Ein geändertes Passwort, eine veränderte E-Mail, Sperrung oder andere Zugangsänderung macht die vorbereitete Mail ungültig und löscht deren Inhalt. Benutzerlöschung entfernt zugehörige Vorgänge. Protokolle enthalten weder Mailtexte noch Passwörter oder API-Schlüssel.
+Nach Annahme werden die vorbereiteten Zugangsdaten entfernt. Nicht angenommene Mails sind höchstens 24 Stunden lang wiederholbar. Bereinigung erfolgt bei Zugriff auf die Mailverwaltung und vor jedem Versand. Ein geändertes Passwort, eine veränderte E-Mail, Sperrung oder andere Zugangsänderung macht die vorbereitete Mail ungültig und löscht deren Inhalt. Ob ein neues Passwort beim ersten Login erforderlich ist, richtet sich nach der Einstellung im Benutzerkonto. Benutzerlöschung entfernt zugehörige Vorgänge. Protokolle enthalten weder Mailtexte noch Passwörter oder API-Schlüssel.
 
 ## Prüfung
 
