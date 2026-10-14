@@ -193,6 +193,16 @@ try {
         case 'db.tables':
             needFeature($u,'database'); rateLimit('mysql.'.$u['id'],60,60); $my=mysqlConnection($u);
             try { jsonOut(['tables'=>$my->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN)]); } catch(PDOException $e) { mysqlError($e); }
+        case 'db.query.preview':
+            needFeature($u,'database'); rateLimit('mysql.preview.'.$u['id'],120,60); $my=mysqlConnection($u);
+            $table=textField($data,'table',64);$columns=tableColumns($my,$table);$known=array_column($columns,'Field');
+            $requested=$data['columns']??[];if(!is_array($requested)||!array_is_list($requested)||count($requested)>100)fail(422,'Ungültige Spaltenauswahl.');
+            foreach($requested as $column)if(!is_string($column)||!in_array($column,$known,true))fail(422,'Eine ausgewählte Spalte existiert nicht mehr.');
+            $selected=$requested?array_values(array_unique($requested)):$known;
+            $quote=static fn(string $value):string=>'`'.str_replace('`','``',$value).'`';
+            $limit=min(50,max(1,(int)($data['limit']??20)));
+            $sql='SELECT '.implode(', ',array_map($quote,$selected)).' FROM '.$quote($table).' LIMIT '.$limit;
+            try{$rows=$my->query($sql)->fetchAll();jsonOut(['rows'=>$rows,'sql'=>$sql]);}catch(PDOException $e){mysqlError($e);}
         case 'db.rows':
             needFeature($u,'database'); rateLimit('mysql.'.$u['id'],60,60); $my=mysqlConnection($u); $table=textField($data,'table',64); $columns=tableColumns($my,$table); $offset=min(100000,max(0,(int)($data['offset']??0)));
             try { $rows=$my->query('SELECT * FROM '.identifier($table).' LIMIT 101 OFFSET '.$offset)->fetchAll(); $hasMore=count($rows)>100; jsonOut(['columns'=>$columns,'rows'=>array_slice($rows,0,100),'has_more'=>$hasMore,'offset'=>$offset]); } catch(PDOException $e) { mysqlError($e); }
