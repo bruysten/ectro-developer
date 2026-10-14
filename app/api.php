@@ -13,7 +13,7 @@ try {
     keyBytes(); sessionStart();
     $action = $_GET['action'] ?? 'bootstrap';
     $method = $_SERVER['REQUEST_METHOD'];
-    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info','admin.mail','admin.mail.templates','profile','team','team.profile'];
+    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info','admin.mail','admin.mail.templates','profile','team','team.profile','converter.config'];
     if ($method !== 'GET' && $method !== 'POST') fail(405, 'Methode nicht erlaubt.');
     if (!in_array($action, $readActions, true) && $method !== 'POST') fail(405, 'Diese Aktion benötigt POST.');
     if (in_array($action, $readActions, true) && $method !== 'GET') fail(405, 'Diese Aktion benötigt GET.');
@@ -55,6 +55,7 @@ try {
     }
     if ($u['must_change_password']) fail(403,'Bitte ändern Sie zuerst Ihr vorläufiges Passwort.');
     switch ($action) {
+        case 'converter.config': needFeature($u,'converter');jsonOut(['formats'=>converterFormats()]);
         case 'team': needFeature($u,'team');$groups=safeUser($u)['groups'];$gid=textField($data,'group',32,false);jsonOut(['groups'=>$groups,'members'=>$gid?teamMembers($u,$gid):[]]);
         case 'team.profile': jsonOut(['profile'=>teamProfile($u,textField($data,'group',32),textField($data,'id',32))]);
         case 'profile': jsonOut(['user'=>safeUser($u)]);
@@ -227,7 +228,7 @@ try {
                 'daily'=>all("SELECT substr(created_at,1,10) day,COUNT(*) activity,SUM(event='run') runs FROM events WHERE created_at>=? GROUP BY day ORDER BY day",[gmdate('Y-m-d',time()-13*86400)]),
                 'languages'=>all("SELECT json_extract(details,'$.language') language,COUNT(*) runs FROM events WHERE event='run' GROUP BY language"),
                 'events'=>all('SELECT e.event,e.created_at,u.name FROM events e LEFT JOIN users u ON u.id=e.user_id ORDER BY e.id DESC LIMIT 30'),
-                'sharing'=>chatSharing(),'uploads'=>workspaceUploads(),'session_hours'=>sessionHours(),'settings'=>array_diff_key(settings(),['mailjet'=>true]),'hosts'=>allowedHosts(),'health'=>['php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'sqlite'=>true,'mysql'=>extension_loaded('pdo_mysql'),'encryption'=>extension_loaded('sodium'),'private_storage'=>is_writable(dataDir())]]);
+                'sharing'=>chatSharing(),'uploads'=>workspaceUploads(),'session_hours'=>sessionHours(),'settings'=>array_diff_key(settings(),['mailjet'=>true]),'converter_formats'=>converterFormats(),'hosts'=>allowedHosts(),'health'=>['php'=>PHP_MAJOR_VERSION.'.'.PHP_MINOR_VERSION,'sqlite'=>true,'mysql'=>extension_loaded('pdo_mysql'),'encryption'=>extension_loaded('sodium'),'private_storage'=>is_writable(dataDir())]]);
         case 'admin.templates': jsonOut(['templates'=>projectTypes()]);
         case 'admin.template': jsonOut(['template'=>projectType(textField($data,'id',32))]);
         case 'admin.template.save': jsonOut(['id'=>saveProjectType($u,$data),'ok'=>true]);
@@ -258,21 +259,21 @@ try {
         case 'admin.users': jsonOut(['users'=>array_map('safeUser',all('SELECT * FROM users ORDER BY name'))]);
         case 'admin.user.save':
             $uid=textField($data,'id',32,false); $name=textField($data,'name'); $email=emailField($data); $role=$data['role']??'user'; if(!in_array($role,['user','teacher','admin'],true)) fail(422,'Ungültige Rolle.');
-            $active=(bool)($data['active']??true); $pass=passwordField($data,$uid===''); $flags=featureInput($data['features']??[]); $groups=$data['groups']??[];
+            $active=(bool)($data['active']??true); if(isset($data['must_change_password'])&&!is_bool($data['must_change_password']))fail(422,'Ungültige Passworteinstellung.'); $mustChange=$data['must_change_password']??($uid===''?true:null); $pass=passwordField($data,$uid===''); $flags=featureInput($data['features']??[]); $groups=$data['groups']??[];
             if (!is_array($groups)||count($groups)>1000) fail(422,'Ungültige Gruppenzuordnung.');
             foreach ($groups as $groupId) if (!is_string($groupId)) fail(422,'Ungültige Gruppenzuordnung.');
             $mail=null;$mailId=null;
             $wantsMail=textField($data,'mail_template',32,false)!=='';
             if($wantsMail&&$uid!=='')fail(422,'Zugangsmails können beim Anlegen eines neuen Benutzers versendet werden.');
-            if($wantsMail){$existing=one('SELECT m.*,u.name,u.role,u.active,u.password FROM welcome_mails m JOIN users u ON u.id=m.user_id WHERE request_key=?', [textField($data,'creation_token',36)]);if($existing){if($existing['created_by']!==$u['id']||$existing['recipient']!==$email||$existing['name']!==$name||$existing['role']!==$role||(bool)$existing['active']!==$active||!password_verify($pass,$existing['password']))fail(409,'Dieser Anlegevorgang wurde bereits verwendet. Bitte den Dialog neu öffnen.');jsonOut(['ok'=>true,'id'=>$existing['user_id'],'mail'=>welcomeStatus($existing['id'])]);}rateLimit('mail.send.'.$u['id'],20,60);$mail=prepareWelcome($data,$name,$email,$role,$active,$pass,$groups);}
-            transaction(function() use($u,&$uid,$name,$email,$role,$active,$pass,$flags,$groups,$mail,&$mailId) {
+            if($wantsMail){$existing=one('SELECT m.*,u.name,u.role,u.active,u.password,u.must_change_password FROM welcome_mails m JOIN users u ON u.id=m.user_id WHERE request_key=?', [textField($data,'creation_token',36)]);if($existing){if($existing['created_by']!==$u['id']||$existing['recipient']!==$email||$existing['name']!==$name||$existing['role']!==$role||(bool)$existing['active']!==$active||($mustChange!==null&&(bool)$existing['must_change_password']!==$mustChange)||!password_verify($pass,$existing['password']))fail(409,'Dieser Anlegevorgang wurde bereits verwendet. Bitte den Dialog neu öffnen.');jsonOut(['ok'=>true,'id'=>$existing['user_id'],'mail'=>welcomeStatus($existing['id'])]);}rateLimit('mail.send.'.$u['id'],20,60);$mail=prepareWelcome($data,$name,$email,$role,$active,$pass,$groups);}
+            transaction(function() use($u,&$uid,$name,$email,$role,$active,$mustChange,$pass,$flags,$groups,$mail,&$mailId) {
                 if ($uid) { $target=one('SELECT * FROM users WHERE id=?',[$uid]); if (!$target) fail(404,'Benutzer nicht gefunden.');
                     if ($uid===$u['id'] && (!$active || $role!=='admin')) fail(422,'Sie können Ihren eigenen Adminzugang nicht sperren oder herabstufen.');
                     if ($target['role']==='admin' && ($role!=='admin'||!$active) && (int)query("SELECT COUNT(*) FROM users WHERE role='admin' AND active=1")->fetchColumn()<=1) fail(422,'Mindestens ein aktiver Admin muss bestehen bleiben.');
-                    query('UPDATE users SET name=?,email=?,role=?,active=?,features=?,auth_version=auth_version+1 WHERE id=?',[$name,$email,$role,(int)$active,$flags,$uid]);
-                    if ($pass) query('UPDATE users SET password=?,must_change_password=1 WHERE id=?',[password_hash($pass,PASSWORD_DEFAULT),$uid]);
+                    query('UPDATE users SET name=?,email=?,role=?,active=?,features=?,must_change_password=COALESCE(?,must_change_password),auth_version=auth_version+1 WHERE id=?',[$name,$email,$role,(int)$active,$flags,$mustChange===null?null:(int)$mustChange,$uid]);
+                    if ($pass) query('UPDATE users SET password=? WHERE id=?',[password_hash($pass,PASSWORD_DEFAULT),$uid]);
                     if ($uid===$u['id']) $_SESSION['auth_version']=(int)$target['auth_version']+1;
-                } else { $uid=id(); query('INSERT INTO users(id,name,email,password,role,active,features,must_change_password,created_at) VALUES(?,?,?,?,?,?,?,1,?)',[$uid,$name,$email,password_hash($pass,PASSWORD_DEFAULT),$role,(int)$active,$flags,now()]); }
+                } else { $uid=id(); query('INSERT INTO users(id,name,email,password,role,active,features,must_change_password,created_at) VALUES(?,?,?,?,?,?,?,?,?)',[$uid,$name,$email,password_hash($pass,PASSWORD_DEFAULT),$role,(int)$active,$flags,(int)$mustChange,now()]); }
                 query('DELETE FROM group_members WHERE user_id=?',[$uid]); foreach(array_unique($groups) as $gid) { if(!is_string($gid)||!one('SELECT id FROM groups WHERE id=?',[$gid])) fail(422,'Eine Gruppe existiert nicht mehr.'); query('INSERT INTO group_members VALUES(?,?)',[$gid,$uid]); }
                 if($mail){queueWelcome($mail,$uid,$u,$email);$mailId=$mail['id'];}
                 audit($u['id'],'admin.user.save');
@@ -315,8 +316,9 @@ try {
             foreach($hosts as $host) if (!is_string($host)||!preg_match('/^[a-zA-Z0-9.-]{1,253}$/',$host)) fail(422,'Ungültiger Host.');
             $sharing=isset($data['chat_sharing'])?chatSharingInput($data['chat_sharing']):null;
             $uploads=isset($data['workspace_uploads'])?workspaceUploadsInput($data['workspace_uploads']):null;
+            $converterFormats=array_key_exists('converter_formats',$data)?converterFormatsInput($data['converter_formats']):null;
             $sessionHours=array_key_exists('session_hours',$data)?sessionHoursInput($data['session_hours']):null;
-            transaction(function() use($flags,$hosts,$u,$sharing,$uploads,$sessionHours) { query("UPDATE settings SET value=? WHERE key='features'",[$flags]); query("INSERT INTO settings VALUES('db_allowed_hosts',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode(array_values(array_unique($hosts)))]); if($sharing!==null)query("INSERT INTO settings VALUES('chat_sharing',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($sharing)]);if($uploads!==null)query("INSERT INTO settings VALUES('workspace_uploads',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($uploads)]);if($sessionHours!==null)query("INSERT INTO settings VALUES('session_hours',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($sessionHours)]);audit($u['id'],'admin.settings'); }); jsonOut(['ok'=>true]);
+            transaction(function() use($flags,$hosts,$u,$sharing,$uploads,$sessionHours,$converterFormats) { query("UPDATE settings SET value=? WHERE key='features'",[$flags]); query("INSERT INTO settings VALUES('db_allowed_hosts',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode(array_values(array_unique($hosts)))]); if($sharing!==null)query("INSERT INTO settings VALUES('chat_sharing',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($sharing)]);if($uploads!==null)query("INSERT INTO settings VALUES('workspace_uploads',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($uploads)]);if($sessionHours!==null)query("INSERT INTO settings VALUES('session_hours',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($sessionHours)]);if($converterFormats!==null)query("INSERT INTO settings VALUES('converter_formats',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($converterFormats)]);audit($u['id'],'admin.settings'); }); jsonOut(['ok'=>true]);
         default: fail(404,'Unbekannte Aktion.');
     }
 } catch (ApiError $e) { jsonOut(['error'=>$e->getMessage()],$e->status); }
