@@ -11,7 +11,7 @@ Projektdateien → MessageChannel → opaque Iframe → Worker → PHP.wasm / Py
 Ausgabe → weiteres Iframe ohne gemeinsame Origin → Website-Vorschau
 ```
 
-PHP- und Python-Lernenden-Code läuft nicht auf dem Hostbetriebssystem. Python auf dem Server führt ausschließlich die fest ausgelieferte Asset-Prüfung aus. Die Anwendung benötigt keinen Python-Daemon.
+PHP läuft standardmäßig in der Browser-Laufzeit; Admins können PHP optional als kurzlebigen CLI-Prozess auf dem Server ausführen. Python-Lernenden-Code bleibt browserbasiert. Python auf dem Server führt ausschließlich die fest ausgelieferte Asset-Prüfung aus. Die Anwendung benötigt keinen Python-Daemon.
 
 ## Vertrauensgrenzen
 
@@ -19,11 +19,12 @@ PHP- und Python-Lernenden-Code läuft nicht auf dem Hostbetriebssystem. Python a
 - Admin-API: zusätzliche Rollenprüfung bei jeder Anfrage. Der Benutzer-Login akzeptiert keine Adminzugänge und umgekehrt.
 - Gruppenchat: Gruppenmitgliedschaft wird bei jedem Lesen und Schreiben geprüft. Inhalte werden im UI als escaped Text dargestellt.
 - Rechte: globale Sperren, Sperren aus jeder Gruppe und benutzerbezogene Sperren werden verknüpft. Eine Gruppenzuordnung kann keine globale Sperre aufheben.
-- Dateien: Inhalte liegen als Daten in SQLite, außerhalb des Webroots. Keine Benutzerdatei wird als Server-PHP eingebunden. Relative Pfade werden validiert; versteckte Dateien und Traversal sind gesperrt. Persönliche Dateien verwenden eine Versionsnummer und liefern bei Konflikten HTTP 409. Gruppendateien verwenden das nachfolgend beschriebene Änderungsprotokoll.
+- Dateien: Inhalte liegen als Daten in SQLite, außerhalb des Webroots. Relative Pfade werden validiert; versteckte Dateien und Traversal sind gesperrt. Persönliche Dateien verwenden eine Versionsnummer und liefern bei Konflikten HTTP 409. Gruppendateien verwenden das nachfolgend beschriebene Änderungsprotokoll. Für Server-PHP werden Projektdateien in ein privates temporäres Verzeichnis kopiert und danach entfernt.
 - Browser-Laufzeit: Iframe mit `sandbox="allow-scripts"`, ohne `allow-same-origin`. Der Controller akzeptiert ausschließlich die Elternseite seiner eigenen App-Origin. Der Elternteil überprüft die tatsächliche Frame-Quelle und nutzt einen MessageChannel. Im Lernenden-Worker gibt es keine App-Session, keinen CSRF-Schlüssel und keine Datenbankpasswörter.
 - Sandbox-CSP: Netzwerkzugriff ist nur zum öffentlichen Runtime-Asset-Verzeichnis möglich. Die Ausgabe-CSP sperrt Netzwerk, Frames, Plugins und Formularübertragung. HTML-Output wird niemals in das App-Dokument geschrieben.
 - Laufzeitgrenzen: maximal 60 Sekunden für Initialisierung, danach 8 Sekunden bis zur Worker-Terminierung; expliziter Stop. Python-Ausgabe wird auf 100 KB begrenzt. PHP hat ein 64-MB-Speicherlimit und zusätzlich die Worker-Frist; zurückgegebene Ausgabe wird auf 100 KB gekürzt. Die Frist gilt für Worker-Ausführungen; JavaScript mit DOM-Zugriff in der HTML-Vorschau läuft im Frame und besitzt keine durchsetzbare CPU-Frist. Eine Endlosschleife dort kann den Browser-Tab blockieren. Browserressourcen sind nicht mit einer Betriebssystem-Sandbox oder serverseitigen RAM-Quota gleichzusetzen.
 - Virtuelle Dateien: Scripts sehen ausschließlich die mitgegebenen Projektdateien und die virtuelle Standardbibliothek. Writes sind flüchtig. Nach jedem Run wird die Laufzeit entfernt.
+- Server-PHP: PHP-CLI muss Version 8.2+ und MySQLi unterstützen; `proc_open` muss verfügbar sein. Der Prozess erhält Limits für 8 Sekunden Laufzeit, 64 MB PHP-Speicher, 100 KB Ausgabe und 32 MB temporäre Dateien. Das ist keine Betriebssystem-Sandbox: Code läuft mit den Rechten des Hostingkontos. Servermodus daher nur für vertrauenswürdige Lerngruppen aktivieren.
 
 ## Authentifizierung und Speicherung
 
