@@ -3,7 +3,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/profile.php';
 
 const APP_ROOT = __DIR__ . '/..';
-const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team'];
+const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter'];
+const CONVERTER_FORMATS = ['csv', 'tsv', 'json', 'xml'];
 const FILE_LIMIT = 524288;
 const SPACE_LIMIT = 20971520;
 
@@ -160,6 +161,14 @@ function features(array $u): array {
         foreach (json_decode($g['features'], true) as $f => $v) if (isset($flags[$f]) && !$v) $flags[$f] = false;
     foreach (json_decode($u['features'], true) as $f => $v) if (isset($flags[$f]) && !$v) $flags[$f] = false;
     return $flags;
+}
+function converterFormats(): array {
+    $formats=settings()['converter_formats']??CONVERTER_FORMATS;
+    return is_array($formats)?array_values(array_intersect(CONVERTER_FORMATS,$formats)):CONVERTER_FORMATS;
+}
+function converterFormatsInput(mixed $formats): array {
+    if(!is_array($formats)||count($formats)<2||array_filter($formats,fn($format)=>!is_string($format))||count($formats)!==count(array_unique($formats))||array_diff($formats,CONVERTER_FORMATS))fail(422,'Bitte wählen Sie mindestens zwei gültige Converter-Formate aus.');
+    return array_values(array_filter(CONVERTER_FORMATS,fn($format)=>in_array($format,$formats,true)));
 }
 function needFeature(array $u, string $feature): void {
     if (!features($u)[$feature]) fail(403, 'Diese Funktion ist für Ihren Zugang nicht freigegeben.');
