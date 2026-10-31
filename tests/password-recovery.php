@@ -14,6 +14,11 @@ function recoveryOperator(array $args):array{
     $out=stream_get_contents($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);
     return [proc_close($process),$out,$err];
 }
+function recoveryBrowserProcess(array $input):int{
+    $code='require $argv[1]."/app/bootstrap.php";require $argv[1]."/app/mail.php";require $argv[1]."/app/password-recovery.php";resetForgottenPassword(json_decode(stream_get_contents(STDIN),true));';
+    $process=proc_open([PHP_BINARY,'-r',$code,dirname(__DIR__)],[0=>['pipe','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes);
+    fwrite($pipes[0],json_encode($input));fclose($pipes[0]);stream_get_contents($pipes[1]);stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);return proc_close($process);
+}
 try{
     checkRecovery(!passwordRecoveryReady(),'Recovery unavailable before mail setup');
     checkRecovery(passwordRecoveryProblems()===['mail_disabled','mail_credentials_missing','sender_invalid','app_url_invalid'],'Missing mail setup reports only global problem codes');
@@ -83,12 +88,13 @@ try{
     preg_match('/#reset-password=([a-f0-9]{64})/',$out,$match);$operatorToken=$match[1]??'';
     checkRecovery($exit===0&&strlen($operatorToken)===64&&$err==='','Hosting operator can issue an admin link without email');
     checkRecovery(one("SELECT password,auth_version FROM users WHERE id='admin'")===$before,'Issuing an operator link preserves password and sessions');
-    $issued=one('SELECT r.expires_at,r.auth_version,u.auth_version current_version,u.active,u.email=r.email same_email FROM password_resets r JOIN users u ON u.id=r.user_id WHERE r.token_hash=?',[hash('sha256',$operatorToken)]);
+    // A browser request opens its own connection after the CLI has exited.
+    $reader=new PDO('sqlite:'.$dir.'/app.sqlite');$read=$reader->prepare('SELECT r.expires_at,r.auth_version,u.auth_version current_version,u.active,u.email=r.email same_email FROM password_resets r JOIN users u ON u.id=r.user_id WHERE r.token_hash=?');$read->execute([hash('sha256',$operatorToken)]);$issued=$read->fetch(PDO::FETCH_ASSOC);$read->closeCursor();$reader=null;
     checkRecovery($issued!==null,'Operator token is persisted in the running app database');
     checkRecovery($issued['expires_at']>time(),'Operator token expiry is in the future');
     checkRecovery($issued['auth_version']===$issued['current_version']&&$issued['active']===1&&$issued['same_email']===1,'Operator token matches current account credentials');
-    resetForgottenPassword(resetInput($operatorToken));
-    rejectRecovery(fn()=>resetForgottenPassword(resetInput($operatorToken)));
+    checkRecovery(recoveryBrowserProcess(resetInput($operatorToken))===0,'Separate browser process accepts operator link');
+    checkRecovery(recoveryBrowserProcess(resetInput($operatorToken))!==0,'Operator link is single use across processes');
     foreach(['learner@example.test','disabled@example.test','missing@example.test'] as $email){[$exit,$out]=recoveryOperator(['--email='.$email,'--url=https://academy.example']);checkRecovery($exit===1&&!str_contains($out,'#reset-password='),'Operator recovery restricted to existing active administrators');}
     [$exit,$out]=recoveryOperator(['--email=admin@example.test','--url=http://academy.example']);checkRecovery($exit===1&&!str_contains($out,'#reset-password='),'Operator rejects unsafe origin');
     checkRecovery(!str_contains(json_encode(all('SELECT * FROM events')),$operatorToken),'Operator audit never contains recovery secret');
