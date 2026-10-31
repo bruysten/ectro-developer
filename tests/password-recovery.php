@@ -83,6 +83,10 @@ try{
     preg_match('/#reset-password=([a-f0-9]{64})/',$out,$match);$operatorToken=$match[1]??'';
     checkRecovery($exit===0&&strlen($operatorToken)===64&&$err==='','Hosting operator can issue an admin link without email');
     checkRecovery(one("SELECT password,auth_version FROM users WHERE id='admin'")===$before,'Issuing an operator link preserves password and sessions');
+    $issued=one('SELECT r.expires_at,r.auth_version,u.auth_version current_version,u.active,u.email=r.email same_email FROM password_resets r JOIN users u ON u.id=r.user_id WHERE r.token_hash=?',[hash('sha256',$operatorToken)]);
+    checkRecovery($issued!==null,'Operator token is persisted in the running app database');
+    checkRecovery($issued['expires_at']>time(),'Operator token expiry is in the future');
+    checkRecovery($issued['auth_version']===$issued['current_version']&&$issued['active']===1&&$issued['same_email']===1,'Operator token matches current account credentials');
     resetForgottenPassword(resetInput($operatorToken));
     rejectRecovery(fn()=>resetForgottenPassword(resetInput($operatorToken)));
     foreach(['learner@example.test','disabled@example.test','missing@example.test'] as $email){[$exit,$out]=recoveryOperator(['--email='.$email,'--url=https://academy.example']);checkRecovery($exit===1&&!str_contains($out,'#reset-password='),'Operator recovery restricted to existing active administrators');}
