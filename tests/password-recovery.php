@@ -9,13 +9,24 @@ function rejectRecovery(callable $fn):void{try{$fn();throw new RuntimeException(
 function clearRecoveryLimits():void{query('DELETE FROM rate_limits');}
 function recoveryToken(array $job):string{preg_match('/#reset-password=([a-f0-9]{64})/',$job['message']['TextPart'],$match);return $match[1]??'';}
 function resetInput(string $token):array{return ['token'=>$token,'password'=>'new-secure-password','confirmation'=>'new-secure-password'];}
+function recoveryOperator(array $args):array{
+    $process=proc_open([PHP_BINARY,__DIR__.'/../scripts/recover-admin.php',...$args],[1=>['pipe','w'],2=>['pipe','w']],$pipes);
+    $out=stream_get_contents($pipes[1]);$err=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);
+    return [proc_close($process),$out,$err];
+}
 try{
     checkRecovery(!passwordRecoveryReady(),'Recovery unavailable before mail setup');
+    checkRecovery(passwordRecoveryProblems()===['mail_disabled','mail_credentials_missing','sender_invalid','app_url_invalid'],'Missing mail setup reports only global problem codes');
     foreach(['admin'=>'admin','learner'=>'user','teacher'=>'teacher','disabled'=>'user'] as $id=>$role)
         query('INSERT INTO users(id,name,email,password,role,active,must_change_password,created_at) VALUES(?,?,?,?,?,?,1,?)',[$id,$id,$id.'@example.test',password_hash('original-password',PASSWORD_DEFAULT),$role,$id==='disabled'?0:1,now()]);
     $config=['enabled'=>true,'version'=>1,'sender_email'=>'sender@example.test','sender_name'=>'Academy','app_url'=>'https://academy.example','api_key'=>encryptSecret(str_repeat('a',32)),'api_secret'=>encryptSecret(str_repeat('b',32))];
     query("INSERT INTO settings VALUES('mailjet',?)",[json_encode($config)]);
     checkRecovery(passwordRecoveryReady(),'Configured Mailjet enables recovery');
+    query("UPDATE settings SET value=? WHERE key='mailjet'",[json_encode([...$config,'app_url'=>' https://academy.example/ '])]);
+    checkRecovery(passwordRecoveryReady(),'Trailing slash and whitespace do not disable configured mail');
+    $normalized=preparePasswordRecovery(['email'=>'teacher@example.test']);
+    checkRecovery(str_contains($normalized['message']['TextPart'],'https://academy.example/#reset-password=')&&!str_contains($normalized['message']['TextPart'],'example//'),'Canonical recovery origin used in mail');
+    clearRecoveryLimits();query('DELETE FROM password_resets');
     foreach(['https://attacker@academy.example','https://academy.example/path','http://academy.example'] as $url){query("UPDATE settings SET value=? WHERE key='mailjet'",[json_encode([...$config,'app_url'=>$url])]);checkRecovery(!passwordRecoveryReady(),'Unsafe recovery origin rejected');}
     query("UPDATE settings SET value=? WHERE key='mailjet'",[json_encode($config)]);
     $_SERVER['HTTP_HOST']='attacker.example';
@@ -63,5 +74,19 @@ try{
     clearRecoveryLimits();for($i=0;$i<3;$i++){query("DELETE FROM rate_limits WHERE key LIKE '%-cooldown'");checkRecovery(preparePasswordRecovery(['email'=>'teacher@example.test'])!==null,'Three requests per hour allowed');}
     query("DELETE FROM rate_limits WHERE key LIKE '%-cooldown'");checkRecovery(preparePasswordRecovery(['email'=>'teacher@example.test'])===null,'Per-address hourly cap survives changes of client IP');
     query("DELETE FROM users WHERE id='teacher'");checkRecovery(!one("SELECT 1 FROM password_resets WHERE user_id='teacher'"),'User deletion cascades to tokens');
+    query("UPDATE settings SET value=? WHERE key='mailjet'",[json_encode([...$config,'enabled'=>false])]);
+    [$exit,$out]=recoveryOperator(['--check']);
+    checkRecovery($exit===0&&json_decode($out,true)===['available'=>false,'blockers'=>['mail_disabled']],'CLI diagnoses disabled transport without admin login');
+    checkRecovery(!str_contains($out,'sender@example.test')&&!str_contains($out,$config['api_key']),'Diagnostic output excludes mail addresses and encrypted keys');
+    $before=one("SELECT password,auth_version FROM users WHERE id='admin'");
+    [$exit,$out,$err]=recoveryOperator(['--email=admin@example.test','--url=https://academy.example/']);
+    preg_match('/#reset-password=([a-f0-9]{64})/',$out,$match);$operatorToken=$match[1]??'';
+    checkRecovery($exit===0&&strlen($operatorToken)===64&&$err==='','Hosting operator can issue an admin link without email');
+    checkRecovery(one("SELECT password,auth_version FROM users WHERE id='admin'")===$before,'Issuing an operator link preserves password and sessions');
+    resetForgottenPassword(resetInput($operatorToken));
+    rejectRecovery(fn()=>resetForgottenPassword(resetInput($operatorToken)));
+    foreach(['learner@example.test','disabled@example.test','missing@example.test'] as $email){[$exit,$out]=recoveryOperator(['--email='.$email,'--url=https://academy.example']);checkRecovery($exit===1&&!str_contains($out,'#reset-password='),'Operator recovery restricted to existing active administrators');}
+    [$exit,$out]=recoveryOperator(['--email=admin@example.test','--url=http://academy.example']);checkRecovery($exit===1&&!str_contains($out,'#reset-password='),'Operator rejects unsafe origin');
+    checkRecovery(!str_contains(json_encode(all('SELECT * FROM events')),$operatorToken),'Operator audit never contains recovery secret');
     echo "$checks password recovery security checks passed.\n";
 }finally{foreach(glob($dir.'/*') as $f)unlink($f);rmdir($dir);}

@@ -578,6 +578,8 @@ with tempfile.TemporaryDirectory(prefix='ectro-test-') as private:
             connection.execute('DELETE FROM rate_limits')
         recovery = Client(base)
         check(recovery.ok('bootstrap')['password_recovery_available'] is False,'Recovery reports missing mail setup without account information')
+        blockers=recovery.ok('bootstrap')['password_recovery_blockers']
+        check(blockers==['mail_disabled'],'Anonymous diagnostics expose only global readiness codes for the configured but disabled test mail connection')
         for action in ['password.forgot','password.reset']:
             check(recovery.call(action)[0]==405,'Recovery mutations require POST')
             check(recovery.call(action,{},csrf=False)[0]==403,'Recovery requires anonymous-session CSRF')
