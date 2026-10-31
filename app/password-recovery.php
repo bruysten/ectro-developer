@@ -3,15 +3,32 @@ declare(strict_types=1);
 
 const PASSWORD_RECOVERY_MESSAGE = 'Wenn für diese E-Mail-Adresse ein aktiver Zugang besteht, erhalten Sie einen Link zum Zurücksetzen. Bitte prüfen Sie auch Ihren Spamordner.';
 
-function passwordRecoveryReady(): bool {
-    $c = mailConfig();
-    $url = $c['app_url'] ?? '';
+function passwordRecoveryOrigin(string $url): ?string {
+    $url = rtrim(trim($url), '/');
     $parts = parse_url($url);
-    return !empty($c['enabled']) && !empty($c['api_key']) && !empty($c['api_secret'])
-        && extension_loaded('curl') && filter_var($c['sender_email'] ?? '', FILTER_VALIDATE_EMAIL)
-        && filter_var($url, FILTER_VALIDATE_URL) && $parts && !empty($parts['host'])
+    return filter_var($url, FILTER_VALIDATE_URL) && $parts && !empty($parts['host'])
         && !isset($parts['user']) && !isset($parts['pass']) && !isset($parts['query']) && !isset($parts['fragment'])
-        && ($parts['path'] ?? '') === '' && ($parts['scheme'] ?? '') === 'https';
+        && ($parts['path'] ?? '') === '' && ($parts['scheme'] ?? '') === 'https' ? $url : null;
+}
+
+// Global readiness only: no addresses, credentials or per-account information.
+function passwordRecoveryProblems(): array {
+    $c = mailConfig();
+    $problems = [];
+    if (empty($c['enabled'])) $problems[] = 'mail_disabled';
+    if (empty($c['api_key']) || empty($c['api_secret'])) $problems[] = 'mail_credentials_missing';
+    if (!extension_loaded('curl')) $problems[] = 'curl_unavailable';
+    if (!filter_var($c['sender_email'] ?? '', FILTER_VALIDATE_EMAIL)) $problems[] = 'sender_invalid';
+    if (passwordRecoveryOrigin($c['app_url'] ?? '') === null) $problems[] = 'app_url_invalid';
+    return $problems;
+}
+
+function passwordRecoveryReady(): bool { return passwordRecoveryProblems() === []; }
+
+function issuePasswordRecoveryToken(array $u): string {
+    $token = bin2hex(random_bytes(32));
+    query('INSERT INTO password_resets(token_hash,user_id,email,auth_version,expires_at) VALUES(?,?,?,?,?)', [hash('sha256',$token),$u['id'],$u['email'],$u['auth_version'],time()+1800]);
+    return $token;
 }
 
 // Reserve a send slot for every submitted address, even if no account exists.
@@ -28,10 +45,9 @@ function preparePasswordRecovery(array $data): ?array {
         query('INSERT INTO rate_limits(key,hits,expires) VALUES(?,1,?)', [$key.'-cooldown',time()+60]);
         $u = one('SELECT * FROM users WHERE email=? AND active=1', [$email]);
         if (!$u) return null;
-        $token = bin2hex(random_bytes(32));
+        $token = issuePasswordRecoveryToken($u);
         $hash = hash('sha256', $token);
-        query('INSERT INTO password_resets(token_hash,user_id,email,auth_version,expires_at) VALUES(?,?,?,?,?)', [$hash,$u['id'],$email,$u['auth_version'],time()+1800]);
-        $url = mailConfig()['app_url'].($u['role']==='admin'?'/admin/':'/').'#reset-password='.$token;
+        $url = passwordRecoveryOrigin(mailConfig()['app_url']).($u['role']==='admin'?'/admin/':'/').'#reset-password='.$token;
         $text = "Für Ihren Zugang zu Entrosphere Developer wurde ein neues Passwort angefordert.\n\nPasswort zurücksetzen:\n".$url."\n\nDieser Link ist 30 Minuten gültig und kann einmal verwendet werden. Wenn Sie die Anfrage nicht gestellt haben, ignorieren Sie diese Nachricht. Ihr Passwort bleibt unverändert.";
         $escaped = htmlspecialchars($url, ENT_QUOTES|ENT_SUBSTITUTE, 'UTF-8');
         return ['hash'=>$hash,'user_id'=>$u['id'],'message'=>[

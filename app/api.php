@@ -24,7 +24,7 @@ try {
     if ($method === 'POST') csrf();
     if ($action === 'bootstrap') {
         $u = currentUser(); $hasAdmin = (bool)query("SELECT 1 FROM users WHERE role='admin' LIMIT 1")->fetchColumn();
-        jsonOut(['user' => $u ? safeUser($u) : null, 'csrf' => $_SESSION['csrf'], 'features' => $u ? features($u) : [], 'setup_required' => !$hasAdmin,'php_execution_mode'=>phpExecutionMode(),'password_recovery_available'=>passwordRecoveryReady()]);
+        jsonOut(['user' => $u ? safeUser($u) : null, 'csrf' => $_SESSION['csrf'], 'features' => $u ? features($u) : [], 'setup_required' => !$hasAdmin,'php_execution_mode'=>phpExecutionMode(),'password_recovery_available'=>passwordRecoveryReady(),'password_recovery_blockers'=>passwordRecoveryProblems()]);
     }
     if ($action === 'setup') {
         rateLimit('setup',10,900);

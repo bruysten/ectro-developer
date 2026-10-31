@@ -19,6 +19,24 @@ Links sind 30 Minuten gültig, einmalig verwendbar und werden nur als SHA-256-Ha
 
 Die Antwort verrät nicht, ob die E-Mail-Adresse existiert oder aktiv ist. Pro IP sind 10 Anfragen in 15 Minuten erlaubt, pro Adresse höchstens drei pro Stunde mit mindestens einer Minute Abstand. PHP-FPM bestätigt die Anfrage vor dem Versand. Ohne PHP-FPM wartet jede Anfrage mindestens 13 Sekunden, damit die Versanddauer keine Konten verrät. Versandfehler werden ohne Mailinhalt oder Token im Ereignisprotokoll festgehalten. Ohne aktivierten Mailversand erscheint ein allgemeiner Verfügbarkeitshinweis.
 
+### Ausgesperrter Administrator / Maildiagnose
+
+Die öffentliche Bootstrap-Antwort nennt unter `password_recovery_blockers` ausschließlich globale Ursachencodes: `mail_disabled`, `mail_credentials_missing`, `curl_unavailable`, `sender_invalid`, `app_url_invalid`. E-Mail-Adressen, Schlüssel und Kontoinformationen werden nicht ausgegeben. Ein abschließender Schrägstrich in der gespeicherten HTTPS-Adresse wird akzeptiert.
+
+Mit SSH/Server-Terminal im Verzeichnis der laufenden Installation prüfen:
+
+```sh
+php scripts/recover-admin.php --check
+```
+
+Wenn der Mailversand noch nicht verfügbar ist, kann der Betreiber mit seinem Hostingzugang einen einmaligen Link für einen bestehenden aktiven Administrator erzeugen:
+
+```sh
+php scripts/recover-admin.php --email=ADMIN-EMAIL --url=https://ectro-academy.de
+```
+
+Den ausgegebenen geheimen Link selbst im Browser öffnen, ein neues Passwort festlegen und anschließend Mailjet prüfen. Der Link gilt 30 Minuten; das Erzeugen allein ändert kein Passwort und beendet keine Sitzung. Das Skript funktioniert ausschließlich über PHP-CLI und erfordert Zugriff auf die private Konfiguration/Datenbank. Es bietet keinen öffentlichen HTTP-Endpunkt und benötigt keinen Mailversand. Den Link nicht in Chats, Tickets oder öffentliche Protokolle kopieren. Die Diagnose gibt keine Schlüssel aus. Bei alternativer Datenablage dieselbe `APP_DATA_DIR`-/`APP_KEY`-Umgebung wie die laufende App verwenden.
+
 ## Zugangsvorlagen
 
 **Mailvorlagen** enthält automatisch einmalig zwei editierbare Standards: „Willkommen · Du“ und „Willkommen · Sie“. Weitere Vorlagen lassen sich anlegen, duplizieren und löschen. Du-/Sie-Standards stehen auch als Ausgangspunkt für neue Vorlagen bereit. Betreff und Text werden direkt bearbeitet; die Vorschau verwendet ausschließlich Beispieldaten.
