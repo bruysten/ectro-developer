@@ -8,6 +8,7 @@ require_once __DIR__ . '/workspace-uploads.php';
 require_once __DIR__ . '/sql-training.php';
 require_once __DIR__ . '/collaboration.php';
 require_once __DIR__ . '/mail.php';
+require_once __DIR__ . '/password-recovery.php';
 require_once __DIR__ . '/php-runner.php';
 secureHeaders();
 try {
@@ -23,7 +24,7 @@ try {
     if ($method === 'POST') csrf();
     if ($action === 'bootstrap') {
         $u = currentUser(); $hasAdmin = (bool)query("SELECT 1 FROM users WHERE role='admin' LIMIT 1")->fetchColumn();
-        jsonOut(['user' => $u ? safeUser($u) : null, 'csrf' => $_SESSION['csrf'], 'features' => $u ? features($u) : [], 'setup_required' => !$hasAdmin,'php_execution_mode'=>phpExecutionMode()]);
+        jsonOut(['user' => $u ? safeUser($u) : null, 'csrf' => $_SESSION['csrf'], 'features' => $u ? features($u) : [], 'setup_required' => !$hasAdmin,'php_execution_mode'=>phpExecutionMode(),'password_recovery_available'=>passwordRecoveryReady()]);
     }
     if ($action === 'setup') {
         rateLimit('setup',10,900);
@@ -35,6 +36,18 @@ try {
             $uid = id(); query('INSERT INTO users(id,name,email,password,role,created_at) VALUES(?,?,?,?,?,?)',[$uid,$name,$email,password_hash($pass,PASSWORD_DEFAULT),'admin',now()]);
             audit($uid,'setup.complete');
         }); jsonOut(['ok'=>true]);
+    }
+    if ($action === 'password.forgot') {
+        $started = microtime(true);
+        rateLimit('password.forgot',10,900);
+        if (!passwordRecoveryReady()) fail(503,'Die Passwort-Wiederherstellung ist noch nicht verfügbar. Bitte wenden Sie sich an den Betreiber.');
+        $job = preparePasswordRecovery($data);
+        passwordRecoveryResponse(['ok'=>true,'message'=>PASSWORD_RECOVERY_MESSAGE],fn()=>deliverPasswordRecovery($job),$started,true);
+    }
+    if ($action === 'password.reset') {
+        rateLimit('password.reset',20,900);
+        $recovered = resetForgottenPassword($data);
+        passwordRecoveryResponse(['ok'=>true],fn()=>notifyPasswordRecovery($recovered),microtime(true));
     }
     if ($action === 'login') {
         rateLimit('login',20,900); $email = emailField($data); $pass = $data['password'] ?? '';

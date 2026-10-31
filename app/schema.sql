@@ -19,6 +19,9 @@ CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT REFERENCES users(id) ON DELETE SET NULL, event TEXT NOT NULL, details TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS events_date ON events(created_at);
 CREATE TABLE IF NOT EXISTS rate_limits (key TEXT PRIMARY KEY, hits INTEGER NOT NULL, expires INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS password_resets (token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, email TEXT NOT NULL, auth_version INTEGER NOT NULL, expires_at INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS password_resets_user ON password_resets(user_id);
+CREATE INDEX IF NOT EXISTS password_resets_expiry ON password_resets(expires_at);
 INSERT OR IGNORE INTO settings(key,value) VALUES('features','{"files":true,"editor":true,"html":true,"php":true,"python":true,"database":true,"chat":true}');
 INSERT OR IGNORE INTO settings(key,value) VALUES('converter_formats','["csv","tsv","json","xml"]');
 

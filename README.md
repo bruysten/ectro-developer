@@ -36,6 +36,10 @@ Die App ist als fertiges PHP-Paket auslieferbar. Einmalig werden Domain, HTTPS, 
 
 Es wurden keine Serverzugangsdaten bereitgestellt; ein Live-Deployment ist noch nicht erfolgt. Der MySQL-Manager benötigt separat eingerichtete Kursdatenbanken und zugehörige Benutzer mit ausschließlich deren Datenbankrechten.
 
+## Passwort wiederherstellen
+
+**Passwort vergessen:** Beide Anmeldeseiten bieten einen Wiederherstellungslink per E-Mail. Dafür muss Mailjet eingerichtet und aktiviert sein. Links gelten 30 Minuten; das Zurücksetzen beendet bestehende Sitzungen. [Einrichtung und Sicherheitsdetails](docs/mailjet.md#passwort-vergessen).
+
 ## Lokal öffnen
 
 PHP 8.2+ mit `pdo_sqlite`, `pdo_mysql`, `mbstring` und `sodium` genügt. Fertige Assets sind bereits vorhanden.

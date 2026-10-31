@@ -13,6 +13,8 @@ import urllib.error
 import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+# Keep the recovery invariants in the existing CI security entry point.
+subprocess.run(['php', str(ROOT / 'tests/password-recovery.php')], check=True)
 CHECKS = 0
 def check(value, label):
     global CHECKS
@@ -571,6 +573,40 @@ with tempfile.TemporaryDirectory(prefix='ectro-test-') as private:
         profile_db=sqlite3.connect(pathlib.Path(private)/'app.sqlite')
         check(profile_db.execute('SELECT COUNT(*) FROM user_profiles WHERE user_id=?',[profile_owner_id]).fetchone()[0]==0,'User deletion removes profile and picture')
         profile_db.close()
+        # Recovery is public, but every mutation still needs CSRF and POST.
+        with sqlite3.connect(pathlib.Path(private)/'app.sqlite') as connection:
+            connection.execute('DELETE FROM rate_limits')
+        recovery = Client(base)
+        check(recovery.ok('bootstrap')['password_recovery_available'] is False,'Recovery reports missing mail setup without account information')
+        for action in ['password.forgot','password.reset']:
+            check(recovery.call(action)[0]==405,'Recovery mutations require POST')
+            check(recovery.call(action,{},csrf=False)[0]==403,'Recovery requires anonymous-session CSRF')
+        known=recovery.call('password.forgot',{'email':'admin@test.invalid'})
+        unknown=recovery.call('password.forgot',{'email':'missing@test.invalid'})
+        check(known==unknown and known[0]==503,'Missing mail setup has identical response for every address')
+        target=admin.ok('admin.user.save',{'name':'Recovery','email':'recover@test.invalid','password':'original-secure-password','role':'admin','active':True,'groups':[]})['id']
+        session1,session2=Client(base),Client(base)
+        for client in [session1,session2]:
+            client.ok('bootstrap');client.ok('login',{'portal':'admin','email':'recover@test.invalid','password':'original-secure-password'})
+        import hashlib
+        token='b'*64
+        with sqlite3.connect(pathlib.Path(private)/'app.sqlite') as connection:
+            version=connection.execute('SELECT auth_version FROM users WHERE id=?',[target]).fetchone()[0]
+            connection.execute('INSERT INTO password_resets VALUES(?,?,?,?,?)',[hashlib.sha256(token.encode()).hexdigest(),target,'recover@test.invalid',version,int(time.time())+1800])
+        payload={'token':token,'password':'recovered-secure-password','confirmation':'recovered-secure-password'}
+        check(recovery.call('password.reset',dict(payload,confirmation='mismatch'))[0]==422,'Password confirmation enforced on server')
+        check(recovery.call('password.reset',dict(payload,token='c'*64))[0]==422,'Unissued recovery secret rejected')
+        recovery.ok('password.reset',payload)
+        check(recovery.ok('bootstrap')['user'] is None,'Recovery does not log in automatically')
+        for client in [session1,session2]:
+            check(client.call('admin.users')[0]==401,'Every previous session revoked after recovery')
+        check(recovery.call('password.reset',payload)[0]==422,'Recovery token cannot be replayed over HTTP')
+        check(recovery.call('login',{'portal':'admin','email':'recover@test.invalid','password':'original-secure-password'})[0]==401,'Old password no longer works')
+        recovery.ok('login',{'portal':'admin','email':'recover@test.invalid','password':'recovered-secure-password'})
+        recovery.ok('admin.users')
+        for attempt in range(16):
+            check(recovery.call('password.reset',dict(payload,token='invalid'))[0]==422,'Invalid secrets rejected')
+        check(recovery.call('password.reset',dict(payload,token='invalid'))[0]==429,'Recovery attempts rate limited')
         print(f'{CHECKS} API/security integration checks passed.')
     finally:
         server.terminate();server.wait(timeout=10)

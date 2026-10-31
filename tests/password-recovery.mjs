@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {takeRecoveryToken} from '../src/password-recovery.js';
+const calls=[],history={replaceState(...args){calls.push(args);}};
+const token='a'.repeat(64);
+assert.equal(takeRecoveryToken({hash:'#reset-password='+token,pathname:'/admin/',search:''},history),token);
+assert.deepEqual(calls.pop(),[null,'','/admin/']);
+assert.equal(takeRecoveryToken({hash:'#dashboard',pathname:'/',search:''},history),null);
+assert.equal(calls.length,0);
+assert.equal(takeRecoveryToken({hash:'#reset-password=invalid',pathname:'/',search:'?x=1'},history),'invalid');
+assert.deepEqual(calls.pop(),[null,'','/?x=1']);
+console.log('Recovery fragment capture and history cleanup verified.');
