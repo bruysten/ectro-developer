@@ -11,7 +11,15 @@ Der Versand erfolgt im PHP-Backend per cURL über Mailjets [Send API v3.1](https
 
 API-Key und Secret-Key werden mit dem bestehenden APP_KEY verschlüsselt im privaten SQLite-Speicher abgelegt und niemals wieder an den Browser ausgeliefert. Leere Schlüssel-Felder behalten die gespeicherte Verbindung bei. Zum Wechseln beide Schlüssel gemeinsam eingeben. APP_KEY und privaten Speicher zusammen sichern.
 
-## Vorlagen
+## Passwort vergessen
+
+Auf beiden Anmeldeseiten führt **Passwort vergessen?** zur Wiederherstellung per E-Mail. Sie verwendet die aktivierte Mailjet-Verbindung und deren gespeicherte HTTPS-Adresse. Für bestehende Installationen wird die zusätzliche Tabelle beim nächsten App-Aufruf automatisch angelegt. Kein Cronjob und keine erneute Einrichtung sind erforderlich.
+
+Links sind 30 Minuten gültig, einmalig verwendbar und werden nur als SHA-256-Hash gespeichert. Der Link enthält das Geheimnis im URL-Fragment; es wird beim Öffnen aus der aktuellen Browseradresse entfernt und erscheint nicht in HTTP-Zugriffslogs. Mailjet-Klicktracking ist für diese Nachrichten deaktiviert. Nach dem Zurücksetzen sind alle bisherigen Sitzungen und Links ungültig; eine Bestätigungsmail enthält keine Zugangsdaten. Ein normaler Login mit dem neuen Passwort bleibt erforderlich.
+
+Die Antwort verrät nicht, ob die E-Mail-Adresse existiert oder aktiv ist. Pro IP sind 10 Anfragen in 15 Minuten erlaubt, pro Adresse höchstens drei pro Stunde mit mindestens einer Minute Abstand. PHP-FPM bestätigt die Anfrage vor dem Versand. Ohne PHP-FPM wartet jede Anfrage mindestens 13 Sekunden, damit die Versanddauer keine Konten verrät. Versandfehler werden ohne Mailinhalt oder Token im Ereignisprotokoll festgehalten. Ohne aktivierten Mailversand erscheint ein allgemeiner Verfügbarkeitshinweis.
+
+## Zugangsvorlagen
 
 **Mailvorlagen** enthält automatisch einmalig zwei editierbare Standards: „Willkommen · Du“ und „Willkommen · Sie“. Weitere Vorlagen lassen sich anlegen, duplizieren und löschen. Du-/Sie-Standards stehen auch als Ausgangspunkt für neue Vorlagen bereit. Betreff und Text werden direkt bearbeitet; die Vorschau verwendet ausschließlich Beispieldaten.
 
