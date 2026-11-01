@@ -1,2 +1,2 @@
-export const MAIL_SAMPLE={name:'Alex Beispiel',email:'alex@example.test',password:'••••••••••••',login_url:'https://academy.example/',groups:'Webentwicklung',role:'Lernender',app_name:'Entrosphere Developer'};
+export const MAIL_SAMPLE={name:'Alex Beispiel',email:'alex@example.test',password:'••••••••••••',reset_url:'https://academy.example/#reset-password=beispiel-vorschau',expires_minutes:30,login_url:'https://academy.example/',groups:'Webentwicklung',role:'Lernender',app_name:'Entrosphere Developer'};
 export function mailPreview(text,variables=MAIL_SAMPLE){return text.replace(/\{([^{}]+)\}/g,(match,key)=>Object.hasOwn(variables,key)?String(variables[key]):match);}

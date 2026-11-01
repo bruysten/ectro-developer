@@ -6,7 +6,22 @@ function checkMail(bool $ok,string $label):void{global $checks;if(!$ok)throw new
 function mailReject(callable $fn,int $status=422):void{try{$fn();throw new RuntimeException('Rejected input accepted');}catch(ApiError $e){checkMail($e->status===$status,'Expected rejection');}}
 try{
     query("INSERT INTO users(id,name,email,password,role,created_at) VALUES('admin','Admin','admin@example.test','unused','admin',?)",[now()]);$admin=['id'=>'admin'];
-    initializeMailTemplates();initializeMailTemplates();$templates=all('SELECT * FROM mail_templates');checkMail(count($templates)===2,'Du/Sie defaults initialize once');foreach($templates as $t)checkMail(mailTemplateInput($t)['body']===$t['body'],'Defaults valid');
+    initializeMailTemplates();initializeMailTemplates();$templates=all('SELECT * FROM mail_templates');checkMail(count($templates)===4,'Welcome and recovery defaults initialize once');foreach($templates as $t)checkMail(mailTemplateInput($t,mailTemplatePurpose($t['id']))['body']===$t['body'],'Defaults valid');
+    $reset=recoveryMailTemplate('password_reset');$changed=recoveryMailTemplate('password_changed');
+    mailReject(fn()=>mailTemplateInput([...$reset,'body'=>'No link {expires_minutes}'],'password_reset'));
+    mailReject(fn()=>mailTemplateInput([...$reset,'body'=>'{reset_url}'],'password_reset'));
+    mailReject(fn()=>mailTemplateInput([...$reset,'subject'=>'Reset {reset_url}'],'password_reset'));
+    mailReject(fn()=>mailTemplateInput([...$reset,'body'=>$reset['body'].' {password}'],'password_reset'));
+    mailReject(fn()=>mailTemplateInput([...$changed,'body'=>'{password}'],'password_changed'));
+    mailReject(fn()=>mailTemplateInput([...$changed,'body'=>'{reset_url}'],'password_changed'));
+    mailReject(fn()=>prepareWelcome(['mail_template'=>'password-reset'],'Alex','alex@example.test','user',true,'long-enough-password',[]));
+    $recovery=renderMailTemplate($reset,['name'=>'<Alex>','reset_url'=>'https://academy.example/#reset-password=sample','expires_minutes'=>30]);
+    checkMail(str_contains($recovery['HTMLPart'],'href="https://academy.example/#reset-password=sample"')&&str_contains($recovery['HTMLPart'],'&lt;Alex&gt;'),'Reset link clickable and variables HTML escaped');
+    checkMail(str_contains($recovery['TextPart'],'30 Minuten')&&!str_contains($recovery['TextPart'],'{reset_url}'),'Reset variables rendered without credentials');
+    query("UPDATE mail_templates SET subject='Custom confirmation' WHERE id='password-changed'");initializeMailTemplates();checkMail(recoveryMailTemplate('password_changed')['subject']==='Custom confirmation','Initialization preserves edited recovery template');
+    query("DELETE FROM mail_templates WHERE id='password-reset'");query("DELETE FROM settings WHERE key='recovery_mail_templates_initialized'");
+    query('INSERT INTO mail_templates(id,name,subject,body,updated_at) VALUES(?,?,?,?,?)',['existing-template',$reset['name'],'Existing subject','{email} {password} {login_url}',now()]);
+    initializeMailTemplates();checkMail(recoveryMailTemplate('password_reset')['name']!==$reset['name']&&one("SELECT subject FROM mail_templates WHERE id='existing-template'")['subject']==='Existing subject','Existing template name collisions preserve both templates');
     $t=$templates[0];$variables=['name'=>'<script>{password}</script>','email'=>'alex@example.test','password'=>'Never-log-this-2026!','login_url'=>'https://academy.example/','app_name'=>'Entrosphere Developer'];$rendered=renderMailTemplate($t,$variables);
     checkMail(str_contains($rendered['TextPart'],'<script>{password}</script>'),'One-pass replacement prevents recursive substitution');checkMail(!str_contains($rendered['HTMLPart'],'<script>')&&str_contains($rendered['HTMLPart'],'&lt;script&gt;'),'HTML variable escaping');checkMail(str_contains($rendered['TextPart'],$variables['password']),'Credentials in body');checkMail(str_contains($rendered['HTMLPart'],'href="https://academy.example/"'),'Login link clickable');checkMail(!str_contains(renderMailTemplate($t,[...$variables,'login_url'=>'javascript:alert(1)'])['HTMLPart'],'href="javascript:'),'Unsafe link scheme not generated');
     foreach(['{unknown}','{Name}'] as $unknown)mailReject(fn()=>mailTemplateInput([...$t,'body'=>$t['body'].$unknown]));mailReject(fn()=>mailTemplateInput([...$t,'subject'=>'Hello {password}']));mailReject(fn()=>mailTemplateInput([...$t,'subject'=>"Hello\nWorld"]));mailReject(fn()=>mailTemplateInput([...$t,'body'=>'no credentials']));

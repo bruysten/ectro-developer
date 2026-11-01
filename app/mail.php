@@ -1,6 +1,26 @@
 <?php
 declare(strict_types=1);
 const MAIL_VARIABLES=['name','email','password','login_url','groups','role','app_name'];
+function mailTemplatePurpose(string $id):string {
+    return ['password-reset'=>'password_reset','password-changed'=>'password_changed'][$id]??'welcome';
+}
+function mailTemplateVariables(string $purpose):array {
+    return match($purpose){
+        'password_reset'=>['name','email','reset_url','expires_minutes','login_url','role','app_name'],
+        'password_changed'=>['name','email','login_url','role','app_name'],
+        default=>MAIL_VARIABLES,
+    };
+}
+function recoveryMailDefaults():array {
+    return [
+        ['id'=>'password-reset','name'=>'Passwort zurücksetzen','subject'=>'Ihr Passwort zurücksetzen · {app_name}','body'=>"Guten Tag {name},\n\nfür Ihren Zugang zu {app_name} wurde ein neues Passwort angefordert.\n\nPasswort zurücksetzen:\n{reset_url}\n\nDieser Link ist {expires_minutes} Minuten gültig und kann einmal verwendet werden. Wenn Sie die Anfrage nicht gestellt haben, ignorieren Sie diese Nachricht. Ihr Passwort bleibt unverändert."],
+        ['id'=>'password-changed','name'=>'Passwort geändert','subject'=>'Ihr Passwort wurde geändert · {app_name}','body'=>"Guten Tag {name},\n\nIhr Passwort für {app_name} wurde über die Passwort-Wiederherstellung geändert. Alle bisherigen Sitzungen und Wiederherstellungslinks sind jetzt ungültig.\n\nAnmelden:\n{login_url}\n\nFalls Sie diese Änderung nicht vorgenommen haben, wenden Sie sich bitte umgehend an die Kursleitung oder den Betreiber."],
+    ];
+}
+function recoveryMailTemplate(string $purpose):array {
+    foreach(recoveryMailDefaults() as $t)if(mailTemplatePurpose($t['id'])===$purpose)return one('SELECT * FROM mail_templates WHERE id=?',[$t['id']])??$t;
+    throw new LogicException('Unbekannter Wiederherstellungsvorgang.');
+}
 function mailDefaults():array {
     $common="\n\nLogin: {login_url}\nE-Mail: {email}\nVorläufiges Passwort: {password}\n\n";
     return [
@@ -9,22 +29,38 @@ function mailDefaults():array {
     ];
 }
 function initializeMailTemplates():void {
-    if(one("SELECT 1 FROM settings WHERE key='mail_templates_initialized'"))return;
-    transaction(function(){if(one("SELECT 1 FROM settings WHERE key='mail_templates_initialized'"))return;foreach(mailDefaults() as $t)query('INSERT INTO mail_templates(id,name,subject,body,updated_at) VALUES(?,?,?,?,?)',[id(),$t['name'],$t['subject'],$t['body'],now()]);query("INSERT INTO settings VALUES('mail_templates_initialized','true')");});
+    if(one("SELECT 1 FROM settings WHERE key='mail_templates_initialized'")&&one("SELECT 1 FROM settings WHERE key='recovery_mail_templates_initialized'"))return;
+    transaction(function(){
+        if(!one("SELECT 1 FROM settings WHERE key='mail_templates_initialized'")){
+            foreach(mailDefaults() as $t)query('INSERT INTO mail_templates(id,name,subject,body,updated_at) VALUES(?,?,?,?,?)',[id(),$t['name'],$t['subject'],$t['body'],now()]);
+            query("INSERT INTO settings VALUES('mail_templates_initialized','true')");
+        }
+        if(!one("SELECT 1 FROM settings WHERE key='recovery_mail_templates_initialized'")){
+            foreach(recoveryMailDefaults() as $t){
+                if(one('SELECT 1 FROM mail_templates WHERE id=?',[$t['id']]))continue;
+                $name=$t['name'];$suffix=0;
+                while(one('SELECT 1 FROM mail_templates WHERE name=? COLLATE NOCASE',[$name]))$name=$t['name'].' · System '.(++$suffix);
+                query('INSERT INTO mail_templates(id,name,subject,body,updated_at) VALUES(?,?,?,?,?)',[$t['id'],$name,$t['subject'],$t['body'],now()]);
+            }
+            query("INSERT INTO settings VALUES('recovery_mail_templates_initialized','true')");
+        }
+    });
 }
-function mailTemplateInput(array $d):array {
+function mailTemplateInput(array $d,string $purpose='welcome'):array {
     $t=['name'=>textField($d,'name',100),'subject'=>textField($d,'subject',200),'body'=>textField($d,'body',12000)];
     if(preg_match('/[\r\n\x00]/',$t['subject']))fail(422,'Der Betreff muss einzeilig sein.');
-    foreach(['subject','body'] as $field){preg_match_all('/\{([^{}]+)\}/u',$t[$field],$matches);foreach($matches[1] as $v)if(!in_array($v,MAIL_VARIABLES,true))fail(422,'Unbekannte Variable: {'.$v.'}');}
+    foreach(['subject','body'] as $field){preg_match_all('/\{([^{}]+)\}/u',$t[$field],$matches);foreach($matches[1] as $v)if(!in_array($v,mailTemplateVariables($purpose),true))fail(422,'Unbekannte Variable: {'.$v.'}');}
     if(str_contains($t['subject'],'{password}'))fail(422,'Das Passwort gehört in den Nachrichtentext.');
-    foreach(['password','email','login_url'] as $v)if(!str_contains($t['body'],'{'.$v.'}'))fail(422,'Im Nachrichtentext fehlt {'.$v.'}.');
+    if(str_contains($t['subject'],'{reset_url}'))fail(422,'Der Wiederherstellungslink gehört in den Nachrichtentext.');
+    $required=match($purpose){'password_reset'=>['reset_url','expires_minutes'],'password_changed'=>[],default=>['password','email','login_url']};
+    foreach($required as $v)if(!str_contains($t['body'],'{'.$v.'}'))fail(422,'Im Nachrichtentext fehlt {'.$v.'}.');
     return $t;
 }
 function renderMailTemplate(array $template,array $variables):array {
-    $values=[];foreach(MAIL_VARIABLES as $name)$values['{'.$name.'}']=(string)($variables[$name]??'');
+    $values=[];foreach(array_unique([...MAIL_VARIABLES,'reset_url','expires_minutes']) as $name)$values['{'.$name.'}']=(string)($variables[$name]??'');
     $subject=str_replace(["\r","\n","\0"],' ',strtr($template['subject'],$values));$text=strtr($template['body'],$values);
     $htmlValues=array_map(static fn($value)=>htmlspecialchars($value,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'),$values);
-    $url=(string)($variables['login_url']??'');if(filter_var($url,FILTER_VALIDATE_URL)&&in_array(parse_url($url,PHP_URL_SCHEME),['https','http'],true)){$escaped=$htmlValues['{login_url}'];$htmlValues['{login_url}']='<a href="'.$escaped.'" style="color:#b2026c">'.$escaped.'</a>';}
+    foreach(['login_url','reset_url'] as $link){$url=(string)($variables[$link]??'');if(filter_var($url,FILTER_VALIDATE_URL)&&in_array(parse_url($url,PHP_URL_SCHEME),['https','http'],true)){$escaped=$htmlValues['{'.$link.'}'];$htmlValues['{'.$link.'}']='<a href="'.$escaped.'" style="color:#b2026c">'.$escaped.'</a>';}}
     $html='<div style="font-family:Arial,sans-serif;line-height:1.6;color:#191c1b;max-width:640px"><div style="border-top:4px solid #b2026c;padding-top:24px">'.nl2br(strtr(htmlspecialchars($template['body'],ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'),$htmlValues)).'</div></div>';
     return ['Subject'=>$subject,'TextPart'=>$text,'HTMLPart'=>$html];
 }
@@ -61,6 +97,7 @@ function mailjetSend(array $config,array $message,bool $sandbox=false,?callable 
 }
 function prepareWelcome(array $data,string $name,string $email,string $role,bool $active,string $pass,array $groups):?array {
     $tid=textField($data,'mail_template',32,false);if($tid==='')return null;
+    if(mailTemplatePurpose($tid)!=='welcome')fail(422,'Bitte eine Vorlage für Zugangsmails auswählen.');
     if(!$active)fail(422,'Zugangsmails sind nur für aktive Benutzer möglich.');$c=mailConfig();if(!$c['enabled']||empty($c['api_key'])||empty($c['api_secret'])||!extension_loaded('curl'))fail(422,'Bitte zuerst Mailjet einrichten und den Versand aktivieren.');
     initializeMailTemplates();$t=one('SELECT * FROM mail_templates WHERE id=?',[$tid]);if(!$t)fail(422,'Die Mailvorlage existiert nicht mehr.');
     $request=textField($data,'creation_token',36);if(!preg_match('/^[a-f0-9-]{36}$/i',$request))fail(422,'Ungültiger Anlegevorgang. Bitte den Dialog neu öffnen.');

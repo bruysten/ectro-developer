@@ -6,3 +6,5 @@ assert.equal(mailPreview('{unknown}',{}),'{unknown}');
 assert.equal(mailPreview('{name} {name}',{name:'<script>unsafe</script>'}),'<script>unsafe</script> <script>unsafe</script>');
 assert.ok(!mailPreview('{password}').includes('undefined'));
 console.log('5 mail template preview substitution checks passed.');
+assert.equal(mailPreview('{reset_url} · {expires_minutes}'), 'https://academy.example/#reset-password=beispiel-vorschau · 30');
+console.log('Recovery link and expiry use preview-only sample values.');

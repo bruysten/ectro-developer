@@ -6,6 +6,7 @@ Eine Entwicklungsumgebung für Schulungen und Online-Trainings. HTML/CSS/JavaScr
 
 - `/`: Benutzer-Login und persönlicher Workspace.
 - `/admin/`: eigener Admin-Login, Benutzer, optionale Mehrfach-Gruppenzuordnung, Projekttypen mit editierbaren Startdateien, globale und gruppenbezogene Funktionsfreigaben und Nutzungsstatistik.
+- Angemeldete Administratoren wechseln über **Zum Frontend** und **Zum Adminbereich** oben in der Kopfzeile mit einem Klick zwischen beiden Bereichen. Die Sitzung und das eigene Benutzerkonto bleiben bestehen; ungespeicherter Code wird vor dem Verlassen geschützt.
 - Dashboard mit realen Projekten und Nutzungsereignissen.
 - Eigener Navigationsbereich „Projekte“ mit persönlichen und optionalen Gruppenprojekten. Neue Projekte können direkt in einer eigenen Gruppe entstehen; persönliche Projekte lassen sich in deren Workspace verschieben.
 - Gruppenprojekte mit automatisch synchronisiertem Editor, paralleler Bearbeitung, Anzeige aktiver Mitglieder und Entwurfswiederherstellung im selben Browser-Tab. Sie überstehen das Löschen ihres Erstellers.

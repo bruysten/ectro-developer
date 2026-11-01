@@ -39,6 +39,10 @@ Den ausgegebenen geheimen Link selbst im Browser öffnen, ein neues Passwort fes
 
 ## Zugangsvorlagen
 
+Unter **Admin → Mailvorlagen** stehen außerdem zwei automatisch verwendete, editierbare Vorlagen für **Passwort zurücksetzen** und **Passwort geändert**. Betreff, Name und Nachrichtentext sind mit derselben Live-Vorschau bearbeitbar. Bestehende Zugangsvorlagen und individuelle Texte bleiben beim Update erhalten.
+
+Die Link-Mail benötigt `{reset_url}` und `{expires_minutes}` im Nachrichtentext. Der Link darf nicht im Betreff stehen. Die Bestätigungsmail verwendet keine Passwörter und keine Wiederherstellungslinks. Beide Vorlagen unterstützen `{name}`, `{email}`, `{login_url}`, `{role}` und `{app_name}`. Sie sind fest mit dem jeweiligen Prozess verbunden und können nicht gelöscht oder als Zugangsvorlage ausgewählt werden. Änderungen gelten für neue Nachrichten; bereits versendete Links behalten ihre ursprüngliche Gültigkeit. Die Vorschau enthält ausschließlich Beispieldaten.
+
 **Mailvorlagen** enthält automatisch einmalig zwei editierbare Standards: „Willkommen · Du“ und „Willkommen · Sie“. Weitere Vorlagen lassen sich anlegen, duplizieren und löschen. Du-/Sie-Standards stehen auch als Ausgangspunkt für neue Vorlagen bereit. Betreff und Text werden direkt bearbeitet; die Vorschau verwendet ausschließlich Beispieldaten.
 
 | Variable | Inhalt |
