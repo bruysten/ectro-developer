@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {GRAPH_NODE_RADIUS,graphNodePosition,graphEdgeGeometry,bindGraphDrag} from '../src/graph-view.js';
+import {GRAPH_NODE_RADIUS,graphNodePosition,graphEdgeGeometry,graphEdgeOffsets,bindGraphDrag} from '../src/graph-view.js';
 
 // Check attachment for every direction, including vertical and reverse edges.
 for(let angle=0;angle<Math.PI*2;angle+=Math.PI/16){
@@ -33,7 +33,8 @@ assert.deepEqual({x:graph.nodes[0].x,y:graph.nodes[0].y},{x:300,y:240});
 assert.equal(nodes[0].attrs.transform,'translate(300,240)');
 assert(edges.slice(0,3).every(e=>e.path.attrs.d),'All incident edges, including incoming edges and loops, follow before release');
 assert.equal(edges[3].path.attrs.d,undefined,'Unrelated edges are not redrawn');
-assert.equal(edges[0].label.attrs.x,'450');assert.equal(edges[0].label.attrs.y,'262');
+assert.equal(edges[0].label.attrs.x,String(graphEdgeGeometry({x:300,y:240},{x:600,y:300},graphEdgeOffsets(graph)[0]).label.x));
+assert.notEqual(edges[0].path.attrs.d,edges[1].path.attrs.d,'Incoming and outgoing parallel edges are separated');
 assert.equal(changes,0);assert.equal(draws,0,'The stage stays mounted during capture');
 const firstPath=edges[0].path.attrs.d;
 nodes[0].onpointermove(event(350,260));assert.notEqual(edges[0].path.attrs.d,firstPath);
@@ -42,7 +43,7 @@ assert.equal(nodes[0].captured,null);assert.deepEqual(chosen,[]);
 
 // Move the other endpoint, then cancel: restore the data and redraw the graph.
 nodes[1].onpointerdown(event(600,300));nodes[1].onpointermove(event(650,350));
-assert.equal(edges[0].label.attrs.x,'500');
+assert.equal(edges[0].label.attrs.x,String(graphEdgeGeometry({x:350,y:260},{x:650,y:350},graphEdgeOffsets(graph)[0]).label.x));
 nodes[1].onpointercancel(event(650,350));assert.equal(graph.nodes[1].x,600);assert.equal(graph.nodes[1].y,300);assert.equal(changes,1);assert.equal(draws,2);
 
 // Coordinate-less imports start dragging from their displayed position, without jumping.
@@ -53,4 +54,9 @@ nodes[2].onlostpointercapture(event(0,0));assert.equal(graph.nodes[2].x,undefine
 nodes[0].onpointerdown(event(350,260));nodes[0].onpointerup(event(350,260));assert.deepEqual(chosen,['a']);
 nodes[1].onkeydown({key:'Enter',preventDefault(){}});assert.deepEqual(chosen,['a','b']);
 assert.equal(changes,1,'Selection, cancellation and capture loss do not save a drag');
+for(const offset of [-90,-30,30,90]){
+  const a={x:100,y:200},b={x:600,y:300},g=graphEdgeGeometry(a,b,offset),points=g.path.match(/-?\d+(?:\.\d+)?(?:e[+-]?\d+)?/gi).map(Number);
+  assert(Math.abs(Math.hypot(points[0]-a.x,points[1]-a.y)-35)<1e-9);
+  assert(Math.abs(Math.hypot(points[4]-b.x,points[5]-b.y)-35)<1e-9);
+}
 console.log('Graph attachment verified: live incoming/outgoing edges, labels, loops, scaled coordinates, imports and drag cancellation.');

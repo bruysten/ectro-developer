@@ -38,6 +38,32 @@ with tempfile.TemporaryDirectory(prefix='academy-labs-test-') as private:
         pid=alice.ok('project.create',{'name':'Laborprojekt','template':'web'})['id']
         graph={'types':[],'relations':[],'nodes':[{'id':'a','label':'Mara','type':'Person','properties':{},'x':1,'y':2},{'id':'b','label':'Firma','type':'Firma','properties':{},'x':3,'y':4}],'edges':[{'id':'e','from':'a','to':'b','label':'arbeitet bei'}]}
         obj=alice.ok('lab.save',{'project':pid,'kind':'graph','name':'Testgraph','content':graph})['object'];oid=obj['id']
+        typed=json.loads(json.dumps(graph));typed['types']=[{'name':'Person','fields':[]},{'name':'Firma','fields':[]}]
+        typed['nodes'].append({'id':'c','label':'Alex','type':'Person','properties':{}})
+        typed['relations']=[{'name':'arbeitet bei','from':'Person','to':'Firma'},{'name':'arbeitet bei','from':'Person','to':'Person'}]
+        typed['edges'].append({'id':'e2','from':'a','to':'c','label':'arbeitet bei'})
+        check(len(alice.ok('lab.validate',{'project':pid,'kind':'graph','content':typed})['content']['relations'])==2,'Same relationship name supports multiple explicit type pairs')
+        invalid=json.loads(json.dumps(typed));invalid['relations'].append(invalid['relations'][0])
+        check(alice.call('lab.validate',{'project':pid,'kind':'graph','content':invalid})[0]==422,'Duplicate relationship type pairs rejected')
+        invalid=json.loads(json.dumps(typed));invalid['edges'][0]['from']='b';invalid['edges'][0]['to']='a'
+        check(alice.call('lab.validate',{'project':pid,'kind':'graph','content':invalid})[0]==422,'Reverse direction requires an explicit relationship type')
+        invalid=json.loads(json.dumps(typed));invalid['edges'][0]['label']='unbekannt'
+        check(alice.call('lab.validate',{'project':pid,'kind':'graph','content':invalid})[0]==422,'Unknown relationship type rejected')
+        invalid=json.loads(json.dumps(typed));invalid['relations'][0]['to']='Unbekannt'
+        check(alice.call('lab.validate',{'project':pid,'kind':'graph','content':invalid})[0]==422,'Relationship endpoint must reference a known entity type')
+        check(bob.call('lab.validate',{'project':pid,'kind':'graph','content':typed})[0]==404,'Relationship validation cannot access another project')
+        styled=json.loads(json.dumps(typed));styled['types'][0].update({'color':'#227C91','icon':'person'})
+        check(alice.ok('lab.validate',{'project':pid,'kind':'graph','content':styled})['content']['types'][0]['icon']=='person','Node type styling survives validation')
+        styled_obj=alice.ok('lab.save',{'project':pid,'kind':'graph','name':'Typdarstellung','content':styled})['object']
+        stored=alice.ok('lab.object',id=styled_obj['id'])['object']
+        check(stored['content']['types'][0]['color']=='#227C91' and stored['content']['types'][0]['icon']=='person','Node type appearance persists through save and reload')
+        alice.ok('lab.delete',{'id':stored['id'],'version':stored['version']})
+        for value in ['red;display:none','url(https://evil.invalid)','<script>',None]:
+            invalid=json.loads(json.dumps(styled));invalid['types'][0]['color']=value
+            check(alice.call('lab.validate',{'project':pid,'kind':'graph','content':invalid})[0]==422,'Malformed node-type colors rejected')
+        for value in ['<svg onload=evil()>','https://evil.invalid','unknown_icon',None]:
+            invalid=json.loads(json.dumps(styled));invalid['types'][0]['icon']=value
+            check(alice.call('lab.validate',{'project':pid,'kind':'graph','content':invalid})[0]==422,'Node-type icons require allowlisted local symbols')
         # Run the same API through the optional server-PHP transport.
         runtime=admin.ok('admin.overview')['php_runner']
         if runtime['available']:

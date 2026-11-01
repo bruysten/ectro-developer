@@ -78,6 +78,7 @@ jobs:
           node tests/preview-assets.mjs
           node tests/lab-models.mjs
           node tests/graph-view.mjs
+          node tests/graph-model.mjs
           node tests/vector-space.mjs
           node tests/user-directory.mjs
           node tests/group-periods.mjs
