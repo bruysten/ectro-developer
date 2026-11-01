@@ -77,6 +77,7 @@ jobs:
           node tests/color.mjs
           node tests/preview-assets.mjs
           node tests/lab-models.mjs
+          node tests/data-lab-converter.mjs
           node tests/graph-view.mjs
           node tests/graph-model.mjs
           node tests/vector-space.mjs

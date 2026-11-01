@@ -107,6 +107,14 @@ with tempfile.TemporaryDirectory(prefix='academy-labs-test-') as private:
         alice.ok('presence.touch',{'route':'ai-lab','project':pid,'analysis':{'vectorView':'network3','vectorAxes':'0,1,2','vectorSelected':'query'}})
         vector_context=teacher.ok('presence.open',{'user':uid,'group':gid})['context']
         check(vector_context['analysis']['vectorView']=='network3' and vector_context['analysis']['vectorSelected']=='query','Teacher follows structured vector view and axes')
+        converted=alice.ok('lab.save',{'project':pid,'kind':'dataset','name':'Umgewandelte Daten','content':{'columns':[{'name':'Name','type':'text'},{'name':'Wert','type':'number'}],'rows':[{'Name':'Ada','Wert':12}]}})['object']
+        check(alice.ok('lab.object',id=converted['id'])['object']['content']['rows'][0]['Wert']==12,'Converted data uses existing project dataset storage')
+        check(bob.call('lab.object',id=converted['id'])[0]==404,'Converted datasets retain project authorization')
+        alice.ok('presence.touch',{'route':'data-lab','project':pid,'object':converted['id'],'tab':'convert','analysis':{'converterFrom':'json','converterTo':'csv','input':'private local input'}})
+        converter_context=teacher.ok('presence.open',{'user':uid,'group':gid})['context']
+        check(converter_context['tab']=='convert' and converter_context['object']==converted['id'],'Instructor follows selected converter dataset')
+        check(converter_context['analysis']=={'converterFrom':'json','converterTo':'csv'},'Converter presence contains formats without local input data')
+        alice.ok('lab.delete',{'id':converted['id'],'version':converted['version']})
         check(alice.call('lab.validate',{'project':pid,'kind':'rag','content':{'chunks':[],'queryVector':['<img src=x>']}})[0]==422,'Imported query vectors require finite numbers')
         # Keys here are synthetic non-credentials. No external API request is made.
         own=alice.ok('ai.connection.save',{'name':'Persönlich','provider':'openai','model':'test-model','capability':'chat','key':'synthetic-test-value','shared':False})['connection']
@@ -151,6 +159,14 @@ with tempfile.TemporaryDirectory(prefix='academy-labs-test-') as private:
         for action,params in [('lab.object',{'id':oid}),('lab.object',{'id':no['id']}),('ai.connections',{})]:
             check(alice.call(action,**params)[0]==403,'Group deny enforced on lab and AI APIs')
         restored=admin.ok('admin.group.features.save',{'id':gid,'version':after['version'],'features':json.loads(original['features'])})['group']
+        converter_only=admin.ok('admin.group.features.save',{'id':gid,'version':restored['version'],'features':{'files':False,'data_lab':False,'converter':True}})['group']
+        check(len(alice.ok('converter.config')['formats'])>=2,'Local converter remains usable without project or dataset permissions')
+        check(alice.call('lab.projects')[0]==403,'Converter grant cannot reveal projects')
+        check(alice.call('lab.save',{'project':pid,'kind':'dataset','name':'Blocked','content':{'columns':[],'rows':[]}})[0]==403,'Converter grant cannot create datasets')
+        datasets_only=admin.ok('admin.group.features.save',{'id':gid,'version':converter_only['version'],'features':{'converter':False}})['group']
+        check(alice.call('converter.config')[0]==403,'Converter can be denied independently inside the Data Lab')
+        alice.ok('lab.validate',{'project':pid,'kind':'dataset','content':{'columns':[{'name':'x','type':'number'}],'rows':[{'x':1}]}})
+        admin.ok('admin.group.features.save',{'id':gid,'version':datasets_only['version'],'features':json.loads(original['features'])})
         stale=group(gid)
         make('revision-member')
         check(admin.call('admin.group.save',{'id':gid,'version':stale['version'],'name':stale['name'],'users':stale['user_ids']})[0]==409,'Membership change invalidates an open group modal')

@@ -7,8 +7,8 @@ export const PERMISSION_SECTIONS=[
     ['python','Python','Python-Scripts ausprobieren.']]},
   {id:'data',name:'Daten & Graphen',icon:'hub',features:[
     ['database','MySQL & MariaDB','Freigegebene Datenbanken und SQL-Training nutzen.'],
-    ['converter','Daten-Converter','CSV, TSV, JSON und XML umwandeln.'],
-    ['data_lab','Daten-Labor','Import, Datenqualität, Analyse und Diagramme.'],
+    ['converter','Daten-Labor · Umwandeln','CSV, TSV, JSON und XML lokal umwandeln; auch ohne Projektzugriff.'],
+    ['data_lab','Daten-Labor · Datensätze','Projektdatensätze importieren, prüfen, analysieren und visualisieren.'],
     ['graph','Graph-Labor & Ontologien','Entitäten, Eigenschaften, Knoten und Kanten modellieren.']]},
   {id:'ai',name:'KI & Modelle',icon:'neurology',features:[
     ['ai','KI-Zugänge & Prompt-Werkstatt','Eigene API-Schlüssel und freigegebene Projektmodelle nutzen.'],

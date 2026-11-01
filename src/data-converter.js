@@ -31,7 +31,7 @@ const xmlEscape=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;',
 function xmlValue(node){
   const children=[...node.children];
   if(!children.length&&!node.attributes.length)return node.textContent??'';
-  const value={};for(const attribute of node.attributes)value[`@${attribute.name}`]=attribute.value;for(const child of children){const parsed=xmlValue(child);if(Object.hasOwn(value,child.tagName))value[child.tagName]=Array.isArray(value[child.tagName])?[...value[child.tagName],parsed]:[value[child.tagName],parsed];else value[child.tagName]=parsed;}
+  const value=Object.create(null);for(const attribute of node.attributes)value[`@${attribute.name}`]=attribute.value;for(const child of children){const parsed=xmlValue(child);if(Object.hasOwn(value,child.tagName))value[child.tagName]=Array.isArray(value[child.tagName])?[...value[child.tagName],parsed]:[value[child.tagName],parsed];else value[child.tagName]=parsed;}
   return value;
 }
 function parseXml(text){
@@ -79,6 +79,9 @@ function toXml(rows){
 }
 export function convertData(text,from,to){
   const rows=parseData(text,from);
+  return serializeData(rows,to);
+}
+export function serializeData(rows,to){
   if(!rows.length)throw Error('Die Datei enthält keine Datensätze.');
   if(to==='json')return JSON.stringify(rows,null,2);
   if(to==='csv'||to==='tsv')return toCsv(rows,to==='tsv'?'\t':',');
