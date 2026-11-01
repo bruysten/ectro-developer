@@ -41,6 +41,9 @@ class Client:
         if 'csrf' in result: self.token = result['csrf']
         return response.code, result
     def ok(self, action, data=None, **params):
+        if action=='admin.group.save' and data and data.get('id') and 'version' not in data:
+            groups=self.ok('admin.groups')['groups']
+            data={**data,'version':next(g['version'] for g in groups if g['id']==data['id'])}
         status, result = self.call(action, data, **params)
         check(status < 300, f'{action}: {status} {result}')
         return result

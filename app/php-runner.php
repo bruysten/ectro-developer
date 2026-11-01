@@ -76,6 +76,7 @@ function runProjectPhp(array $u, array $data): array {
         if(!$found)fail(404,'Die PHP-Startdatei wurde nicht gefunden.');
         $query=var_export($queryString,true);$script=var_export($entry,true);
         $bootstrap='<?php ini_set("display_errors","1"); ini_set("html_errors","1"); parse_str('.$query.', $_GET); $_REQUEST=$_GET; $_SERVER["REQUEST_METHOD"]="GET"; $_SERVER["QUERY_STRING"]='.$query.'; $_SERVER["REQUEST_URI"]="/".'.$script.(strlen($queryString)?'."?".'.$query:'').'; $_SERVER["SCRIPT_NAME"]="/".'.$script.'; $_SERVER["SCRIPT_FILENAME"]='.var_export($dir.'/'.$entry,true).'; $_SERVER["DOCUMENT_ROOT"]='.var_export($dir,true).'; chdir('.var_export(dirname($dir.'/'.$entry),true).'); require '.var_export($dir.'/'.$entry,true).';';
+        $academy=$dir.'/.academy.php';file_put_contents($academy,file_get_contents(__DIR__.'/academy-runtime.php'));chmod($academy,0600);$bootstrap=str_replace('<?php ', '<?php require_once '.var_export($academy,true).'; ', $bootstrap);
         $runner=$dir.'/.runner.php';file_put_contents($runner,$bootstrap,LOCK_EX);chmod($runner,0600);
         // mysqlnd validates this setting even on a successful TCP connection.
         // A regular file passes open_basedir but cannot be a LOCAL INFILE directory.
@@ -83,15 +84,17 @@ function runProjectPhp(array $u, array $data): array {
         $readableCertDirs=array_values(array_filter(['/etc/ssl/certs',APP_ROOT.'/app/certs'],static fn($path)=>is_dir($path)));
         $openBasedir=implode(PATH_SEPARATOR,array_merge([$dir],$readableCertDirs));
         $command=[phpRunnerBinary(),'-d','open_basedir='.$openBasedir,'-d','disable_functions='.$disabled,'-d','allow_url_fopen=0','-d','allow_url_include=0','-d','enable_dl=0','-d','memory_limit=64M','-d','max_execution_time=8','-d','default_socket_timeout=5','-d','mysqli.connect_timeout=5','-d','mysqli.allow_local_infile=0','-d','mysqli.local_infile_directory='.$runner,'-d','mysqli.allow_persistent=0','-d','mysqlnd.net_read_timeout=5','-d','session.save_path='.$dir,'-d','display_errors=1','-d','log_errors=0',$runner];
-        $process=@proc_open($command,[0=>['file','/dev/null','r'],1=>['pipe','w'],2=>['pipe','w']],$pipes,$dir,['PATH'=>dirname($command[0]),'HOME'=>$dir,'TMPDIR'=>$dir]);
+        $process=@proc_open($command,[0=>['file','/dev/null','r'],1=>['pipe','w'],2=>['pipe','w'],3=>['pipe','w'],4=>['pipe','r']],$pipes,$dir,['PATH'=>dirname($command[0]),'HOME'=>$dir,'TMPDIR'=>$dir]);
         if(!is_resource($process))fail(503,'Der isolierte PHP-Prozess konnte nicht gestartet werden.');
-        stream_set_blocking($pipes[1],false);stream_set_blocking($pipes[2],false);$started=microtime(true);$nextSizeCheck=$started;$exitCode=null;$output='';$errors='';
+        stream_set_blocking($pipes[3],false);$rpcBuffer='';$rpcCount=0;
+        stream_set_blocking($pipes[1],false);stream_set_blocking($pipes[2],false);$started=microtime(true);$wallStarted=$started;$nextSizeCheck=$started;$exitCode=null;$output='';$errors='';
         do {
+            $rpcBuffer.=stream_get_contents($pipes[3],65536);if(strlen($rpcBuffer)>65536)fail(413,'Academy-Anfrage zu groß.');while(($nl=strpos($rpcBuffer,"\n"))!==false){$line=substr($rpcBuffer,0,$nl);$rpcBuffer=substr($rpcBuffer,$nl+1);try{if(++$rpcCount>100)fail(429,'Höchstens 100 Academy-Aufrufe pro Run.');$request=json_decode($line,true,16,JSON_THROW_ON_ERROR);if(($request['op']??'')==='ai'&&microtime(true)-$wallStarted>40)fail(408,'Kein weiterer KI-Aufruf innerhalb dieses Runs.');$rpcStarted=microtime(true);$reply=labRpc($u,[...$request,'project'=>$project['id']]);if(($request['op']??'')==='ai')$started+=microtime(true)-$rpcStarted;}catch(Throwable $e){$reply=['error'=>$e instanceof ApiError?$e->getMessage():'Ungültige Academy-Anfrage.'];}fwrite($pipes[4],json_encode($reply,JSON_INVALID_UTF8_SUBSTITUTE)."\n");}
             $output.=stream_get_contents($pipes[1],65536);$errors.=stream_get_contents($pipes[2],65536);$state=proc_get_status($process);
             if(strlen($output)+strlen($errors)>100000){proc_terminate($process,9);fail(413,'Die PHP-Ausgabe überschreitet das Limit von 100 KB.');}
             if(microtime(true)>=$nextSizeCheck){if(phpRunDirectoryBytes($dir)>33554432){proc_terminate($process,9);fail(413,'Der temporäre PHP-Arbeitsbereich überschreitet das Limit von 32 MB.');}$nextSizeCheck=microtime(true)+.2;}
             if(!$state['running']){$exitCode=$state['exitcode'];break;}
-            if(microtime(true)-$started>8){proc_terminate($process,9);fail(408,'PHP wurde nach 8 Sekunden beendet.');}
+            if(microtime(true)-$started>8||microtime(true)-$wallStarted>90){proc_terminate($process,9);fail(408,'PHP wurde nach 8 Sekunden beendet.');}
             usleep(20000);
         }while(true);
         $output.=stream_get_contents($pipes[1]);$errors.=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);

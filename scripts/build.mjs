@@ -6,7 +6,7 @@ const root=path.resolve(import.meta.dirname,'..');
 process.chdir(root);
 await mkdir('public/assets/runtime/php/8_4_25',{recursive:true});
 await mkdir('public/assets/runtime/python',{recursive:true});
-await build({entryPoints:['src/app.js','src/preview.js','src/chat-preview-worker.js','src/pdf-preview.js'],outdir:'public/assets',bundle:true,format:'esm',target:'es2022',minify:true,legalComments:'eof'});
+await build({entryPoints:['src/app.js','src/preview.js','src/chat-preview-worker.js','src/pdf-preview.js','src/lab-worker.js','src/vector-worker.js'],outdir:'public/assets',bundle:true,format:'esm',target:'es2022',minify:true,legalComments:'eof'});
 // Keep the loader as a separate ESM file so import.meta.url resolves its local WASM binary.
 await build({entryPoints:['src/php-runtime.js'],outfile:'public/assets/runtime/php/runtime.js',bundle:true,format:'esm',target:'es2022',minify:true,
   external:['worker_threads','../node_modules/@php-wasm/web-8-4/asyncify/php_8_4.js'],legalComments:'eof'});

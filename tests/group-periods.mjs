@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {groupPeriodErrors,periodValues} from '../src/group-periods.js';
+import {accessWindowDelay} from '../src/access-window.js';
+assert.deepEqual(groupPeriodErrors({}),{});
+assert.deepEqual(groupPeriodErrors({access_start:'2028-02-29',access_end:'2028-02-29',course_start:'2028-02-29',course_end:'2028-02-29'}),{});
+for(const access_start of ['2026-02-29','0000-01-01','2026-04-31','2026-1-01'])assert(groupPeriodErrors({access_start}).access_start);
+assert(groupPeriodErrors({access_start:'2026-11-02',access_end:'2026-11-01'}).access_end);
+assert(groupPeriodErrors({course_start:'2026-11-01'}).course_end);
+assert(groupPeriodErrors({course_end:'2026-11-01'}).course_start);
+assert(groupPeriodErrors({course_start:'2026-11-01',course_end:'2026-11-03',access_end:'2026-11-02'}).course_end);
+assert(groupPeriodErrors({course_start:'2026-11-01',course_end:'2026-11-03',access_start:'2026-11-02'}).course_start);
+assert.deepEqual(groupPeriodErrors({course_start:'2026-11-01',course_end:'2026-11-03'}),{});
+assert.equal(periodValues({}).access_start,'');
+assert.equal(accessWindowDelay({checked_at:100,next_transition:110}),10500);
+assert.equal(accessWindowDelay({checked_at:100,next_transition:1}),1000);
+assert.equal(accessWindowDelay({checked_at:100,next_transition:1e9}),86400000);
+assert.equal(accessWindowDelay({next_transition:null}),null);
+console.log('17 group date form and server-clock scheduling checks passed.');

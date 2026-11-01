@@ -10,12 +10,14 @@ require_once __DIR__ . '/collaboration.php';
 require_once __DIR__ . '/mail.php';
 require_once __DIR__ . '/password-recovery.php';
 require_once __DIR__ . '/php-runner.php';
+require_once __DIR__ . '/lab-api.php';
+require_once __DIR__ . '/group-permissions.php';
 secureHeaders();
 try {
     keyBytes(); sessionStart();
     $action = $_GET['action'] ?? 'bootstrap';
     $method = $_SERVER['REQUEST_METHOD'];
-    $readActions = ['bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.overview','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info','admin.mail','admin.mail.templates','profile','team','team.profile','converter.config','php.mode'];
+    $readActions = ['lab.object','lab.projects','lab.info','ai.connections','admin.labs','bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.overview','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info','admin.mail','admin.mail.templates','profile','team','team.profile','converter.config','php.mode'];
     if ($method !== 'GET' && $method !== 'POST') fail(405, 'Methode nicht erlaubt.');
     if (!in_array($action, $readActions, true) && $method !== 'POST') fail(405, 'Diese Aktion benötigt POST.');
     if (in_array($action, $readActions, true) && $method !== 'GET') fail(405, 'Diese Aktion benötigt GET.');
@@ -24,7 +26,7 @@ try {
     if ($method === 'POST') csrf();
     if ($action === 'bootstrap') {
         $u = currentUser(); $hasAdmin = (bool)query("SELECT 1 FROM users WHERE role='admin' LIMIT 1")->fetchColumn();
-        jsonOut(['user' => $u ? safeUser($u) : null, 'csrf' => $_SESSION['csrf'], 'features' => $u ? features($u) : [], 'setup_required' => !$hasAdmin,'php_execution_mode'=>phpExecutionMode(),'password_recovery_available'=>passwordRecoveryReady(),'password_recovery_blockers'=>passwordRecoveryProblems()]);
+        jsonOut(['user' => $u ? safeUser($u,true) : null, 'csrf' => $_SESSION['csrf'], 'features' => $u ? features($u) : [], 'setup_required' => !$hasAdmin,'php_execution_mode'=>phpExecutionMode(),'password_recovery_available'=>passwordRecoveryReady(),'password_recovery_blockers'=>passwordRecoveryProblems()]);
     }
     if ($action === 'setup') {
         rateLimit('setup',10,900);
@@ -56,11 +58,12 @@ try {
         $u = one('SELECT * FROM users WHERE email=?',[$email]);
         $valid = password_verify($pass, $u['password'] ?? '$2y$10$123456789012345678901uKnUnQFK8mrwZZS/d83FbDXstEOkaLT/y');
         if (!$valid || !$u || !$u['active'] || ($u['role']==='admin') !== $admin) fail(401,'E-Mail oder Passwort stimmen nicht mit diesem Zugang überein.');
+        requireLearningAccess($u);
         session_regenerate_id(true); $_SESSION=['uid'=>$u['id'],'auth_version'=>(int)$u['auth_version'],'created'=>time(),'last_seen'=>time(),'csrf'=>bin2hex(random_bytes(32))];
         query('UPDATE users SET last_login=? WHERE id=?',[now(),$u['id']]); audit($u['id'],'login');
-        jsonOut(['user'=>safeUser($u),'csrf'=>$_SESSION['csrf'],'features'=>features($u)]);
+        jsonOut(['user'=>safeUser($u,true),'csrf'=>$_SESSION['csrf'],'features'=>features($u)]);
     }
-    $u = requireUser(str_starts_with($action,'admin.'));
+    $u = requireUser(str_starts_with($action,'admin.'),in_array($action,['logout','password'],true));
     if ($action === 'logout') { $_SESSION=[]; session_destroy(); jsonOut(['ok'=>true]); }
     if ($action === 'password') {
         if (!is_string($data['current'] ?? null) || !password_verify($data['current'],$u['password'])) fail(422,'Das bisherige Passwort stimmt nicht.');
@@ -68,7 +71,10 @@ try {
         $_SESSION['auth_version'] = (int)$u['auth_version']+1; session_regenerate_id(true); audit($u['id'],'password.change'); jsonOut(['ok'=>true]);
     }
     if ($u['must_change_password']) fail(403,'Bitte ändern Sie zuerst Ihr vorläufiges Passwort.');
+    if((str_starts_with($action,'db.')||str_starts_with($action,'training.'))&&!empty($data['participant'])){$target=textField($data,'participant',32);$gid=textField($data,'group',32);if($u['role']!=='admin')teacherTarget($u,$target,$gid);$student=one('SELECT * FROM users WHERE id=? AND active=1',[$target]);if(!$student)fail(404,'Teilnehmer nicht gefunden.');$GLOBALS['academyDbUser']=$student;if(in_array($action,['db.connect','db.disconnect'],true)&&$target!==$u['id'])fail(403,'Persönliche Verbindungen verwaltet der Teilnehmer selbst.');}
+    if((str_starts_with($action,'db.')||str_starts_with($action,'training.'))&&!empty($data['project'])){$GLOBALS['academyDbProject']=textField($data,'project',32);project($u,$GLOBALS['academyDbProject']);}
     if ($action === 'php.mode') jsonOut(['mode'=>phpExecutionMode()]);
+    if(str_starts_with($action,'lab.')||str_starts_with($action,'ai.')||str_starts_with($action,'presence.')||$action==='admin.labs'||str_starts_with($action,'admin.ai.'))labDispatch($u,$action,$data);
     switch ($action) {
         case 'converter.config': needFeature($u,'converter');jsonOut(['formats'=>converterFormats()]);
         case 'team': needFeature($u,'team');$groups=safeUser($u)['groups'];$gid=textField($data,'group',32,false);jsonOut(['groups'=>$groups,'members'=>$gid?teamMembers($u,$gid):[]]);
@@ -78,13 +84,13 @@ try {
         case 'dashboard':
             jsonOut(['projects'=>visibleProjects($u),
                 'stats'=>one('SELECT COUNT(*) files, COALESCE(SUM(length(CAST(f.content AS BLOB))+COALESCE(a.size,0)),0) bytes FROM files f LEFT JOIN workspace_uploads a ON a.file_id=f.id WHERE project_id IN (SELECT id FROM projects WHERE user_id=?) AND kind IN (\'file\',\'asset\')',[$u['id']]),
-                'runs'=>(int)query("SELECT COUNT(*) FROM events WHERE user_id=? AND event='run'",[$u['id']])->fetchColumn(),
+                'runs'=>(int)query("SELECT COUNT(*) FROM events WHERE user_id=? AND event='run'",[$u['id']])->fetchColumn(),'workspace_used'=>workspaceBytes(['group_id'=>null,'user_id'=>$u['id']]),
                 'activity'=>all('SELECT event,created_at FROM events WHERE user_id=? ORDER BY id DESC LIMIT 8',[$u['id']])]);
         case 'teacher.participants': needFeature($u,'files');jsonOut(['groups'=>teacherParticipants($u)]);
         case 'projects': needFeature($u,'files'); jsonOut(['projects'=>visibleProjects($u,textField($data,'participant',32,false),textField($data,'group',32,false))]);
         case 'templates':
             needFeature($u,'files');$available=features($u);
-            jsonOut(['templates'=>array_values(array_filter(projectTypes(),fn($type)=>$type['active']&&$available[$type['language']==='web'?'html':$type['language']]))]);
+            jsonOut(['templates'=>array_values(array_filter(projectTypes(),fn($type)=>$type['active']&&labTypeAvailable($u,$type)&&((labTypeConfig($type['id'])['entry']??'editor')!=='editor'||$available[$type['language']==='web'?'html':$type['language']])))]);
         case 'project.create':
             needFeature($u,'files'); $template=textField($data,'template',32);
             jsonOut(['id'=>createProject($u,textField($data,'name',80),$template,textField($data,'group',32,false))],201);
@@ -93,10 +99,11 @@ try {
             transaction(function() use($u,$pid,$gid) {
                 $p=project($u,$pid);
                 if ($p['group_id']||$p['user_id']!==$u['id']) fail(403,'Nur eigene persönliche Projekte können geteilt werden.');
-                if (!one('SELECT 1 FROM group_members WHERE group_id=? AND user_id=?',[$gid,$u['id']])) fail(403,'Sie gehören dieser Gruppe nicht an.');
+                if (!one('SELECT 1 FROM group_members WHERE group_id=? AND user_id=?',[$gid,$u['id']])) fail(403,'Sie gehören dieser Gruppe nicht an.');requireGroupPeriod($u,$gid);
                 if ((int)query('SELECT COUNT(*) FROM projects WHERE group_id=?',[$gid])->fetchColumn()>=30) fail(422,'Die Gruppe hat bereits 30 Projekte.');
                 $target=['group_id'=>$gid,'user_id'=>null];
                 $size=(int)query('SELECT COALESCE(SUM(length(CAST(f.content AS BLOB))+COALESCE(a.size,0)),0) FROM files f LEFT JOIN workspace_uploads a ON a.file_id=f.id WHERE project_id=?',[$pid])->fetchColumn();
+                $size+=(int)query('SELECT COALESCE(SUM(length(CAST(content AS BLOB))),0) FROM lab_objects WHERE project_id=?',[$pid])->fetchColumn();
                 if (workspaceBytes($target)+$size>SPACE_LIMIT) fail(422,'Der Gruppen-Workspace ist voll (20 MB).');
                 query('UPDATE projects SET group_id=?,created_by=user_id,user_id=NULL,updated_at=? WHERE id=?',[$gid,now(),$pid]);
                 // Canonical LF text is required by CodeMirror collaboration.
@@ -165,7 +172,7 @@ try {
             jsonOut(runProjectPhp($u,$data));
         case 'project.bundle':
             needFeature($u,'editor'); $p=project($u,textField($data,'project',32));
-            jsonOut(['files'=>all('SELECT path,content FROM files WHERE project_id=? AND kind=\'file\'',[$p['id']]),'assets'=>previewImageAssets($u,$p)]);
+            jsonOut(['files'=>[...all('SELECT path,content FROM files WHERE project_id=? AND kind=\'file\'',[$p['id']]),['path'=>'academy.php','content'=>file_get_contents(__DIR__.'/academy-runtime.php')]],'assets'=>previewImageAssets($u,$p)]);
         case 'run.record':
             needFeature($u,'editor'); $language=textField($data,'language',20); if (!in_array($language,['html','php','python','javascript'])) fail(422,'Unbekannte Sprache.');
             needFeature($u,$language==='javascript'?'html':$language); project($u,textField($data,'project',32)); rateLimit('run',100,60); audit($u['id'],'run',['language'=>$language]); jsonOut(['ok'=>true]);
@@ -176,13 +183,13 @@ try {
             if ($action==='chat.send') { rateLimit('chat.'.$u['id'],30,60); query('INSERT INTO messages(group_id,user_id,body,created_at) VALUES(?,?,?,?)',[$gid,$u['id'],textField($data,'body',2000),now()]); audit($u['id'],'chat.send'); jsonOut(['ok'=>true]); }
             query('INSERT INTO chat_presence VALUES(?,?,?) ON CONFLICT(group_id,user_id) DO UPDATE SET touched=excluded.touched',[$gid,$u['id'],time()]);
             $revision=(int)(one('SELECT revision FROM chat_state WHERE group_id=?',[$gid])['revision']??0);$reset=isset($data['revision'])&&(int)$data['revision']!==$revision;
-            jsonOut([...chatHistory($gid,$reset?0:max(0,(int)($data['before']??0)),$reset?0:max(0,(int)($data['after']??0))),'reset'=>$reset,'members'=>chatMembers($gid),'sharing'=>chatSharing()]);
-        case 'admin.chat': $gid=textField($data,'group',32);chatAccess($u,$gid,true);jsonOut([...chatHistory($gid,max(0,(int)($data['before']??0))),'members'=>chatMembers($gid),'sharing'=>chatSharing()]);
+            jsonOut([...chatHistory($gid,$reset?0:max(0,(int)($data['before']??0)),$reset?0:max(0,(int)($data['after']??0))),'reset'=>$reset,'members'=>chatMembers($gid,$u),'sharing'=>chatSharing()]);
+        case 'admin.chat': $gid=textField($data,'group',32);chatAccess($u,$gid,true);jsonOut([...chatHistory($gid,max(0,(int)($data['before']??0))),'members'=>chatMembers($gid,$u),'sharing'=>chatSharing()]);
         case 'admin.chat.delete': moderateChat($u,textField($data,'group',32),max(0,(int)($data['message']??0)));jsonOut(['ok'=>true]);
         case 'admin.chat.reset': moderateChat($u,textField($data,'group',32));jsonOut(['ok'=>true]);
         case 'training.info':
             needFeature($u,'database');rateLimit('training.info.'.$u['id'],60,60);$mode=textField($data,'mode',20,false)?:'practice';$my=trainingConnection($u,$mode);
-            jsonOut(['tables'=>trainingTables($my,$mode),'has_connection'=>(bool)one('SELECT user_id FROM connections WHERE user_id=?',[$u['id']]),'mode'=>$mode]);
+            jsonOut(['tables'=>trainingTables($my,$mode),'has_connection'=>(bool)mysqlSavedConnection($u),'mode'=>$mode]);
         case 'training.table':
             needFeature($u,'database');rateLimit('training.read.'.$u['id'],120,60);$mode=textField($data,'mode',20);$my=trainingConnection($u,$mode);$table=textField($data,'table',64);$columns=trainingColumns($my,$mode,$table);
             try{jsonOut(['columns'=>$columns,'rows'=>$my->query('SELECT * FROM '.identifier($table).' LIMIT 100')->fetchAll()]);}catch(PDOException $e){mysqlError($e);}
@@ -198,15 +205,17 @@ try {
                 audit($u['id'],'db.query',['training'=>true,'mode'=>$mode,'action'=>$query['action']]);jsonOut(['rows'=>$rows,'affected'=>$affected,'action'=>$query['action']]);
             }catch(ApiError $e){if($my->inTransaction())$my->rollBack();throw $e;}catch(PDOException $e){if($my->inTransaction())$my->rollBack();if($mode==='mysql')mysqlError($e);fail(422,'Die Abfrage konnte nicht ausgeführt werden. Bitte Pflichtfelder und eindeutige Werte prüfen.');}
         case 'training.reset':
-            needFeature($u,'database');rateLimit('training.reset.'.$u['id'],5,60);$my=practiceDatabase($u);$my->beginTransaction();try{$my->exec('DELETE FROM produkte;DELETE FROM kontakte;DELETE FROM sqlite_sequence');seedPractice($my);$my->commit();}catch(Throwable $e){$my->rollBack();throw $e;}jsonOut(['ok'=>true]);
+            needFeature($u,'database');rateLimit('training.reset.'.$u['id'],5,60);$my=practiceDatabase($GLOBALS['academyDbUser']??$u);$my->beginTransaction();try{$my->exec('DELETE FROM produkte;DELETE FROM kontakte;DELETE FROM sqlite_sequence');seedPractice($my);$my->commit();}catch(Throwable $e){$my->rollBack();throw $e;}jsonOut(['ok'=>true]);
         case 'db.info':
-            needFeature($u,'database'); jsonOut(['connection'=>one('SELECT host,db_name,username FROM connections WHERE user_id=?',[$u['id']]),'hosts'=>allowedHosts()]);
+            needFeature($u,'database'); jsonOut(['connection'=>($saved=mysqlSavedConnection($u))?array_intersect_key($saved,array_flip(['host','db_name','username'])):null,'hosts'=>allowedHosts(),'has_personal'=>(bool)one('SELECT user_id FROM connections WHERE user_id=?',[$u['id']])]);
+        case 'db.attach.personal':
+            needFeature($u,'database');$pid=textField($data,'project',32);transaction(function()use($u,$pid){$p=project($u,$pid);if($u['role']==='user')projectManager($u,$p);$c=one('SELECT * FROM connections WHERE user_id=?',[$u['id']]);if(!$c)fail(422,'Keine persönliche Datenbankverbindung hinterlegt.');if(!in_array($c['host'],allowedHosts(),true))fail(403,'Datenbank-Host ist nicht mehr freigegeben.');query('INSERT INTO project_connections VALUES(?,?,?,?,?) ON CONFLICT(project_id) DO UPDATE SET host=excluded.host,db_name=excluded.db_name,username=excluded.username,secret=excluded.secret',[$pid,$c['host'],$c['db_name'],$c['username'],$c['secret']]);audit($u['id'],'db.project.attach',['project'=>$pid]);});jsonOut(['ok'=>true]);
         case 'db.connect':
             needFeature($u,'database'); rateLimit('mysql.'.$u['id'],15,60);
             $password=$data['password']??null; if(!is_string($password)||$password===''||strlen($password)>256) fail(422,'Bitte geben Sie das Datenbankpasswort ein.');
             $conn=['host'=>textField($data,'host',253),'db_name'=>textField($data,'db_name',64),'username'=>textField($data,'username',80),'secret'=>encryptSecret($password)];
-            mysqlConnection($u,$conn); query('INSERT INTO connections VALUES(?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET host=excluded.host,db_name=excluded.db_name,username=excluded.username,secret=excluded.secret',[$u['id'],$conn['host'],$conn['db_name'],$conn['username'],$conn['secret']]); audit($u['id'],'db.connect'); jsonOut(['ok'=>true]);
-        case 'db.disconnect': needFeature($u,'database'); query('DELETE FROM connections WHERE user_id=?',[$u['id']]); jsonOut(['ok'=>true]);
+            mysqlConnection($u,$conn);if(!empty($GLOBALS['academyDbProject'])){$pid=$GLOBALS['academyDbProject'];$p=project($u,$pid);if($u['role']==='user')projectManager($u,$p);query('INSERT INTO project_connections VALUES(?,?,?,?,?) ON CONFLICT(project_id) DO UPDATE SET host=excluded.host,db_name=excluded.db_name,username=excluded.username,secret=excluded.secret',[$pid,$conn['host'],$conn['db_name'],$conn['username'],$conn['secret']]);audit($u['id'],'db.connect',['project'=>$pid]);jsonOut(['ok'=>true]);} query('INSERT INTO connections VALUES(?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET host=excluded.host,db_name=excluded.db_name,username=excluded.username,secret=excluded.secret',[$u['id'],$conn['host'],$conn['db_name'],$conn['username'],$conn['secret']]); audit($u['id'],'db.connect'); jsonOut(['ok'=>true]);
+        case 'db.disconnect': needFeature($u,'database');if(!empty($GLOBALS['academyDbProject'])){$p=project($u,$GLOBALS['academyDbProject']);if($u['role']==='user')projectManager($u,$p);query('DELETE FROM project_connections WHERE project_id=?',[$p['id']]);jsonOut(['ok'=>true]);} query('DELETE FROM connections WHERE user_id=?',[$u['id']]); jsonOut(['ok'=>true]);
         case 'db.tables':
             needFeature($u,'database'); rateLimit('mysql.'.$u['id'],60,60); $my=mysqlConnection($u);
             try { jsonOut(['tables'=>$my->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN)]); } catch(PDOException $e) { mysqlError($e); }
@@ -304,7 +313,8 @@ try {
                     if ($pass) query('UPDATE users SET password=? WHERE id=?',[password_hash($pass,PASSWORD_DEFAULT),$uid]);
                     if ($uid===$u['id']) $_SESSION['auth_version']=(int)$target['auth_version']+1;
                 } else { $uid=id(); query('INSERT INTO users(id,name,email,password,role,active,features,must_change_password,created_at) VALUES(?,?,?,?,?,?,?,?,?)',[$uid,$name,$email,password_hash($pass,PASSWORD_DEFAULT),$role,(int)$active,$flags,(int)$mustChange,now()]); }
-                query('DELETE FROM group_members WHERE user_id=?',[$uid]); foreach(array_unique($groups) as $gid) { if(!is_string($gid)||!one('SELECT id FROM groups WHERE id=?',[$gid])) fail(422,'Eine Gruppe existiert nicht mehr.'); query('INSERT INTO group_members VALUES(?,?)',[$gid,$uid]); }
+                $previousGroups=array_column(all('SELECT group_id FROM group_members WHERE user_id=?',[$uid]),'group_id');query('DELETE FROM group_members WHERE user_id=?',[$uid]); foreach(array_unique($groups) as $gid) { if(!is_string($gid)||!one('SELECT id FROM groups WHERE id=?',[$gid])) fail(422,'Eine Gruppe existiert nicht mehr.'); query('INSERT INTO group_members VALUES(?,?)',[$gid,$uid]); }
+                foreach(array_unique([...$previousGroups,...$groups]) as $affectedGroup)bumpGroupVersion($affectedGroup);
                 if($mail){queueWelcome($mail,$uid,$u,$email);$mailId=$mail['id'];}
                 audit($u['id'],'admin.user.save');
             }); jsonOut(['ok'=>true,'id'=>$uid,'mail'=>$mailId?deliverWelcome($mailId,$u):null]);
@@ -313,34 +323,37 @@ try {
             transaction(function() use($uid,$u) { $target=one('SELECT * FROM users WHERE id=?',[$uid]); if (!$target) fail(404,'Benutzer nicht gefunden.');
                 if ($target['role']==='admin' && (int)query("SELECT COUNT(*) FROM users WHERE role='admin' AND active=1")->fetchColumn()<=1) fail(422,'Der letzte Admin kann nicht gelöscht werden.');
                 foreach(all('SELECT DISTINCT group_id FROM messages WHERE user_id=?',[$uid]) as $group)query('INSERT INTO chat_state(group_id,revision) VALUES(?,1) ON CONFLICT(group_id) DO UPDATE SET revision=revision+1',[$group['group_id']]);
-                query('DELETE FROM users WHERE id=?',[$uid]); audit($u['id'],'admin.user.delete'); }); removePracticeData($uid); jsonOut(['ok'=>true]);
+                foreach(all('SELECT group_id FROM group_members WHERE user_id=?',[$uid]) as $memberGroup)bumpGroupVersion($memberGroup['group_id']);query('DELETE FROM users WHERE id=?',[$uid]); audit($u['id'],'admin.user.delete'); }); removePracticeData($uid); jsonOut(['ok'=>true]);
         case 'admin.groups':
-            $groups=all('SELECT g.*,(SELECT COUNT(*) FROM group_members WHERE group_id=g.id) members FROM groups g ORDER BY name');
+            $groups=all('SELECT g.*,COALESCE((SELECT version FROM group_revisions r WHERE r.group_id=g.id),1) version,(SELECT COUNT(*) FROM group_members WHERE group_id=g.id) members FROM groups g ORDER BY name');
             $members=[];
             foreach(all('SELECT group_id,user_id FROM group_members') as $member) $members[$member['group_id']][]=$member['user_id'];
-            foreach($groups as &$group) $group['user_ids']=$members[$group['id']]??[];
+            foreach($groups as &$group){$group['user_ids']=$members[$group['id']]??[];$group['periods']=groupPeriodsPublic($group['id']);}
             unset($group);
             jsonOut(['groups'=>$groups]);
+        case 'admin.group.features.save': jsonOut(['ok'=>true,'group'=>saveGroupPermissions($u,$data)]);
         case 'admin.group.save':
-            $gid=textField($data,'id',32,false); $name=textField($data,'name',80); $description=textField($data,'description',500,false); $flags=featureInput($data['features']??[]);
+            $gid=textField($data,'id',32,false); $name=textField($data,'name',80); $description=textField($data,'description',500,false); $flags=array_key_exists('features',$data)?featureInput($data['features']):null;
             $replaceMembers=array_key_exists('users',$data); $members=$data['users']??[];
             if ($replaceMembers) {
                 if (!is_array($data['users'])||count($members)>10000) fail(422,'Ungültige Mitgliederzuordnung.');
                 foreach($members as $memberId) if (!is_string($memberId)) fail(422,'Ungültige Mitgliederzuordnung.');
                 $members=array_values(array_unique($members));
             }
-            transaction(function() use($u,&$gid,$name,$description,$flags,$replaceMembers,$members) {
+            transaction(function() use($u,&$gid,$name,$description,$flags,$replaceMembers,$members,$data) {
                 foreach($members as $memberId) if (!one('SELECT id FROM users WHERE id=?',[$memberId])) fail(422,'Ein Benutzer existiert nicht mehr.');
-                if ($gid) { if (!one('SELECT id FROM groups WHERE id=?',[$gid])) fail(404,'Gruppe nicht gefunden.'); query('UPDATE groups SET name=?,description=?,features=? WHERE id=?',[$name,$description,$flags,$gid]); }
-                else { $gid=id(); query('INSERT INTO groups VALUES(?,?,?,?,?)',[$gid,$name,$description,$flags,now()]); }
+                if ($gid) { $old=one('SELECT * FROM groups WHERE id=?',[$gid]);if(!$old)fail(404,'Gruppe nicht gefunden.');compareGroupVersion($gid,$data['version']??null);query('UPDATE groups SET name=?,description=?,features=? WHERE id=?',[$name,$description,$flags??$old['features'],$gid]);bumpGroupVersion($gid); }
+                else { $gid=id(); query('INSERT INTO groups VALUES(?,?,?,?,?)',[$gid,$name,$description,$flags??featureInput([]),now()]);query('INSERT INTO group_revisions VALUES(?,1)',[$gid]); }
+                if(array_key_exists('periods',$data))saveGroupPeriods($gid,groupPeriodsInput($data['periods'],groupPeriods($gid)));
                 if ($replaceMembers) {
                     query('DELETE FROM group_members WHERE group_id=?',[$gid]);
                     foreach($members as $memberId) query('INSERT INTO group_members VALUES(?,?)',[$gid,$memberId]);
                 }
                 audit($u['id'],'admin.group.save');
-            }); jsonOut(['ok'=>true,'id'=>$gid]);
+            }); jsonOut(['ok'=>true,'id'=>$gid,'version'=>groupVersion($gid)]);
         case 'admin.group.delete': query('DELETE FROM groups WHERE id=?',[textField($data,'id',32)]); audit($u['id'],'admin.group.delete'); jsonOut(['ok'=>true]);
         case 'admin.settings':
+            $labLimits=array_key_exists('lab_limits',$data)?labLimitsInput($data['lab_limits']):null;
             $flags=featureInput($data['features']??[]); $hosts=$data['hosts']??[];
             $phpMode=$data['php_execution_mode']??null;if($phpMode!==null&&!in_array($phpMode,['browser','server'],true))fail(422,'Ungültiger PHP-Ausführungsort.');$phpStatus=$phpMode==='server'?phpRunnerStatus():null;if($phpStatus&&!$phpStatus['available'])fail(503,$phpStatus['message']);
             if (!is_array($hosts)||count($hosts)>20) fail(422,'Bitte geben Sie höchstens 20 Hosts an.');
@@ -349,10 +362,10 @@ try {
             $uploads=isset($data['workspace_uploads'])?workspaceUploadsInput($data['workspace_uploads']):null;
             $converterFormats=array_key_exists('converter_formats',$data)?converterFormatsInput($data['converter_formats']):null;
             $sessionHours=array_key_exists('session_hours',$data)?sessionHoursInput($data['session_hours']):null;
-            transaction(function() use($flags,$hosts,$u,$sharing,$uploads,$sessionHours,$converterFormats,$phpMode) { query("UPDATE settings SET value=? WHERE key='features'",[$flags]); query("INSERT INTO settings VALUES('db_allowed_hosts',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode(array_values(array_unique($hosts)))]);if($phpMode!==null)query("INSERT INTO settings VALUES('php_execution_mode',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($phpMode)]); if($sharing!==null)query("INSERT INTO settings VALUES('chat_sharing',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($sharing)]);if($uploads!==null)query("INSERT INTO settings VALUES('workspace_uploads',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($uploads)]);if($sessionHours!==null)query("INSERT INTO settings VALUES('session_hours',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($sessionHours)]);if($converterFormats!==null)query("INSERT INTO settings VALUES('converter_formats',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($converterFormats)]);audit($u['id'],'admin.settings'); }); jsonOut(['ok'=>true]);
+            transaction(function() use($flags,$hosts,$u,$sharing,$uploads,$sessionHours,$converterFormats,$phpMode,$labLimits) { query("UPDATE settings SET value=? WHERE key='features'",[$flags]); query("INSERT INTO settings VALUES('db_allowed_hosts',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode(array_values(array_unique($hosts)))]);if($phpMode!==null)query("INSERT INTO settings VALUES('php_execution_mode',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($phpMode)]); if($sharing!==null)query("INSERT INTO settings VALUES('chat_sharing',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($sharing)]);if($uploads!==null)query("INSERT INTO settings VALUES('workspace_uploads',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($uploads)]);if($sessionHours!==null)query("INSERT INTO settings VALUES('session_hours',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($sessionHours)]);if($converterFormats!==null)query("INSERT INTO settings VALUES('converter_formats',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($converterFormats)]);if($labLimits!==null)query("INSERT INTO settings VALUES('lab_limits',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",[json_encode($labLimits)]);audit($u['id'],'admin.settings'); }); jsonOut(['ok'=>true]);
         default: fail(404,'Unbekannte Aktion.');
     }
-} catch (ApiError $e) { jsonOut(['error'=>$e->getMessage()],$e->status); }
+} catch (ApiError $e) { jsonOut(['error'=>$e->getMessage(),...($e->errorCode?['code'=>$e->errorCode]:[])],$e->status); }
 catch (PDOException $e) {
     if (str_contains($e->getMessage(),'UNIQUE constraint')) jsonOut(['error'=>'Dieser Name oder diese E-Mail-Adresse ist bereits vergeben.'],409);
     error_log('ectro database error: '.$e->getCode()); jsonOut(['error'=>'Der Speicher ist vorübergehend nicht verfügbar. Bitte versuchen Sie es erneut.'],503);

@@ -6,6 +6,16 @@ CREATE TABLE IF NOT EXISTS users (
 );
 CREATE TABLE IF NOT EXISTS groups (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', features TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS group_members (group_id TEXT REFERENCES groups(id) ON DELETE CASCADE, user_id TEXT REFERENCES users(id) ON DELETE CASCADE, PRIMARY KEY(group_id,user_id));
+CREATE TABLE IF NOT EXISTS group_periods (
+ group_id TEXT PRIMARY KEY REFERENCES groups(id) ON DELETE CASCADE,
+ access_start TEXT, access_end TEXT, course_start TEXT, course_end TEXT,
+ access_start_at INTEGER, access_end_before INTEGER,
+ CHECK(access_start IS NULL OR access_end IS NULL OR access_start<=access_end),
+ CHECK((course_start IS NULL AND course_end IS NULL) OR (course_start IS NOT NULL AND course_end IS NOT NULL AND course_start<=course_end)),
+ CHECK(access_start IS NULL OR course_start IS NULL OR access_start<=course_start),
+ CHECK(access_end IS NULL OR course_end IS NULL OR course_end<=access_end)
+);
+CREATE TABLE IF NOT EXISTS group_revisions (group_id TEXT PRIMARY KEY REFERENCES groups(id) ON DELETE CASCADE, version INTEGER NOT NULL DEFAULT 1);
 CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, user_id TEXT REFERENCES users(id) ON DELETE CASCADE, group_id TEXT REFERENCES groups(id) ON DELETE CASCADE, created_by TEXT REFERENCES users(id) ON DELETE SET NULL, name TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, CHECK ((user_id IS NULL) != (group_id IS NULL)));
 CREATE TABLE IF NOT EXISTS files (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, path TEXT NOT NULL, kind TEXT NOT NULL DEFAULT 'file', content TEXT NOT NULL DEFAULT '', version INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL, UNIQUE(project_id,path));
 CREATE TABLE IF NOT EXISTS project_types (id TEXT PRIMARY KEY, name TEXT NOT NULL UNIQUE COLLATE NOCASE, description TEXT NOT NULL DEFAULT '', language TEXT NOT NULL CHECK(language IN ('web','php','python')), active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1)), version INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
@@ -38,3 +48,14 @@ CREATE INDEX IF NOT EXISTS welcome_mails_created ON welcome_mails(created_at);
 CREATE TABLE IF NOT EXISTS user_profiles (user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, first_name TEXT NOT NULL DEFAULT '', last_name TEXT NOT NULL DEFAULT '', bio TEXT NOT NULL DEFAULT '', urls TEXT NOT NULL DEFAULT '[]', picture BLOB, picture_mime TEXT, picture_version INTEGER NOT NULL DEFAULT 0, version INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL);
 
 CREATE TABLE IF NOT EXISTS profile_sharing (user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, consent_version TEXT NOT NULL, consent_text TEXT NOT NULL, granted_at TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS lab_type_config (type_id TEXT PRIMARY KEY REFERENCES project_types(id) ON DELETE CASCADE, config TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS lab_project_config (project_id TEXT PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE, config TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS lab_objects (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK(kind IN ('graph','dataset','network','prompt','rag')), name TEXT NOT NULL, content TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS lab_objects_project ON lab_objects(project_id,kind);
+CREATE TABLE IF NOT EXISTS learning_presence (user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, context TEXT NOT NULL, touched INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS ai_connections (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, provider TEXT NOT NULL, base_url TEXT NOT NULL, model TEXT NOT NULL, capability TEXT NOT NULL, secret TEXT NOT NULL, shared INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1, version INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS ai_grants (project_id TEXT REFERENCES projects(id) ON DELETE CASCADE, connection_id TEXT REFERENCES ai_connections(id) ON DELETE CASCADE, max_calls INTEGER NOT NULL DEFAULT 100, PRIMARY KEY(project_id,connection_id));
+CREATE TABLE IF NOT EXISTS ai_calls (id TEXT PRIMARY KEY, user_id TEXT REFERENCES users(id) ON DELETE SET NULL, project_id TEXT REFERENCES projects(id) ON DELETE CASCADE, connection_id TEXT REFERENCES ai_connections(id) ON DELETE CASCADE, state TEXT NOT NULL, result TEXT, tokens INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL, UNIQUE(user_id,id));
+CREATE INDEX IF NOT EXISTS ai_calls_connection ON ai_calls(connection_id,project_id,created);
+CREATE TABLE IF NOT EXISTS project_connections (project_id TEXT PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE, host TEXT NOT NULL, db_name TEXT NOT NULL, username TEXT NOT NULL, secret TEXT NOT NULL);

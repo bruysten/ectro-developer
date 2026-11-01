@@ -27,8 +27,13 @@ function mysqlConnectionFailure(PDOException $e): array {
     };
     return [in_array($code,[2002,2003,2005,2006,2013],true)?503:422,$message.($code>0?' (MySQL '.$code.')':'')];
 }
-function mysqlConnection(array $u, ?array $conn = null): PDO {
-    $conn ??= one('SELECT * FROM connections WHERE user_id=?', [$u['id']]);
+function mysqlSavedConnection(array $u,?string $pid=null): ?array {
+    $pid??=$GLOBALS['academyDbProject']??null;
+    if($pid){project($u,$pid);return one('SELECT * FROM project_connections WHERE project_id=?',[$pid]);}
+    return one('SELECT * FROM connections WHERE user_id=?',[($GLOBALS['academyDbUser']??$u)['id']]);
+}
+function mysqlConnection(array $u, ?array $conn = null,?string $pid=null): PDO {
+    $conn ??= mysqlSavedConnection($u,$pid);
     if (!$conn) fail(422, 'Bitte hinterlegen Sie zuerst Ihre Datenbankverbindung.');
     if (!in_array($conn['host'], allowedHosts(), true)) fail(403, 'Dieser Datenbank-Host ist nicht freigegeben.');
     if (!preg_match('/^[a-zA-Z0-9_-]{1,64}$/', $conn['db_name']) || !preg_match('/^[a-zA-Z0-9_.@-]{1,80}$/', $conn['username'])) fail(422, 'Ungültige Verbindungsdaten.');

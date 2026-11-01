@@ -105,10 +105,11 @@ try {
   check((await bob.client.call('files',null,{project:personal})).status===404,'Personal project remains private');
   await alice.client.ok('project.share',{id:personal,group});
   check((await bob.client.ok('files',null,{project:personal})).project.group_id===group,'Existing project moves into group');
-  await admin.ok('admin.group.save',{id:group,name:'Team',users:[alice.id]});
+  const groupVersion=async()=> (await admin.ok('admin.groups')).groups.find(g=>g.id===group).version;
+  await admin.ok('admin.group.save',{id:group,version:await groupVersion(),name:'Team',users:[alice.id]});
   check((await bob.client.call('file.sync',{...payload,client:b.clientID,updates:[]})).status===404,'Membership removal immediately revokes open-file sync');
   check((await bob.client.call('project.bundle',{project:pid})).status===404,'Membership removal revokes preview');
-  await admin.ok('admin.group.save',{id:group,name:'Team',users:[alice.id,bob.id]});
+  await admin.ok('admin.group.save',{id:group,version:await groupVersion(),name:'Team',users:[alice.id,bob.id]});
   // Delete a disposable group project with live editor presence and persisted changes.
   const doomed=(await alice.client.ok('project.create',{name:'Delete with files',template:'web',group})).id;
   const doomedFile=(await alice.client.ok('file',null,{project:doomed,path:'index.html'})).file;

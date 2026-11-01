@@ -34,6 +34,12 @@ jobs:
         run: php -r 'foreach (["pdo_sqlite","pdo_mysql","mbstring","sodium"] as $e) { if (!extension_loaded($e)) { fwrite(STDERR, "Missing $e\n"); exit(1); } }'
       - name: API and security integration tests
         run: python3 tests/integration.py
+      - name: Learning labs, project permissions and 25 sessions
+        run: |
+          python3 tests/labs-integration.py
+          php tests/lab-ai.php
+          php tests/group-periods.php
+          python3 tests/group-periods-integration.py
       - name: MySQL connection configuration and errors
         run: php tests/mysql-connection.php
       - name: MySQLi server runner and local file restrictions
@@ -70,6 +76,10 @@ jobs:
           node tests/color-context.mjs
           node tests/color.mjs
           node tests/preview-assets.mjs
+          node tests/lab-models.mjs
+          node tests/vector-space.mjs
+          node tests/user-directory.mjs
+          node tests/group-periods.mjs
       - name: Verify prebuilt assets
         run: python3 scripts/preflight.py
   deploy:

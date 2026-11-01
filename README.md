@@ -4,6 +4,10 @@ Eine Entwicklungsumgebung für Schulungen und Online-Trainings. HTML/CSS/JavaScr
 
 ## Umfang
 
+- Integrierte, projektgebundene Daten-, Graph- und KI-Labore einschließlich Ontologien, Datenqualität, Analyse/Diagrammen, Promptvergleich, manuellem RAG/Graph-RAG und tatsächlich trainierbaren kleinen neuronalen Netzen. Python, PHP und JavaScript greifen über eine geprüfte Projekt-API auf dieselben Graphen, Datensätze, Netze und freigegebenen SQL-Datenbanken zu.
+- Erweiterte Projekttypen mit Laborstartinhalten, Gruppenverfügbarkeit, Import/Export und Duplizieren; Laborfreigaben und zentrale Grenzen unter Admin → Labore & KI. Persönliche KI-Schlüssel im Profil; ausdrückliche Dozentenfreigaben je Projekt.
+- Dozenten können im Gruppenchat die aktuelle Teilnehmeransicht sehen und in der eigenen Sitzung dasselbe freigegebene Projektobjekt öffnen. [Bedienung, Architektur und Prüfungen der Lernlabore](docs/learning-labs.md).
+
 - `/`: Benutzer-Login und persönlicher Workspace.
 - `/admin/`: eigener Admin-Login, Benutzer, optionale Mehrfach-Gruppenzuordnung, Projekttypen mit editierbaren Startdateien, globale und gruppenbezogene Funktionsfreigaben und Nutzungsstatistik.
 - Angemeldete Administratoren wechseln über **Zum Frontend** und **Zum Adminbereich** oben in der Kopfzeile mit einem Klick zwischen beiden Bereichen. Die Sitzung und das eigene Benutzerkonto bleiben bestehen; ungespeicherter Code wird vor dem Verlassen geschützt.
@@ -80,7 +84,7 @@ Das Entrosphere-Design-System wird mit originalen Farb-, Typografie-, Abstands-,
 
 Im Gruppenchat lassen sich Dateien mit optionaler Nachricht teilen. Jeder Anhang bietet Vorschau und Originaldownload. PDF-Seiten werden lokal über PDF.js dargestellt; Code, CSV/JSON und andere Textdateien als Text, moderne Office-/OpenDocument-Dateien als begrenzte Textvorschau. Für alte binäre Office-Formate und Archive steht der Download bereit. Dateien und Nachrichten sind nur der Gruppe und Administratoren zugänglich.
 
-Unter **Admin → Freigaben → Chat-Dateien** lassen sich Teilen, erlaubte Endungen und Uploadgröße einstellen. Das effektive Limit berücksichtigt die PHP-Uploadgrenzen; je Gruppe stehen 100 MB für Anhänge zur Verfügung. Die Gruppenkarte führt zur Chatverwaltung: einzelne Nachrichten samt Anhang löschen oder den gesamten Verlauf mit Rückfrage zurücksetzen. Es wird kein Serverpaket benötigt.
+Unter **Admin → Freigaben → Systemeinstellungen → Chat-Dateien** lassen sich Teilen, erlaubte Endungen und Uploadgröße einstellen. Das effektive Limit berücksichtigt die PHP-Uploadgrenzen; je Gruppe stehen 100 MB für Anhänge zur Verfügung. Die Gruppenkarte führt zur Chatverwaltung: einzelne Nachrichten samt Anhang löschen oder den gesamten Verlauf mit Rückfrage zurücksetzen. Es wird kein Serverpaket benötigt.
 
 ### Lehrerzugang
 

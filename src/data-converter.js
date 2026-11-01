@@ -53,7 +53,7 @@ function parseJson(text){
   }
   return [{Wert:value??''}];
 }
-function parseData(text,format){
+export function parseData(text,format){
   if(!text.trim())throw Error('Fügen Sie zuerst Daten ein oder wählen Sie eine Datei aus.');
   if(format==='csv'||format==='tsv')return csvRows(text.replace(/^\uFEFF/,''),format==='tsv'?'\t':detectCsvDelimiter(text));
   if(format==='json')return parseJson(text);

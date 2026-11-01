@@ -1,0 +1,67 @@
+export const PERMISSION_SECTIONS=[
+  {id:'code',name:'Projekte & Code',icon:'code',features:[
+    ['files','Dateien & Projekte','Persönliche und gemeinsame Projekte verwalten.'],
+    ['editor','Code-Editor','Dateien bearbeiten, speichern und ausführen.'],
+    ['html','Web & JavaScript','HTML, CSS und JavaScript ausprobieren.'],
+    ['php','PHP','PHP-Projekte ausführen.'],
+    ['python','Python','Python-Scripts ausprobieren.']]},
+  {id:'data',name:'Daten & Graphen',icon:'hub',features:[
+    ['database','MySQL & MariaDB','Freigegebene Datenbanken und SQL-Training nutzen.'],
+    ['converter','Daten-Converter','CSV, TSV, JSON und XML umwandeln.'],
+    ['data_lab','Daten-Labor','Import, Datenqualität, Analyse und Diagramme.'],
+    ['graph','Graph-Labor & Ontologien','Entitäten, Eigenschaften, Knoten und Kanten modellieren.']]},
+  {id:'ai',name:'KI & Modelle',icon:'neurology',features:[
+    ['ai','KI-Zugänge & Prompt-Werkstatt','Eigene API-Schlüssel und freigegebene Projektmodelle nutzen.'],
+    ['rag','RAG-Werkstatt','Embeddings, Suchvergleich, Reranking und Graph-RAG.'],
+    ['neural','Neuronale Netze','Netze gestalten, trainieren und bewerten.']]},
+  {id:'team',name:'Zusammenarbeit',icon:'groups',features:[
+    ['chat','Gruppenchat','Nachrichten und freigegebene Anhänge austauschen.'],
+    ['team','Team','Freigegebene Profile der Lerngruppe ansehen.']]},
+];
+export const PERMISSION_CATALOG=Object.fromEntries(PERMISSION_SECTIONS.flatMap(s=>s.features.map(([key,label,copy])=>[key,[label,copy]])));
+const dependencies={editor:['files'],html:['files','editor'],php:['files','editor'],python:['files','editor'],data_lab:['files'],graph:['files'],rag:['files'],neural:['files']};
+export const normalizedPermissions=flags=>Object.fromEntries(Object.keys(PERMISSION_CATALOG).map(key=>[key,flags?.[key]!==false]));
+
+export function mountPermissionEditor(root,{features={},system={},esc,onChange=()=>{}}){
+  let state=normalizedPermissions(features),baseline=JSON.stringify(state),search='',category='',filter='all';
+  root.classList.add('permission-editor');
+  root.innerHTML=`<div class="permission-tools"><label class="field permission-search"><span class="hidden">Rechte suchen</span><input type="search" data-permission-search placeholder="Recht oder Werkzeug suchen …" autocomplete="off"></label><label class="field"><span class="hidden">Bereich filtern</span><select data-permission-category><option value="">Alle Bereiche</option>${PERMISSION_SECTIONS.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select></label><label class="field"><span class="hidden">Status filtern</span><select data-permission-filter><option value="all">Alle Zustände</option><option value="on">Aktiviert</option><option value="off">Gesperrt</option><option value="limited">Begrenzt nutzbar</option></select></label></div><div class="permission-summary"><span data-permission-count role="status" aria-live="polite"></span><div class="permission-bulk"><button type="button" class="link" data-permission-bulk="true">Sichtbare freigeben</button><button type="button" class="link" data-permission-bulk="false">Sichtbare sperren</button></div></div><div class="permission-sections">${PERMISSION_SECTIONS.map(s=>`<section class="permission-section" data-permission-section="${s.id}"><header><span class="icon" aria-hidden="true">${s.icon}</span><h3>${s.name}</h3><span data-section-count></span></header><div>${s.features.map(([key,label,copy])=>`<div class="permission-row" data-permission="${key}"><div class="permission-copy"><label for="permission-${root.id}-${key}">${esc(label)}</label><p>${esc(copy)}</p><small data-permission-note></small></div><div class="permission-state"><span data-permission-status></span><label class="switch"><span class="hidden">${esc(label)} für diese Gruppe freigeben</span><input id="permission-${root.id}-${key}" name="feature-${key}" type="checkbox" role="switch" ${state[key]?'checked':''}></label></div></div>`).join('')}</div></section>`).join('')}</div><p class="permission-empty notice" hidden>Keine passenden Rechte. Suche oder Filter anpassen.</p>`;
+  const rows=[...root.querySelectorAll('[data-permission]')];
+  function missing(key){return (dependencies[key]||[]).filter(dep=>state[dep]===false||system[dep]===false);}
+  function limited(key){return state[key]&&(system[key]===false||missing(key).length>0);}
+  function update(){let visible=0;
+    for(const section of PERMISSION_SECTIONS){let shown=0;const block=root.querySelector(`[data-permission-section="${section.id}"]`);
+      for(const [key,label,copy] of section.features){const row=rows.find(r=>r.dataset.permission===key),restricted=limited(key);const match=(!category||category===section.id)&&(!search||(section.name+' '+label+' '+copy).toLocaleLowerCase('de').includes(search))&&(filter==='all'||filter==='on'&&state[key]||filter==='off'&&!state[key]||filter==='limited'&&restricted);row.hidden=!match;if(match){shown++;visible++;}row.classList.toggle('is-enabled',state[key]);row.classList.toggle('is-limited',restricted);row.querySelector('input').checked=state[key];row.querySelector('[data-permission-status]').textContent=!state[key]?'Gesperrt':restricted?'Begrenzt':'Aktiviert';row.querySelector('[data-permission-note]').textContent=state[key]&&system[key]===false?'Systemweit nicht verfügbar.':restricted?'Benötigt '+missing(key).map(dep=>'„'+PERMISSION_CATALOG[dep][0]+'“').join(' und ')+'.':'';}
+      block.hidden=!shown;block.querySelector('[data-section-count]').textContent=section.features.filter(([key])=>state[key]).length+' / '+section.features.length;
+    }
+    root.querySelector('[data-permission-count]').textContent=Object.values(state).filter(Boolean).length+' von '+Object.keys(state).length+' aktiviert · '+visible+' angezeigt';root.querySelector('.permission-empty').hidden=visible>0;
+    root.querySelectorAll('[data-permission-bulk]').forEach(b=>b.disabled=!visible);
+  }
+  function notify(){update();onChange({features:{...state},dirty:JSON.stringify(state)!==baseline});}
+  root.querySelector('[data-permission-search]').oninput=e=>{search=e.target.value.trim().toLocaleLowerCase('de');update();};
+  root.querySelector('[data-permission-category]').onchange=e=>{category=e.target.value;update();};root.querySelector('[data-permission-filter]').onchange=e=>{filter=e.target.value;update();};
+  for(const row of rows)row.querySelector('input').onchange=e=>{state[row.dataset.permission]=e.target.checked;notify();};
+  root.querySelectorAll('[data-permission-bulk]').forEach(b=>b.onclick=()=>{for(const row of rows)if(!row.hidden)state[row.dataset.permission]=b.dataset.permissionBulk==='true';notify();});
+  update();return {value:()=>({...state}),isDirty:()=>JSON.stringify(state)!==baseline,markSaved(saved=state){baseline=JSON.stringify(normalizedPermissions(saved));notify();},replace(features){state=normalizedPermissions(features);notify();}};
+}
+
+function groupPermissionMeta(g){const labels={scheduled:'geplant',expired:'beendet',active:'aktiv',unlimited:'unbefristet'};return g.members+' Mitglieder · Version '+g.version+' · Zugriff '+(labels[g.periods?.state]||'unbefristet');}
+
+export async function mountGroupPermissions(root,{api,get,esc,toast,confirm,user,onDirty,isCurrent=()=>true,openGroups,onLocation=()=>{}}){
+  let groups=[],selected=null,editor=null,saving=false,epoch=0;
+  const exportDraft=()=>{if(!selected||!editor)return;const value={group:selected.id,name:selected.name,version:selected.version,features:editor.value()};const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='gruppenrechte-entwurf.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+  const remember=()=>{try{sessionStorage.setItem('academy:permissions-group:'+user.id,selected.id);}catch{}history.replaceState(null,'','#features?group='+selected.id);onLocation();};
+  function drawGroup(group){selected=group;remember();root.querySelector('[data-group-title]').textContent=group.name;root.querySelector('[data-group-meta]').textContent=groupPermissionMeta(group);root.querySelector('[data-group-selector]').value=group.id;root.querySelector('[data-group-error]').textContent='';root.querySelector('[data-group-saved]').textContent='Gespeichert';editor=mountPermissionEditor(root.querySelector('#group-permissions-editor'),{features:JSON.parse(group.features),system:root.systemFlags,esc,onChange:({dirty})=>{onDirty(dirty);root.querySelector('[data-group-saved]').textContent=dirty?'Ungespeicherte Änderungen':'Gespeichert';root.querySelector('[data-save-group]').disabled=!dirty||saving;}});onDirty(false);root.querySelector('[data-save-group]').disabled=true;}
+  const [response,overview]=await Promise.all([get('admin.groups'),get('admin.overview')]);if(!isCurrent())return;groups=response.groups;root.systemFlags=overview.settings.features||{};
+  if(!groups.length){root.innerHTML='<div class="content"><h1>Freigaben pro Gruppe.</h1><p>Noch keine Lerngruppe vorhanden.</p><button type="button" class="es-btn es-btn--primary" data-new-group>Gruppe anlegen</button></div>';root.querySelector('[data-new-group]').onclick=openGroups;return;}
+  const requested=new URLSearchParams(location.hash.split('?')[1]||'').get('group');let saved;try{saved=sessionStorage.getItem('academy:permissions-group:'+user.id);}catch{}
+  root.innerHTML=`<div class="content group-permissions-page"><div class="page-head"><div><div class="meta">ADMINISTRATION // GRUPPENRECHTE</div><h1>Freigaben<span class="accent">.</span></h1><p>Gruppe wählen. Werkzeuge freigeben.</p></div><a class="es-btn es-btn--sm es-btn--secondary" href="#system">Systemeinstellungen</a></div><section class="permission-group-picker panel"><label class="field"><span>Gruppe suchen</span><input type="search" data-group-search placeholder="Gruppenname …"></label><label class="field"><span>Lerngruppe</span><select data-group-selector>${groups.map(g=>`<option value="${g.id}">${esc(g.name)} · ${g.members} Mitglieder</option>`).join('')}</select></label><a class="link" data-group-edit href="#groups">Gruppe bearbeiten</a></section><section class="panel group-permissions-card"><div class="permission-group-heading"><div><h2 data-group-title></h2><small class="muted" data-group-meta></small></div><span class="permission-draft-state" role="status" data-group-saved></span></div><p class="lab-hint">Dieses Set gehört zur ausgewählten Gruppe. Bestehende System-, Konto- und weitere Gruppensperren bleiben wirksam.</p><div id="group-permissions-editor"></div><div class="error" role="alert" data-group-error></div><div class="permission-save-bar"><div><button type="button" class="link" data-export-group>Entwurf exportieren</button><button type="button" class="link" data-reload-group>Aktuelle Rechte laden</button></div><button type="button" class="es-btn es-btn--primary" data-save-group>Gruppenrechte speichern</button></div></section></div>`;
+  const selector=root.querySelector('[data-group-selector]');
+  drawGroup(groups.find(g=>g.id===requested)||groups.find(g=>g.id===saved)||groups[0]);
+  root.querySelector('[data-group-search]').oninput=e=>{const term=e.target.value.trim().toLocaleLowerCase('de');const matches=groups.filter(g=>g.id===selected.id||g.name.toLocaleLowerCase('de').includes(term));selector.innerHTML=matches.map(g=>`<option value="${g.id}" ${g.id===selected.id?'selected':''}>${esc(g.name)} · ${g.members} Mitglieder</option>`).join('');};
+  selector.onchange=async()=>{const id=selector.value;if(saving){selector.value=selected.id;return;}if(editor.isDirty()&&!await confirm('Gruppe wechseln','Ungespeicherte Rechte verwerfen?','Wechseln')){selector.value=selected.id;return;}drawGroup(groups.find(g=>g.id===id));};
+  root.querySelector('[data-export-group]').onclick=exportDraft;
+  root.querySelector('[data-reload-group]').onclick=async()=>{if(saving)return;if(editor.isDirty()&&!await confirm('Aktuelle Gruppenrechte laden','Den lokalen Entwurf verwerfen? Exportieren Sie ihn vorher, um ihn zu behalten.','Neu laden'))return;try{const response=await get('admin.groups');if(!isCurrent())return;groups=response.groups;const group=groups.find(g=>g.id===selected.id);if(!group)throw Error('Die Gruppe wurde gelöscht. Bitte die Seite neu laden.');drawGroup(group);}catch(e){toast(e.message,true);}};
+  root.querySelector('[data-group-edit]').onclick=e=>{e.preventDefault();location.hash='groups?edit='+selected.id;};
+  root.querySelector('[data-save-group]').onclick=async()=>{if(saving||!editor.isDirty())return;const version=++epoch,id=selected.id,features=editor.value();saving=true;selector.disabled=true;root.querySelector('[data-save-group]').disabled=true;root.querySelector('[data-group-error]').textContent='';try{const result=await api('admin.group.features.save',{id,version:selected.version,features});if(!isCurrent()||version!==epoch)return;selected.version=result.group.version;selected.features=JSON.stringify(result.group.features);groups=groups.map(g=>g.id===id?{...selected}:g);editor.markSaved(features);root.querySelector('[data-group-meta]').textContent=groupPermissionMeta(selected);toast('Gruppenrechte gespeichert.');}catch(e){if(isCurrent())root.querySelector('[data-group-error]').textContent=e.message;}finally{saving=false;if(isCurrent()){selector.disabled=false;root.querySelector('[data-save-group]').disabled=!editor.isDirty();}}};
+}
