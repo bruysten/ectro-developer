@@ -31,6 +31,10 @@ function issuePasswordRecoveryToken(array $u): string {
     return $token;
 }
 
+function recoveryMailVariables(array $u):array {
+    return ['name'=>$u['name'],'email'=>$u['email'],'login_url'=>passwordRecoveryOrigin(mailConfig()['app_url']).($u['role']==='admin'?'/admin/':'/'),'role'=>['admin'=>'Administrator','teacher'=>'Lehrer','user'=>'Lernender'][$u['role']],'app_name'=>'Entrosphere Developer'];
+}
+
 // Reserve a send slot for every submitted address, even if no account exists.
 // This limit applies across IP addresses and never changes the public response.
 function preparePasswordRecovery(array $data): ?array {
@@ -48,11 +52,9 @@ function preparePasswordRecovery(array $data): ?array {
         $token = issuePasswordRecoveryToken($u);
         $hash = hash('sha256', $token);
         $url = passwordRecoveryOrigin(mailConfig()['app_url']).($u['role']==='admin'?'/admin/':'/').'#reset-password='.$token;
-        $text = "Für Ihren Zugang zu Entrosphere Developer wurde ein neues Passwort angefordert.\n\nPasswort zurücksetzen:\n".$url."\n\nDieser Link ist 30 Minuten gültig und kann einmal verwendet werden. Wenn Sie die Anfrage nicht gestellt haben, ignorieren Sie diese Nachricht. Ihr Passwort bleibt unverändert.";
-        $escaped = htmlspecialchars($url, ENT_QUOTES|ENT_SUBSTITUTE, 'UTF-8');
+        $mail = renderMailTemplate(recoveryMailTemplate('password_reset'),[...recoveryMailVariables($u),'reset_url'=>$url,'expires_minutes'=>30]);
         return ['hash'=>$hash,'user_id'=>$u['id'],'message'=>[
-            'To'=>[['Email'=>$email,'Name'=>$u['name']]], 'Subject'=>'Ihr Passwort zurücksetzen · Entrosphere Developer',
-            'TextPart'=>$text, 'HTMLPart'=>'<p>Für Ihren Zugang wurde ein neues Passwort angefordert.</p><p><a href="'.$escaped.'">Passwort zurücksetzen</a></p><p>Dieser Link ist 30 Minuten gültig und einmal verwendbar. Falls Sie die Anfrage nicht gestellt haben, ignorieren Sie diese Nachricht. Ihr Passwort bleibt unverändert.</p>',
+            'To'=>[['Email'=>$email,'Name'=>$u['name']]], ...$mail,
             // Tracking must not rewrite the fragment containing the secret.
             'TrackClicks'=>'disabled','TrackOpens'=>'disabled',
         ]];
@@ -86,9 +88,8 @@ function resetForgottenPassword(array $data): array {
 
 function notifyPasswordRecovery(array $u, ?callable $transport=null): void {
     if (!passwordRecoveryReady()) return;
-    $result = mailjetSend(mailConfig(), ['To'=>[['Email'=>$u['email'],'Name'=>$u['name']]],
-        'Subject'=>'Ihr Passwort wurde geändert · Entrosphere Developer',
-        'TextPart'=>'Ihr Passwort wurde über die Passwort-Wiederherstellung geändert. Alle bisherigen Sitzungen und Wiederherstellungslinks wurden ungültig. Falls Sie diese Änderung nicht vorgenommen haben, wenden Sie sich bitte umgehend an die Kursleitung oder den Betreiber.',
+    $mail = renderMailTemplate(recoveryMailTemplate('password_changed'),recoveryMailVariables($u));
+    $result = mailjetSend(mailConfig(), ['To'=>[['Email'=>$u['email'],'Name'=>$u['name']]], ...$mail,
         'TrackClicks'=>'disabled','TrackOpens'=>'disabled'], false, $transport);
     audit($u['id'], 'password.recovery.notification', ['delivery'=>$result['status']]);
 }

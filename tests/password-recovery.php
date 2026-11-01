@@ -29,7 +29,11 @@ try{
     checkRecovery(passwordRecoveryReady(),'Configured Mailjet enables recovery');
     query("UPDATE settings SET value=? WHERE key='mailjet'",[json_encode([...$config,'app_url'=>' https://academy.example/ '])]);
     checkRecovery(passwordRecoveryReady(),'Trailing slash and whitespace do not disable configured mail');
+    initializeMailTemplates();
+    query("UPDATE mail_templates SET subject='Wiederherstellung für {email}',body='Hallo {name},\n{reset_url}\nGültig: {expires_minutes} Minuten.' WHERE id='password-reset'");
+    query("UPDATE mail_templates SET subject='Passwortbestätigung für {name}',body='Ihr Passwort wurde geändert. Anmelden: {login_url}' WHERE id='password-changed'");
     $normalized=preparePasswordRecovery(['email'=>'teacher@example.test']);
+    checkRecovery($normalized['message']['Subject']==='Wiederherstellung für teacher@example.test'&&str_contains($normalized['message']['TextPart'],'Gültig: 30 Minuten.'),'Stored reset template used for actual recovery message');
     checkRecovery(str_contains($normalized['message']['TextPart'],'https://academy.example/#reset-password=')&&!str_contains($normalized['message']['TextPart'],'example//'),'Canonical recovery origin used in mail');
     clearRecoveryLimits();query('DELETE FROM password_resets');
     foreach(['https://attacker@academy.example','https://academy.example/path','http://academy.example'] as $url){query("UPDATE settings SET value=? WHERE key='mailjet'",[json_encode([...$config,'app_url'=>$url])]);checkRecovery(!passwordRecoveryReady(),'Unsafe recovery origin rejected');}
@@ -64,6 +68,7 @@ try{
     checkRecovery(one("SELECT payload,status FROM welcome_mails WHERE id='welcome'")===['payload'=>null,'status'=>'cancelled'],'Recovery immediately erases obsolete queued credentials');
     rejectRecovery(fn()=>resetForgottenPassword(resetInput($token)));rejectRecovery(fn()=>resetForgottenPassword(resetInput(recoveryToken($second))));
     notifyPasswordRecovery($u,$ok);checkRecovery(!str_contains(json_encode($payload),'new-secure-password')&&!str_contains(json_encode($payload),$token),'Confirmation email contains no credentials');
+    checkRecovery($payload['Messages'][0]['Subject']==='Passwortbestätigung für admin'&&str_contains($payload['Messages'][0]['TextPart'],'https://academy.example/admin/'),'Stored confirmation template used after actual reset');
     foreach(['learner','teacher'] as $id){clearRecoveryLimits();$job=preparePasswordRecovery(['email'=>$id.'@example.test']);checkRecovery(str_contains($job['message']['TextPart'],'https://academy.example/#reset-password='),'Learner and teacher use user portal');}
     $job=preparePasswordRecovery(['email'=>'admin@example.test']);$expired=recoveryToken($job);query('UPDATE password_resets SET expires_at=?',[time()]);rejectRecovery(fn()=>resetForgottenPassword(resetInput($expired)));
     foreach(['email','auth_version','active'] as $changed){

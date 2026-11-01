@@ -138,7 +138,12 @@ button.link { border:0;background:none;color:var(--accent);padding:0; }
 .main { grid-column:2;min-width:0; }
 .topbar { height:72px;background:rgba(249,249,249,.82);backdrop-filter:var(--blur-header);border-bottom:1px solid var(--border-strong);display:flex;align-items:center;justify-content:space-between;gap:20px;padding:0 40px;position:sticky;top:0;z-index:10; }
 .topbar .meta { font-size:10px; }
-.topbar-right { display:flex;align-items:center;gap:20px; }
+.topbar-context { display:flex;align-items:center;gap:12px;min-width:0; }
+.topbar-context>.meta { overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.topbar-right { display:flex;align-items:center;gap:20px;flex-shrink:0; }
+.portal-switch { white-space:nowrap; }
+@media(max-width:1100px) { .has-portal-switch .topbar .status { display:none; } }
+@media(max-width:600px) { .has-portal-switch .topbar-context .context-label { display:none; }.has-portal-switch .topbar { gap:10px; } }
 .status { display:inline-flex;align-items:center;gap:7px;color:var(--text-muted);font:10px var(--font-mono); }
 .status::before { content:'';width:6px;height:6px;border-radius:50%;background:var(--status-ahead); }
 .menu-toggle { display:none; }
