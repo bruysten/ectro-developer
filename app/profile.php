@@ -42,7 +42,7 @@ function saveProfile(array $u,array $data):array {
 
 function teamGroup(array $u,string $gid):void {
     needFeature($u,'team');
-    if(!one('SELECT 1 FROM group_members WHERE group_id=? AND user_id=?',[$gid,$u['id']]))fail(404,'Gruppe nicht verfügbar.');
+    if(!one('SELECT 1 FROM group_members WHERE group_id=? AND user_id=?',[$gid,$u['id']]))fail(404,'Gruppe nicht verfügbar.');requireGroupPeriod($u,$gid);
 }
 function teamMembers(array $u,string $gid):array {
     teamGroup($u,$gid);

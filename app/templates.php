@@ -24,11 +24,11 @@ function projectType(string $id): array {
     if (!$type) fail(404,'Projekttyp nicht gefunden.');
     $type['active']=(bool)$type['active'];$type['version']=(int)$type['version'];
     $type['files']=all('SELECT path,content FROM project_type_files WHERE type_id=? ORDER BY path',[$id]);
-    return $type;
+    $type['labs']=function_exists('labTypeConfig')?labTypeConfig($id):[];return $type;
 }
 function projectTypes(): array {
     initializeProjectTypes();
-    return array_map(function($type){$type['active']=(bool)$type['active'];$type['version']=(int)$type['version'];return $type;},all('SELECT t.*,(SELECT COUNT(*) FROM project_type_files f WHERE f.type_id=t.id) file_count FROM project_types t ORDER BY CASE t.id WHEN \'web\' THEN 0 WHEN \'php\' THEN 1 WHEN \'python\' THEN 2 ELSE 3 END,t.name'));
+    return array_map(function($type){$type['active']=(bool)$type['active'];$type['version']=(int)$type['version'];$type['labs']=function_exists('labTypeConfig')?labTypeConfig($type['id']):[];return $type;},all('SELECT t.*,(SELECT COUNT(*) FROM project_type_files f WHERE f.type_id=t.id) file_count FROM project_types t ORDER BY CASE t.id WHEN \'web\' THEN 0 WHEN \'php\' THEN 1 WHEN \'python\' THEN 2 ELSE 3 END,t.name'));
 }
 function starterFiles(string $template): array {
     return array_column(projectType($template)['files'],'content','path');
@@ -37,6 +37,7 @@ function saveProjectType(array $u,array $data): string {
     initializeProjectTypes();
     $tid=textField($data,'id',32,false);$name=textField($data,'name',80);$description=textField($data,'description',500,false);$language=$data['language']??'web';$active=$data['active']??true;$files=$data['files']??null;$version=$data['version']??0;
     if (!in_array($language,['web','php','python'],true)||!is_bool($active)||!is_int($version)||!is_array($files)||!array_is_list($files)||count($files)>100)fail(422,'Bitte prüfen Sie Projekttyp und Startdateien.');
+    $labConfig=function_exists('labConfigInput')?labConfigInput($data['labs']??['tools'=>LAB_KINDS,'entry'=>'editor']):null;
     $validated=[];$size=0;
     foreach($files as $file) {
         if(!is_array($file)||!is_string($file['content']??null))fail(422,'Ungültige Startdatei.');
@@ -51,7 +52,7 @@ function saveProjectType(array $u,array $data): string {
         $parts=explode('/',$path);array_pop($parts);$parent='';
         foreach($parts as $part){$parent=ltrim($parent.'/'.$part,'/');if(array_key_exists($parent,$validated))fail(422,'Eine Startdatei kann nicht zugleich ein Ordner sein.');}
     }
-    return transaction(function() use($u,$tid,$name,$description,$language,$active,$validated,$version) {
+    return transaction(function() use($u,$tid,$name,$description,$language,$active,$validated,$version,$labConfig) {
         if(one('SELECT id FROM project_types WHERE name=? AND id!=?',[$name,$tid]))fail(409,'Ein Projekttyp mit diesem Namen existiert bereits.');
         if($tid){
             $old=one('SELECT version FROM project_types WHERE id=?',[$tid]);if(!$old)fail(404,'Projekttyp nicht gefunden.');
@@ -64,6 +65,7 @@ function saveProjectType(array $u,array $data): string {
         }
         query('DELETE FROM project_type_files WHERE type_id=?',[$tid]);
         foreach($validated as $path=>$content)query('INSERT INTO project_type_files VALUES(?,?,?)',[$tid,$path,$content]);
+        if($labConfig!==null)query('INSERT INTO lab_type_config VALUES(?,?) ON CONFLICT(type_id) DO UPDATE SET config=excluded.config',[$tid,labJson($labConfig)]);
         audit($u['id'],'admin.template.save');return $tid;
     });
 }
@@ -75,13 +77,16 @@ function createProject(array $u, string $name, string $template, string $groupId
     return transaction(function () use ($u,$name,$template,$groupId) {
         $type=one('SELECT * FROM project_types WHERE id=? AND active=1',[$template]);
         if(!$type)fail(422,'Dieser Projekttyp ist nicht verfügbar. Bitte wählen Sie einen anderen.');
-        needFeature($u,$type['language']==='web'?'html':$type['language']);
+        if(function_exists('labTypeAvailable')&&!labTypeAvailable($u,$type))fail(403,'Diese Vorlage ist nicht für Ihren Zugang freigegeben.');
+        if(!function_exists('labTypeConfig')||(labTypeConfig($template)['entry']??'editor')==='editor')needFeature($u,$type['language']==='web'?'html':$type['language']);
         $startFiles=array_column(all('SELECT path,content FROM project_type_files WHERE type_id=? ORDER BY path',[$template]),'content','path');
         if ($groupId && !one('SELECT 1 FROM group_members WHERE group_id=? AND user_id=?',[$groupId,$u['id']])) fail(403,'Sie gehören dieser Gruppe nicht an.');
+        if($groupId)requireGroupPeriod($u,$groupId);
         if ((int)query('SELECT COUNT(*) FROM projects WHERE '.($groupId?'group_id=?':'user_id=?'), [$groupId?:$u['id']])->fetchColumn() >= 30) fail(422, 'Pro Workspace sind bis zu 30 Projekte möglich.');
-        if (workspaceBytes(['group_id'=>$groupId?:null,'user_id'=>$u['id']])+array_sum(array_map('strlen',$startFiles))>SPACE_LIMIT) fail(422,'Der Workspace ist voll (20 MB).');
+        if (workspaceBytes(['group_id'=>$groupId?:null,'user_id'=>$u['id']])+array_sum(array_map('strlen',$startFiles))+(function_exists('labTypeConfig')?array_sum(array_map(fn($seed)=>strlen(labJson($seed['content'])),labTypeConfig($template)['seeds']??[])):0)>SPACE_LIMIT) fail(422,'Der Workspace ist voll (20 MB).');
         $pid = id(); query('INSERT INTO projects(id,user_id,group_id,created_by,name,created_at,updated_at) VALUES(?,?,?,?,?,?,?)', [$pid, $groupId?null:$u['id'], $groupId?:null, $u['id'], $name, now(), now()]);
         foreach ($startFiles as $path => $content) query('INSERT INTO files(id,project_id,path,content,updated_at) VALUES(?,?,?,?,?)', [id(),$pid,$path,$content,now()]);
+        if(function_exists('labInitializeProject'))labInitializeProject($pid,$template);
         audit($u['id'], 'project.create'); return $pid;
     });
 }

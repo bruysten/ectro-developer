@@ -1,0 +1,2 @@
+import {trainEpoch} from './neural.js';
+onmessage=({data})=>{try{const {network,epochs,rate}=data;for(let i=0;i<epochs;i++){const metrics=trainEpoch(network,rate);if(i===epochs-1||i%25===0){network.history=[...(network.history||[]),{epoch:network.epochs,train:metrics.train.loss,test:metrics.test.loss}].slice(-1000);postMessage({network,metrics,done:i===epochs-1});}}}catch(e){postMessage({error:e.message});}};

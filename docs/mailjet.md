@@ -1,8 +1,10 @@
 # Mailjet und Zugangsmails
 
+Der gemeinsame Bereich **Mail** (`/admin/#mail`) hat die Reiter **Verbindung & Versand** und **Vorlagen**. Bestehende Links auf `#mailjet` und `#mail-templates` führen weiterhin zum passenden Reiter.
+
 ## Einrichten
 
-1. Im Adminbereich **Mailjet** öffnen.
+1. Im Adminbereich **Mail → Verbindung & Versand** öffnen.
 2. Mailjets API-Key und Secret-Key, Absendername und bestätigte Absender-E-Mail eintragen. Die HTTPS-Adresse der Anwendung ohne Unterpfad angeben, beispielsweise `https://dev-academy.ectrosphere.com`.
 3. Speichern und **Verbindung prüfen** verwenden. Diese Prüfung nutzt Mailjets [Sandbox-Modus](https://dev.mailjet.com/docs/email-api/send-api-v31/sandbox.mode): Daten werden validiert, aber keine Mail zugestellt.
 4. Den Schalter **Mailversand aktivieren** einschalten und speichern.
@@ -39,11 +41,11 @@ Den ausgegebenen geheimen Link selbst im Browser öffnen, ein neues Passwort fes
 
 ## Zugangsvorlagen
 
-Unter **Admin → Mailvorlagen** stehen außerdem zwei automatisch verwendete, editierbare Vorlagen für **Passwort zurücksetzen** und **Passwort geändert**. Betreff, Name und Nachrichtentext sind mit derselben Live-Vorschau bearbeitbar. Bestehende Zugangsvorlagen und individuelle Texte bleiben beim Update erhalten.
+Unter **Admin → Mail → Vorlagen** stehen außerdem zwei automatisch verwendete, editierbare Vorlagen für **Passwort zurücksetzen** und **Passwort geändert**. Betreff, Name und Nachrichtentext sind mit derselben Live-Vorschau bearbeitbar. Bestehende Zugangsvorlagen und individuelle Texte bleiben beim Update erhalten.
 
 Die Link-Mail benötigt `{reset_url}` und `{expires_minutes}` im Nachrichtentext. Der Link darf nicht im Betreff stehen. Die Bestätigungsmail verwendet keine Passwörter und keine Wiederherstellungslinks. Beide Vorlagen unterstützen `{name}`, `{email}`, `{login_url}`, `{role}` und `{app_name}`. Sie sind fest mit dem jeweiligen Prozess verbunden und können nicht gelöscht oder als Zugangsvorlage ausgewählt werden. Änderungen gelten für neue Nachrichten; bereits versendete Links behalten ihre ursprüngliche Gültigkeit. Die Vorschau enthält ausschließlich Beispieldaten.
 
-**Mailvorlagen** enthält automatisch einmalig zwei editierbare Standards: „Willkommen · Du“ und „Willkommen · Sie“. Weitere Vorlagen lassen sich anlegen, duplizieren und löschen. Du-/Sie-Standards stehen auch als Ausgangspunkt für neue Vorlagen bereit. Betreff und Text werden direkt bearbeitet; die Vorschau verwendet ausschließlich Beispieldaten.
+**Mail → Vorlagen** enthält automatisch einmalig zwei editierbare Standards: „Willkommen · Du“ und „Willkommen · Sie“. Weitere Vorlagen lassen sich anlegen, duplizieren und löschen. Du-/Sie-Standards stehen auch als Ausgangspunkt für neue Vorlagen bereit. Betreff und Text werden direkt bearbeitet; die Vorschau verwendet ausschließlich Beispieldaten.
 
 | Variable | Inhalt |
 | --- | --- |
@@ -65,7 +67,7 @@ Benutzer und verschlüsselte Zugangsmail werden gemeinsam gespeichert. Anschlie�
 
 ## Status und Wiederholung
 
-Unter **Mailjet → Zugangsmails** stehen die letzten 50 Vorgänge:
+Unter **Mail → Verbindung & Versand → Zugangsmails** stehen die letzten 50 Vorgänge:
 
 - **Von Mailjet angenommen** bestätigt die Übergabe, nicht die Zustellung. Zustellung und Bounces sind in Mailjet zu prüfen.
 - **Abgelehnt** kann nach Korrektur der Verbindung gezielt erneut gesendet werden.

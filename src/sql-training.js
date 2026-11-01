@@ -1,7 +1,8 @@
 import {OPERATIONS,generated,auto,numeric,previewQuery} from './sql-composer.js';
 export async function mountSqlTraining(root,{api,get,esc,icon,toast,confirm,isCurrent}){
   const $=q=>root.querySelector(q),$$=q=>[...root.querySelectorAll(q)];
-  let mode='practice',tables=[],columns=[],tableRows=[],action='insert',fields=[],entries=[{}],selected=[],conditions=[],order=[],join='and',limit=20,distinct=false,previewTimer=null,previewSequence=0,loadSequence=0,disposed=false,running=false;
+  const entryParams=new URLSearchParams(location.hash.split('?')[1]||'');
+  let mode=entryParams.get('mode')==='mysql'?'mysql':'practice',tables=[],columns=[],tableRows=[],action='insert',fields=[],entries=[{}],selected=[],conditions=[],order=[],join='and',limit=20,distinct=false,previewTimer=null,previewSequence=0,loadSequence=0,disposed=false,running=false;
   const current=()=>!disposed&&isCurrent()&&root.isConnected;
   const note=$('#training-note'),status=$('#training-status');
   let drag=null,suppressClick=false;
@@ -96,7 +97,7 @@ export async function mountSqlTraining(root,{api,get,esc,icon,toast,confirm,isCu
   };
   const loadMode=async()=>{
     const sequence=++loadSequence;clearTimeout(previewTimer);++previewSequence;columns=[];$('#training-run').disabled=true;status.textContent='Arbeitsbereich wird geladen …';
-    try{const info=await get('training.info',{mode});if(!current()||sequence!==loadSequence)return;tables=info.tables;$('#training-mode').innerHTML='<option value="practice" '+(mode==='practice'?'selected':'')+'>Übungsdaten · nur für mich</option>'+(info.has_connection?'<option value="mysql" '+(mode==='mysql'?'selected':'')+'>Eigene Datenbank</option>':'');$('#training-table').innerHTML=tables.map(t=>`<option>${esc(t)}</option>`).join('');$('#training-reset').hidden=mode!=='practice';note.textContent=mode==='practice'?'Persönliche Übungsdaten. Ausführen verändert nur diesen Übungsbereich.':'Eigene Datenbank. Ausführen speichert Änderungen in deiner verbundenen Datenbank.';if(!tables.length){status.textContent='Keine Tabellen vorhanden. Lege zuerst unter Datenbanken eine Tabelle an.';$('#training-builder').innerHTML='';$('#training-columns').innerHTML='';return;}await loadTable();}catch(e){if(current())status.textContent=e.message;}
+    try{const info=await get('training.info',{mode});if(!current()||sequence!==loadSequence)return;tables=info.tables;$('#training-mode').innerHTML='<option value="practice" '+(mode==='practice'?'selected':'')+'>Übungsdaten · nur für mich</option>'+(info.has_connection?'<option value="mysql" '+(mode==='mysql'?'selected':'')+'>Eigene Datenbank</option>':'');$('#training-table').innerHTML=tables.map(t=>`<option>${esc(t)}</option>`).join('');if(tables.includes(entryParams.get('table'))){$('#training-table').value=entryParams.get('table');entryParams.delete('table');}$('#training-reset').hidden=mode!=='practice';note.textContent=mode==='practice'?'Persönliche Übungsdaten. Ausführen verändert nur diesen Übungsbereich.':'Eigene Datenbank. Ausführen speichert Änderungen in deiner verbundenen Datenbank.';if(!tables.length){status.textContent='Keine Tabellen vorhanden. Lege zuerst unter Datenbanken eine Tabelle an.';$('#training-builder').innerHTML='';$('#training-columns').innerHTML='';return;}await loadTable();}catch(e){if(current())status.textContent=e.message;}
   };
   $$('[data-training-action]').forEach(button=>button.onclick=()=>{if(running||!columns.length)return;action=button.dataset.trainingAction;$$('[data-training-action]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));resetDraft();});
   $('#training-mode').onchange=e=>{if(running)return;mode=e.target.value;loadMode();};$('#training-table').onchange=loadTable;

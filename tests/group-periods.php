@@ -1,0 +1,18 @@
+<?php
+declare(strict_types=1);
+$private=sys_get_temp_dir().'/academy-periods-'.bin2hex(random_bytes(8));mkdir($private,0700);putenv('APP_DATA_DIR='.$private);putenv('APP_ENV=development');putenv('APP_KEY='.base64_encode(random_bytes(32)));
+register_shutdown_function(function()use($private){$it=new RecursiveIteratorIterator(new RecursiveDirectoryIterator($private,FilesystemIterator::SKIP_DOTS),RecursiveIteratorIterator::CHILD_FIRST);foreach($it as $e)$e->isDir()?rmdir($e->getPathname()):unlink($e->getPathname());rmdir($private);});
+require __DIR__.'/../app/bootstrap.php';
+$n=0;function checkPeriod(bool $ok,string $message):void{global $n;if(!$ok)throw new RuntimeException($message);$n++;}
+function invalidPeriod(mixed $input):void{try{groupPeriodsInput($input);throw new RuntimeException('Expected invalid period');}catch(ApiError $e){checkPeriod($e->status===422,'Strict period validation');}}
+checkPeriod(groupPeriodsInput([])===array_fill_keys(GROUP_PERIOD_FIELDS,null),'Optional period defaults');
+foreach([['access_start'=>'2026-02-29'],['access_start'=>'2026-13-01'],['access_end'=>'2026-04-31'],['access_start'=>false],['access_end'=>12],['access_start'=>'01.11.2026'],['access_start'=>'0000-01-01'],['access_start'=>'2026-11-02','access_end'=>'2026-11-01'],['course_start'=>'2026-11-01'],['course_end'=>'2026-11-01'],['course_start'=>'2026-11-02','course_end'=>'2026-11-01'],['course_start'=>'2026-11-01','course_end'=>'2026-11-03','access_start'=>'2026-11-02'],['course_start'=>'2026-11-01','course_end'=>'2026-11-03','access_end'=>'2026-11-02'],['timezone'=>'UTC'],null] as $input)invalidPeriod($input);
+checkPeriod(groupPeriodsInput(['access_start'=>'2028-02-29'])['access_start']==='2028-02-29','Valid leap day');
+checkPeriod(groupPeriodsInput(['access_start'=>'2026-11-01','access_end'=>'2026-11-01','course_start'=>'2026-11-01','course_end'=>'2026-11-01'])['course_start']==='2026-11-01','One-day course allowed');
+checkPeriod(groupDateTimestamp('2026-03-29',true)-groupDateTimestamp('2026-03-29')===23*3600,'Berlin spring transition is a 23-hour day');
+checkPeriod(groupDateTimestamp('2026-10-25',true)-groupDateTimestamp('2026-10-25')===25*3600,'Berlin autumn transition is a 25-hour day');
+$gid=id();query('INSERT INTO groups VALUES(?,?,?,?,?)',[$gid,'Dates','','{}',now()]);saveGroupPeriods($gid,groupPeriodsInput(['access_start'=>'2026-03-29','access_end'=>'2026-03-29']));$p=groupPeriods($gid);$start=groupDateTimestamp('2026-03-29');$end=groupDateTimestamp('2026-03-29',true);
+checkPeriod(groupPeriodState($p,$start-1)==='scheduled','Before start denied');checkPeriod(groupPeriodState($p,$start)==='active','Start midnight included');checkPeriod(groupPeriodState($p,$end-1)==='active','Entire end date included');checkPeriod(groupPeriodState($p,$end)==='expired','Following midnight excluded');
+foreach(['user','teacher','admin'] as $role){$uid=id();query('INSERT INTO users(id,name,email,password,role,created_at) VALUES(?,?,?,?,?,?)',[$uid,$role,$role.'@example.test','test',$role,now()]);query('INSERT INTO group_members VALUES(?,?)',[$gid,$uid]);$u=one('SELECT * FROM users WHERE id=?',[$uid]);checkPeriod(learningAccess($u,$start-1)['allowed']===($role==='admin'),'Admin exception, before opening');checkPeriod(learningAccess($u,$start)['allowed'],'Active group opens access');checkPeriod(learningAccess($u,$end)['allowed']===($role==='admin'),'End closes user and teacher access');}
+query('DELETE FROM groups WHERE id=?',[$gid]);checkPeriod(!one('SELECT * FROM group_periods WHERE group_id=?',[$gid]),'Dates cascade with group deletion');
+echo "$n group period, calendar, DST and access-boundary checks passed.\n";

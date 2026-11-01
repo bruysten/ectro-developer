@@ -17,7 +17,7 @@ function chatSharingInput(mixed $s): array {
 function chatAccess(array $u,string $group,bool $admin=false): void {
     if(!one('SELECT id FROM groups WHERE id=?',[$group]))fail(404,'Gruppe nicht gefunden.');
     if($admin&&$u['role']==='admin')return;
-    needFeature($u,'chat');if(!one('SELECT 1 FROM group_members WHERE group_id=? AND user_id=?',[$group,$u['id']]))fail(403,'Sie sind nicht Mitglied dieser Gruppe.');
+    needFeature($u,'chat');if(!one('SELECT 1 FROM group_members WHERE group_id=? AND user_id=?',[$group,$u['id']]))fail(403,'Sie sind nicht Mitglied dieser Gruppe.');requireGroupPeriod($u,$group);
 }
 function chatHistory(string $gid,int $before=0,int $after=0): array {
     $where=$before?' AND m.id<?':($after?' AND m.id>?':'');$params=[$gid];if($before||$after)$params[]=$before?:$after;
@@ -26,8 +26,9 @@ function chatHistory(string $gid,int $before=0,int $after=0): array {
     foreach($rows as &$row){$row['attachment']=$row['attachment_id']?['id'=>$row['attachment_id'],'name'=>$row['attachment_name'],'extension'=>$row['extension'],'size'=>(int)$row['size']]:null;unset($row['attachment_id'],$row['attachment_name'],$row['extension'],$row['size']);}unset($row);
     return ['messages'=>$rows,'has_more'=>$more,'revision'=>(int)(one('SELECT revision FROM chat_state WHERE group_id=?',[$gid])['revision']??0)];
 }
-function chatMembers(string $gid): array {
-    return all('SELECT u.id,u.name,CASE WHEN p.touched>? THEN 1 ELSE 0 END online FROM users u JOIN group_members m ON m.user_id=u.id LEFT JOIN chat_presence p ON p.group_id=m.group_id AND p.user_id=u.id WHERE m.group_id=? AND u.active=1 ORDER BY u.name',[time()-60,$gid]);
+function chatMembers(string $gid,?array $viewer=null): array {
+    $members=all('SELECT u.id,u.name,CASE WHEN p.touched>? OR l.touched>? THEN 1 ELSE 0 END online FROM users u JOIN group_members m ON m.user_id=u.id LEFT JOIN chat_presence p ON p.group_id=m.group_id AND p.user_id=u.id LEFT JOIN learning_presence l ON l.user_id=u.id WHERE m.group_id=? AND u.active=1 ORDER BY u.name',[time()-60,time()-60,$gid]);
+    if($viewer&&function_exists('learningLocation'))foreach($members as &$member){try{$member['location']=learningLocation($viewer,$member['id'],$gid);}catch(ApiError){$member['location']=null;}}unset($member);return $members;
 }
 function chatUpload(array $u,array $data): void {
     $gid=textField($data,'group',32);chatAccess($u,$gid);rateLimit('upload.'.$u['id'],20,60);$sharing=chatSharing();

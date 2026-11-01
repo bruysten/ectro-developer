@@ -1,15 +1,16 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/profile.php';
+require_once __DIR__ . '/group-periods.php';
 
 const APP_ROOT = __DIR__ . '/..';
-const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter'];
+const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter', 'data_lab', 'graph', 'ai', 'rag', 'neural'];
 const CONVERTER_FORMATS = ['csv', 'tsv', 'json', 'xml'];
 const FILE_LIMIT = 524288;
 const SPACE_LIMIT = 20971520;
 
 final class ApiError extends RuntimeException {
-    public function __construct(public int $status, string $message) { parent::__construct($message); }
+    public function __construct(public int $status, string $message, public ?string $errorCode=null) { parent::__construct($message); }
 }
 function fail(int $status, string $message): never { throw new ApiError($status, $message); }
 function config(): array {
@@ -110,9 +111,9 @@ function currentUser(): ?array {
     }
     $_SESSION['last_seen'] = time(); return $u;
 }
-function requireUser(bool $admin = false): array {
+function requireUser(bool $admin = false,bool $allowClosed=false): array {
     $u = currentUser(); if (!$u) fail(401, 'Bitte melden Sie sich erneut an.');
-    if ($admin && $u['role'] !== 'admin') fail(403, 'Dieser Bereich ist Administratoren vorbehalten.'); return $u;
+    if ($admin && $u['role'] !== 'admin') fail(403, 'Dieser Bereich ist Administratoren vorbehalten.'); if(!$allowClosed)requireLearningAccess($u);return $u;
 }
 function csrf(): void {
     sessionStart(); $token = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
@@ -138,11 +139,12 @@ function passwordField(array $data, bool $required = true): string {
 function emailField(array $data): string {
     $v = strtolower(textField($data, 'email', 254)); if (!filter_var($v, FILTER_VALIDATE_EMAIL)) fail(422, 'Bitte geben Sie eine gültige E-Mail-Adresse ein.'); return $v;
 }
-function safeUser(array $u): array {
+function safeUser(array $u,bool $activeGroupsOnly=false): array {
+    $groupScope=$activeGroupsOnly&&$u['role']!=='admin'?' AND '.groupOpenSql('g.id'):'';
     return ['profile'=>profileData($u['id']),'id' => $u['id'], 'name' => $u['name'], 'email' => $u['email'], 'role' => $u['role'], 'active' => (bool)$u['active'],
-        'features' => json_decode($u['features'], true),
+        'access'=>learningAccess($u),'features' => json_decode($u['features'], true),
         'created_at' => $u['created_at'], 'last_login' => $u['last_login'], 'must_change_password' => (bool)$u['must_change_password'],
-        'groups' => all('SELECT g.id,g.name FROM groups g JOIN group_members m ON m.group_id=g.id WHERE m.user_id=? ORDER BY g.name', [$u['id']])];
+        'groups' => all('SELECT g.id,g.name FROM groups g JOIN group_members m ON m.group_id=g.id WHERE m.user_id=?'.$groupScope.' ORDER BY g.name', [$u['id']])];
 }
 function sessionHours(): int {
     $hours=settings()['session_hours']??8;
@@ -158,9 +160,9 @@ function phpExecutionMode(): string {
     return (settings()['php_execution_mode'] ?? 'browser') === 'server' ? 'server' : 'browser';
 }
 function features(array $u): array {
-    $s = settings(); $flags = array_fill_keys(FEATURES, true);
+    $s = settings(); $flags = array_fill_keys(FEATURES, true);if(!learningAccess($u)['allowed'])return array_fill_keys(FEATURES,false);
     foreach (($s['features'] ?? []) as $f => $v) if (array_key_exists($f, $flags)) $flags[$f] = (bool)$v;
-    foreach (all('SELECT g.features FROM groups g JOIN group_members m ON g.id=m.group_id WHERE m.user_id=?', [$u['id']]) as $g)
+    foreach (all('SELECT g.features FROM groups g JOIN group_members m ON g.id=m.group_id WHERE m.user_id=? AND '.groupOpenSql('g.id'), [$u['id']]) as $g)
         foreach (json_decode($g['features'], true) as $f => $v) if (isset($flags[$f]) && !$v) $flags[$f] = false;
     foreach (json_decode($u['features'], true) as $f => $v) if (isset($flags[$f]) && !$v) $flags[$f] = false;
     return $flags;
@@ -174,6 +176,7 @@ function converterFormatsInput(mixed $formats): array {
     return array_values(array_filter(CONVERTER_FORMATS,fn($format)=>in_array($format,$formats,true)));
 }
 function needFeature(array $u, string $feature): void {
+    requireLearningAccess($u);
     if (!features($u)[$feature]) fail(403, 'Diese Funktion ist für Ihren Zugang nicht freigegeben.');
 }
 function featureInput(mixed $flags): string {
@@ -193,26 +196,31 @@ function audit(?string $uid, string $event, array $details = []): void {
     query('INSERT INTO events(user_id,event,details,created_at) VALUES(?,?,?,?)', [$uid, $event, json_encode($details), now()]);
 }
 function teacherTarget(array $u,string $target,string $gid): void {
-    if($u['role']!=='teacher'||!one("SELECT 1 FROM users t JOIN group_members student ON student.user_id=t.id JOIN group_members teacher ON teacher.group_id=student.group_id WHERE t.id=? AND t.role IN ('user','teacher') AND teacher.user_id=? AND student.group_id=?",[$target,$u['id'],$gid]))fail(403,'Dieser Teilnehmer gehört keiner Ihrer ausgewählten Gruppen an.');
+    requireLearningAccess($u);
+    if($u['role']!=='teacher'||!one("SELECT 1 FROM users t JOIN group_members student ON student.user_id=t.id JOIN group_members teacher ON teacher.group_id=student.group_id WHERE t.id=? AND t.role IN ('user','teacher') AND teacher.user_id=? AND student.group_id=?",[$target,$u['id'],$gid]))fail(403,'Dieser Teilnehmer gehört keiner Ihrer ausgewählten Gruppen an.');requireGroupPeriod($u,$gid);
 }
 function teacherParticipants(array $u): array {
     if($u['role']!=='teacher')fail(403,'Diese Ansicht ist Lehrern vorbehalten.');
-    $groups=all('SELECT g.id,g.name FROM groups g JOIN group_members m ON m.group_id=g.id WHERE m.user_id=? ORDER BY g.name',[$u['id']]);
+    $groups=all('SELECT g.id,g.name FROM groups g JOIN group_members m ON m.group_id=g.id WHERE m.user_id=? AND '.groupOpenSql('g.id').' ORDER BY g.name',[$u['id']]);
     foreach($groups as &$group)$group['members']=all("SELECT u.id,u.name,u.role FROM users u JOIN group_members m ON m.user_id=u.id WHERE m.group_id=? AND u.id<>? AND u.role IN ('user','teacher') ORDER BY u.name,u.id",[$group['id'],$u['id']]);unset($group);return $groups;
 }
 function project(array $u, string $pid): array {
-    $p=one("SELECT p.*,g.name group_name,owner.name owner_name FROM projects p LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users owner ON owner.id=p.user_id WHERE p.id=? AND (p.user_id=? OR EXISTS(SELECT 1 FROM group_members m WHERE m.group_id=p.group_id AND m.user_id=?) OR (?='teacher' AND owner.role IN ('user','teacher') AND EXISTS(SELECT 1 FROM group_members student JOIN group_members teacher ON teacher.group_id=student.group_id WHERE student.user_id=p.user_id AND teacher.user_id=?)))",[$pid,$u['id'],$u['id'],$u['role']==='teacher'&&features($u)['files']?'teacher':'user',$u['id']]);if(!$p)fail(404,'Projekt nicht gefunden.');return $p;
+    requireLearningAccess($u);
+    if($u['role']==='admin'){$p=one('SELECT p.*,g.name group_name,owner.name owner_name FROM projects p LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users owner ON owner.id=p.user_id WHERE p.id=?',[$pid]);if(!$p)fail(404,'Projekt nicht gefunden.');return $p;}
+    $p=one("SELECT p.*,g.name group_name,owner.name owner_name FROM projects p LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users owner ON owner.id=p.user_id WHERE p.id=? AND (p.user_id=? OR EXISTS(SELECT 1 FROM group_members m WHERE m.group_id=p.group_id AND m.user_id=? AND ".groupOpenSql('m.group_id').") OR (?='teacher' AND owner.role IN ('user','teacher') AND EXISTS(SELECT 1 FROM group_members student JOIN group_members teacher ON teacher.group_id=student.group_id WHERE student.user_id=p.user_id AND teacher.user_id=? AND ".groupOpenSql('student.group_id').")))",[$pid,$u['id'],$u['id'],$u['role']==='teacher'&&features($u)['files']?'teacher':'user',$u['id']]);if(!$p)fail(404,'Projekt nicht gefunden.');return $p;
 }
 function visibleProjects(array $u,string $target='',string $gid=''): array {
-    if($target&&$target!==$u['id']){teacherTarget($u,$target,$gid);return all("SELECT p.*,g.name group_name,owner.name owner_name,(SELECT COUNT(*) FROM files f WHERE f.project_id=p.id AND f.kind IN ('file','asset')) file_count FROM projects p LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users owner ON owner.id=p.user_id WHERE p.user_id=? OR p.group_id=? ORDER BY p.updated_at DESC",[$target,$gid]);}
-    return all("SELECT p.*,g.name group_name,(SELECT COUNT(*) FROM files f WHERE f.project_id=p.id AND f.kind IN ('file','asset')) file_count FROM projects p LEFT JOIN groups g ON g.id=p.group_id WHERE p.user_id=? OR EXISTS(SELECT 1 FROM group_members m WHERE m.group_id=p.group_id AND m.user_id=?) ORDER BY p.updated_at DESC",[$u['id'],$u['id']]);
+    if($target&&$target!==$u['id']){teacherTarget($u,$target,$gid);return all("SELECT p.*,g.name group_name,owner.name owner_name,(SELECT COUNT(*) FROM files f WHERE f.project_id=p.id AND f.kind IN ('file','asset')) file_count,(SELECT COUNT(*) FROM lab_objects o WHERE o.project_id=p.id) lab_count,(SELECT json_extract(c.config,'$.entry') FROM lab_project_config c WHERE c.project_id=p.id) lab_entry FROM projects p LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users owner ON owner.id=p.user_id WHERE p.user_id=? OR p.group_id=? ORDER BY p.updated_at DESC",[$target,$gid]);}
+    return all("SELECT p.*,g.name group_name,(SELECT COUNT(*) FROM files f WHERE f.project_id=p.id AND f.kind IN ('file','asset')) file_count,(SELECT COUNT(*) FROM lab_objects o WHERE o.project_id=p.id) lab_count,(SELECT json_extract(c.config,'$.entry') FROM lab_project_config c WHERE c.project_id=p.id) lab_entry FROM projects p LEFT JOIN groups g ON g.id=p.group_id WHERE p.user_id=? OR EXISTS(SELECT 1 FROM group_members m WHERE m.group_id=p.group_id AND m.user_id=? AND ".groupOpenSql('m.group_id').") ORDER BY p.updated_at DESC",[$u['id'],$u['id']]);
 }
 function projectManager(array $u,array $p,bool $deleting=false): void {
     if(!$p['group_id']&&$p['user_id']!==$u['id']&&$deleting)fail(403,'Nur der Eigentümer kann dieses persönliche Projekt löschen.');
     if ($p['group_id'] && $u['role']!=='admin' && $p['created_by']!==$u['id']) fail(403,'Nur der Ersteller oder ein Administrator kann dieses Gruppenprojekt umbenennen oder löschen.');
 }
 function workspaceBytes(array $p): int {
-    return (int)query('SELECT COALESCE(SUM(length(CAST(f.content AS BLOB))+COALESCE(a.size,0)),0) FROM files f JOIN projects p ON p.id=f.project_id LEFT JOIN workspace_uploads a ON a.file_id=f.id WHERE '.($p['group_id']?'p.group_id=?':'p.user_id=?'),[$p['group_id']?:$p['user_id']])->fetchColumn();
+    $labBytes=(int)query('SELECT COALESCE(SUM(length(CAST(content AS BLOB))),0) FROM lab_objects WHERE project_id IN (SELECT id FROM projects WHERE '.($p['group_id']?'group_id=?':'user_id=?').')',[$p['group_id']?:$p['user_id']])->fetchColumn();
+    $aiBytes=(int)query("SELECT COALESCE(SUM(CASE WHEN state='running' THEN 1048576 ELSE COALESCE(length(CAST(result AS BLOB)),0) END),0) FROM ai_calls WHERE project_id IN (SELECT id FROM projects WHERE ".($p['group_id']?'group_id=?':'user_id=?').')',[$p['group_id']?:$p['user_id']])->fetchColumn();
+    return $labBytes+$aiBytes+(int)query('SELECT COALESCE(SUM(length(CAST(f.content AS BLOB))+COALESCE(a.size,0)),0) FROM files f JOIN projects p ON p.id=f.project_id LEFT JOIN workspace_uploads a ON a.file_id=f.id WHERE '.($p['group_id']?'p.group_id=?':'p.user_id=?'),[$p['group_id']?:$p['user_id']])->fetchColumn();
 }
 function filePath(string $path): string {
     if (!$path || strlen($path) > 240 || !preg_match('~^[\pL\pN _./-]+$~u', $path) || str_starts_with($path, '/') || str_contains($path, '//')) fail(422, 'Bitte verwenden Sie einen relativen Dateinamen ohne Sonderzeichen.');

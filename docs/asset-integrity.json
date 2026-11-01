@@ -1,7 +1,7 @@
 {
   "public/assets/THIRD-PARTY-LICENSES.txt": "823083c3993d4f76e676e56db3c8162b87ac00bd3f900229e8260f66b87f759b",
-  "public/assets/app.css": "977291433b426357c387bb12d4d2a95914ae694aa66e147896d29d707644f8c9",
-  "public/assets/app.js": "42015f6223de996ee8042ed156689abdcb95c9279190873aa4cbbe25b4bd298b",
+  "public/assets/app.css": "d343379d2373eb28ca2d311d079825ad4099a0c02344c3cadcef65814571ebc1",
+  "public/assets/app.js": "4b26e41a39712b86c1b38fc7eb51940ded11f49caf5a0c58f3064740430d2f07",
   "public/assets/brand/logo-dark.svg": "2b33fd5248db698e5f95a19bb12af84defbf8c787c8292fefa7c87c48ffc1371",
   "public/assets/brand/logo-icon.svg": "43003eecd874d3596644157d68a4647ac0d0f0bd6e7f2336fde0a68b04c6fe7e",
   "public/assets/brand/logo.svg": "9922ed33c6eb5368728190460a965f7a4df48e43633209501363025636648511",
@@ -26,6 +26,7 @@
   "public/assets/fonts/font-8.ttf": "ec926d5065eaca49a48f96e312bbae0bbc5733c24215cf5dfabbdccee926fef7",
   "public/assets/fonts/font-9.ttf": "3e699ead1876244fa392243054ddefe7cf631b488438828a8a100731a22ab995",
   "public/assets/fonts/fonts.css": "1087be68214fb72023ef3a5323d520eb8d017738e3591290fd0f34175f122ea7",
+  "public/assets/lab-worker.js": "a332ce7cb2562a087da035d67ad9c84e08cb43ee8529bf678330f4f13b45a2bb",
   "public/assets/licenses/CPYTHON-LICENSE": "78b12c3a81360b357002334f0e70ea0e92eebf7a9b358805c03c48484945f3bb",
   "public/assets/licenses/GEIST-OFL.txt": "1781d2806a07d91c4edf4740b88449fab7d0eadad53f7c351b94cd4d4eb8c00f",
   "public/assets/licenses/JETBRAINS-MONO-OFL.txt": "b2fe5e8987594e9ffd1d2ca52a2f5d73eb8335243893c5d6254b5ad69269591d",
@@ -34,7 +35,7 @@
   "public/assets/licenses/PYODIDE-LICENSE": "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5",
   "public/assets/licenses/SPACE-GROTESK-OFL.txt": "564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72",
   "public/assets/pdf-preview.js": "11a5ee686eea26e81019e8f2126dfd3ea32f93235a48b009ae3c828502a0a0cb",
-  "public/assets/preview.js": "7df15450e94ad286dd530f9e1affb98d13eebab659e0d5b724ed163df63cb85f",
+  "public/assets/preview.js": "0f0b9f4cd71bf61f24946c08d5be671375496be7b2995a47cab04e137a0fab92",
   "public/assets/runtime/.htaccess": "01ce3d1551f6cfe61232a9d2f1fe124250416910c0be9c1f3e49451dcd66598e",
   "public/assets/runtime/pdf/fonts/FoxitDingbats.pfb": "845c752392b6c914fb989c75a08b7792b88f542d2499042ef2889f8c814a16ed",
   "public/assets/runtime/pdf/fonts/FoxitFixed.pfb": "b6c8fe53f134b8b6d4578cd2d544df4cee9624c4efa8d51a560fb40ea296101b",
@@ -61,5 +62,6 @@
   "public/assets/runtime/python/pyodide.asm.wasm": "5effb6a1a6cc4a1a85bec4622701aa797c031e1de923cbbaf2ad47abdc4ab325",
   "public/assets/runtime/python/pyodide.js": "24a458425dcb4ea9836eb5ce26701d18cb769374e2b79247602ba605bf093278",
   "public/assets/runtime/python/python_stdlib.zip": "71fee17f88a6260ec8c9c7c063533ee59c021fdc88a1ce76247378d3c4a35f4c",
+  "public/assets/vector-worker.js": "dbcfe96c01d0627aef93a2de61551dcebf4c0f82c4148769c4b3e1d291d89a05",
   "app/certs/hetzner-mysql-ca.pem": "1da43be7f918ae2226a5f689d64535e2e3846b8ba2b15c2e4faed5c7f247f5b8"
 }

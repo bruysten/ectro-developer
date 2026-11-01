@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {networkExample,trainEpoch,evaluate,forward} from '../src/neural.js';
+import {quality,queryDataset,joinDatasets,chunks,cosine} from '../src/lab-data.js';
+const net=networkExample('xor'),before=evaluate(net).train.loss;
+for(let i=0;i<12000;i++)trainEpoch(net,.7);
+assert(evaluate(net).train.loss<before/20,'Backpropagation must learn XOR');
+assert(forward(net,[0,1]).at(-1)[0]>.8);
+assert(forward(net,[1,1]).at(-1)[0]<.2);
+const held=networkExample('numbers');held.samples=held.samples.map(s=>({...s,test:true}));assert.throws(()=>trainEpoch(held),/Trainingsbeispiel/);
+const data={columns:[{name:'name',type:'text'},{name:'value',type:'number'}],rows:[{name:'A',value:2},{name:'A',value:3},{name:'B',value:null},{name:'B',value:'bad'},{name:'A',value:2}]};
+assert.deepEqual(quality(data).map(i=>i.kind),['missing','type','duplicate']);
+assert.deepEqual(queryDataset(data,{group:'name',aggregate:'sum',measure:'value'}),[{name:'A',sum:7},{name:'B',sum:0}]);
+assert.equal(queryDataset(data,{column:'value',operator:'gte',term:'3'}).length,1);
+assert.equal(joinDatasets(data,{columns:[{name:'key',type:'text'}],rows:[{key:'A'}]},'name','key').rows.length,3);
+assert.equal(cosine([1,0],[0,1]),0);assert.equal(cosine([1,0],[1,0]),1);assert.throws(()=>cosine([1],[1,2]));
+const text='a'.repeat(130),parts=chunks(text,60,10);assert.equal(parts.length,3);assert.equal(parts[1].start,50);assert.throws(()=>chunks(text,60,60));
+assert.equal(networkExample('letters').samples[0].input.length,64);
+console.log('Learning algorithms verified: XOR, held-out data, joins, quality, chunking and vector similarity.');

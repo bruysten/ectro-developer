@@ -18,7 +18,7 @@ function practiceDatabase(array $u): PDO {
 function seedPractice(PDO $pdo): void {
     $pdo->exec("INSERT INTO produkte(name,kategorie,preis,bestand) VALUES('Notizbuch','Büro',8.5,24),('Trinkflasche','Alltag',19.9,12),('Schreibtischlampe','Büro',39,6);INSERT INTO kontakte(name,email,stadt) VALUES('Mara','mara@example.test','Berlin'),('Jonas','jonas@example.test','Hamburg'),('Lina','lina@example.test','Berlin')");
 }
-function trainingConnection(array $u,string $mode): PDO {return match($mode){'practice'=>practiceDatabase($u),'mysql'=>mysqlConnection($u),default=>throw new ApiError(422,'Unbekannter Arbeitsbereich.')};}
+function trainingConnection(array $u,string $mode): PDO {return match($mode){'practice'=>practiceDatabase($GLOBALS['academyDbUser']??$u),'mysql'=>mysqlConnection($u),default=>throw new ApiError(422,'Unbekannter Arbeitsbereich.')};}
 function trainingTables(PDO $pdo,string $mode): array {return $mode==='practice'?['produkte','kontakte']:array_values(array_filter($pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN),fn($t)=>preg_match('/^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/',$t)));}
 function trainingColumns(PDO $pdo,string $mode,string $table): array {
     if(!in_array($table,trainingTables($pdo,$mode),true))fail(404,'Tabelle nicht gefunden.');
