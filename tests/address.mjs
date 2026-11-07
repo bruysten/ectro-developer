@@ -43,5 +43,18 @@ for(const file of readdirSync(new URL('../src/',import.meta.url)).filter(f=>f.en
     }
   }});
 }
+// Exercise the real periodic refresh with the chat's actual closed state:
+// its panel has no hidden attribute, but is inert and lacks .is-open.
+const appSource=readFileSync(new URL('../src/app.js',import.meta.url),'utf8');
+const refreshSource=appSource.slice(appSource.indexOf('async function checkAccessWindow(){'),appSource.indexOf('function showAccessWindow('));
+async function refreshScenario(patch={}){
+  const context={user:{id:'learner',address:{mode:'formal'}},refresh:0,armed:0,dirty:false,dialog:false,chat:false,draft:'',page:'#editor',...patch};
+  const doc={querySelector:selector=>selector==='dialog[open]'?(context.dialog?{}:null):selector==='.chat-bubble-panel.is-open'?(context.chat?{}:null):selector==='.chat-bubble-panel:not([hidden])'?{}:null};
+  const run=new Function('api','$','document','context',`let user=context.user,dirty=context.dirty,csrf,flags,accessTimer;const admin=false,accessScreen=false,location={hash:context.page};const getAddressMode=()=>context.mode||'formal',setAddressMode=()=>{},shell=()=>context.refresh++,route=async()=>{},boot=async()=>{},showAccessWindow=()=>{};const armAccessWindow=()=>context.armed++,setTimeout=()=>0;${refreshSource};return checkAccessWindow;`)(async()=>({csrf:'fixture',user:{id:'learner',access:{allowed:true},address:{mode:'informal'},groups:[]},features:{}}),()=>context.draft?{value:context.draft}:null,doc,context);
+  await run();return context;
+}
+assert.equal((await refreshScenario()).refresh,1,'A closed chat must allow automatic address refresh');
+for(const protection of [{dirty:true},{dialog:true},{chat:true},{draft:'unsent'},{page:'#chat'}]){const result=await refreshScenario(protection);assert.equal(result.refresh,0,'Protect open work '+JSON.stringify(protection));assert.equal(result.user.address.mode,'informal','Keep the new preference pending for the next safe route');}
+assert.equal((await refreshScenario({mode:'informal'})).refresh,0,'Unchanged address does not redraw work');
 const result=spawnSync('php',['tests/group-address.php'],{encoding:'utf8'});assert.equal(result.status,0,result.stdout+result.stderr);process.stdout.write(result.stdout);
 console.log(`${copy.length} copy pairs and ${owned} owned source literals verified; dynamic text, quoted content and third-person references preserved.`);

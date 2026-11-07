@@ -140,7 +140,7 @@ function armAccessWindow(){
 }
 async function checkAccessWindow(){
   const uid=user?.id;if(!uid)return;
-  try{const fresh=await api('bootstrap');if(user?.id!==uid)return;csrf=fresh.csrf;if(!fresh.user){user=null;await boot();return;}const wasClosed=accessScreen;user.access=fresh.user.access;user.address=fresh.user.address;user.groups=fresh.user.groups;flags=fresh.features;if(!user.access.allowed){setAddressMode(admin?'formal':fresh.user.address?.mode);showAccessWindow(fresh.user);return;}if(wasClosed){await boot();return;}if(!admin&&getAddressMode()!==user.address?.mode&&!dirty&&!document.querySelector('dialog[open]')&&!$('#message')?.value.trim()&&!document.querySelector('.chat-bubble-panel:not([hidden])')&&!location.hash.startsWith('#chat')){shell();await route();}armAccessWindow();}
+  try{const fresh=await api('bootstrap');if(user?.id!==uid)return;csrf=fresh.csrf;if(!fresh.user){user=null;await boot();return;}const wasClosed=accessScreen;user.access=fresh.user.access;user.address=fresh.user.address;user.groups=fresh.user.groups;flags=fresh.features;if(!user.access.allowed){setAddressMode(admin?'formal':fresh.user.address?.mode);showAccessWindow(fresh.user);return;}if(wasClosed){await boot();return;}if(!admin&&getAddressMode()!==user.address?.mode&&!dirty&&!document.querySelector('dialog[open]')&&!$('#message')?.value.trim()&&!document.querySelector('.chat-bubble-panel.is-open')&&!location.hash.startsWith('#chat')){shell();await route();}armAccessWindow();}
   catch{if(user?.id===uid)accessTimer=setTimeout(checkAccessWindow,30000);}
 }
 function showAccessWindow(account){
