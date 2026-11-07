@@ -1,0 +1,55 @@
+/* Administration: constrain intrinsic widths and keep long forms usable. */
+.admin-surface .main,.admin-surface #view,.admin-surface .content { min-width:0; }
+.admin-surface :is(.page-head,.section-head)>* { min-width:0; }
+.admin-surface :is(h1,h2,h3,h4) { overflow-wrap:anywhere;hyphens:auto; }
+.admin-surface :is(.two-col,.form-grid) { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.admin-surface :is(.two-col,.form-grid,.stats-grid)>*,.admin-surface .panel { min-width:0; }
+.admin-surface :is(.panel p,.notice,.stat small,.activity-item>span,.lab-list-row) { overflow-wrap:anywhere; }
+.admin-surface .table-wrap { max-width:100%;overscroll-behavior-inline:contain; }
+.admin-surface .table-wrap:focus-visible { outline:2px solid var(--accent);outline-offset:3px; }
+.admin-surface .admin-table-hint { margin:12px 0 8px;font-size:11px;line-height:1.6;color:var(--text-muted); }
+.admin-surface .admin-table-hint[hidden] { display:none; }
+.admin-surface .toolbar>.field { min-width:min(180px,100%);max-width:100%; }
+.admin-surface .section-head { flex-wrap:wrap; }
+.admin-surface dialog { width:min(560px,calc(100vw - 32px));max-width:calc(100vw - 16px);max-height:calc(100dvh - 32px);overflow:hidden; }
+.admin-surface dialog>form { display:flex;flex-direction:column;max-height:calc(100dvh - 34px);min-height:0; }
+.admin-surface dialog .dialog-head,.admin-surface dialog .dialog-foot { flex:none; }
+.admin-surface dialog .dialog-head { gap:16px;align-items:flex-start; }
+.admin-surface dialog .dialog-head h2 { min-width:0;max-height:min(160px,24dvh);overflow:auto;overscroll-behavior:contain; }
+.admin-surface dialog .dialog-head>.icon-btn { flex:none; }
+.admin-surface dialog .dialog-body { flex:1;min-height:0;overflow:auto;overscroll-behavior:contain; }
+.admin-surface dialog .dialog-foot { flex-wrap:wrap; }
+.admin-surface dialog .dialog-foot .es-btn { max-width:100%;white-space:normal;line-height:1.4; }
+.admin-surface dialog :is(.field,.assignment-field) { min-width:0; }
+.admin-surface dialog :is(input,select,textarea) { max-width:100%;min-width:0; }
+.admin-surface dialog:is(.profile-dialog,.mail-template-dialog,.group-permissions-dialog) { width:min(1040px,calc(100vw - 32px)); }
+.admin-surface dialog.chat-preview-dialog { width:min(940px,calc(100vw - 32px)); }
+.admin-surface .chart { gap:6px; }
+@media(max-width:850px){
+ .admin-surface .two-col { grid-template-columns:minmax(0,1fr); }
+}
+@media(max-width:700px){
+ .admin-surface .page-head { align-items:flex-start;flex-direction:column;gap:16px; }
+ .admin-surface .page-head>div,.admin-surface .page-head>.toolbar { max-width:100%; }
+ .admin-surface .page-head :is(.toolbar,.es-btn) { max-width:100%; }
+ .admin-surface .form-grid { grid-template-columns:minmax(0,1fr); }
+ .admin-surface .panel { padding:20px; }
+ .admin-surface .stat { padding:18px; }
+ .admin-surface .project-card { padding:16px; }
+ .admin-surface .project-card .card-foot { flex-wrap:wrap;gap:12px; }
+ .admin-surface .project-card .card-foot>div { display:flex;flex-wrap:wrap;gap:6px;flex:1 0 100%; }
+ .admin-surface .project-card .card-foot>div>.icon-btn { flex:none;width:44px;height:44px; }
+ .admin-surface .activity-item { gap:12px;align-items:flex-start;flex-wrap:wrap; }
+ .admin-surface .activity-item time { flex:none; }
+ .admin-surface .lab-list-row { gap:12px;align-items:flex-start;flex-wrap:wrap; }
+ .admin-surface dialog { width:calc(100vw - 16px);max-height:calc(100dvh - 16px); }
+ .admin-surface dialog>form { max-height:calc(100dvh - 18px); }
+ .admin-surface dialog .dialog-head,.admin-surface dialog .dialog-body,.admin-surface dialog .dialog-foot { padding:20px; }
+ .admin-surface dialog .dialog-head h2 { font-size:22px; }
+ .admin-surface dialog .dialog-foot { gap:8px; }
+ .admin-surface dialog .dialog-foot .es-btn { min-height:40px; }
+}
+@media(max-width:400px){
+ .admin-surface .chart { gap:4px; }
+ .admin-surface .chart-column:not(:first-child):not(:nth-child(5)):not(:nth-child(9)):not(:last-child) span { visibility:hidden; }
+}
