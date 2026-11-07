@@ -55,3 +55,14 @@ assert.match(csvText([{name:'A;B',quote:'"x"'}]),/"A;B"/);assert.ok(csvText([{fo
 const examples=Object.fromEntries(['conversation','assistant','evaluation','reasoning','visualization','journey'].map(k=>[k,studioExample(k)]));
 const contract=spawnSync('php',['tests/studio.php'],{input:JSON.stringify(examples),encoding:'utf8'});assert.equal(contract.status,0,contract.stdout+contract.stderr);process.stdout.write(contract.stdout);
 console.log('Studio models verified: all 15 views, full aggregates, nulls, negatives, safe text, quote checks and four interpretation lessons.');
+
+// Exercise the real selection handler with the empty record shape returned by
+// the API. Named properties on an Array would disappear during JSON saving.
+const {mountReasoning}=await import('../src/studio-reasoning.js');
+const reasoningContent={lesson:'sampling',responses:[],notes:''},answerInput={value:'1'},elements=new Map();let answerChanges=0;
+const exerciseRoot={innerHTML:'',querySelector(selector){if(!elements.has(selector))elements.set(selector,{innerHTML:'',hidden:false,addEventListener(){}});return elements.get(selector);},querySelectorAll:selector=>selector==='[name="interpretation"]'?[answerInput]:[]};
+await mountReasoning(exerciseRoot,{content:reasoningContent,state:{},changed:()=>answerChanges++});
+answerInput.onchange();assert.deepEqual(JSON.parse(JSON.stringify(reasoningContent.responses)),{sampling:1});
+answerInput.value='0';answerInput.onchange();assert.deepEqual(JSON.parse(JSON.stringify(reasoningContent.responses)),{sampling:0});
+assert.equal(answerChanges,2);
+console.log('Reasoning interpretation verified: first and revised choices survive JSON serialization from an empty API record.');
