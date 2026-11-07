@@ -1,3 +1,4 @@
+import './modal.mjs';
 import assert from 'node:assert/strict';
 import {cropGeometry} from '../src/profile-picture.js';
 let checks=0;
