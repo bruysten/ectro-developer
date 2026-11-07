@@ -31,9 +31,9 @@ Stand: 07.11.2026. Grundlage: [Data & AI Professional, Akademie der Deutschen Me
 |---|---|---|---|
 | Datensichten und Strategie | 15 Ansichten einschließlich Strategiekurve und vier bearbeitbarer Handlungsfelder | Direkt | Anwendungsfälle mit echten Kundenbelegen statt ausschließlich eigener Strategiebewertungen. |
 | Darstellungswahl | Zweckbasierte Auswahl, Einsatzhinweise und Schutz gegen ungeeignete Kombinationen | Direkt | Weitere Lernfälle zu Achsenmanipulation, Unsicherheitsdarstellung und Gestaltungsfehlern. |
-| Kundenweg und Kontakte | Journey mit Persona, Phasen, Touchpoints, Stimmung, Hürden, Verbesserungen und Belegen | Direkt | Erhebung und Auswertung echter Interviews sowie automatische Messdatenverknüpfung. |
+| Kundenweg und Kontakte | Journey mit Phasen, Touchpoints, Stimmung und Belegen; projektweite Persona-Bibliothek mit fünf Modellen, Vergleich und wiederverwendbaren Profilständen | Direkt | Erhebung und Auswertung echter Interviews, Belege je Aussage, automatische Messdatenverknüpfung und Vergleich mehrerer Persona-Journeys. |
 | Interface-Gestaltung | Bestehendes Web-Prototyping; klare praktische Oberflächen in den neuen Laboren | Direkt | Geführte Gestaltungsübungen für Teilnehmende ohne Codekenntnisse. |
-| UX-Methodik | Kundenperspektive und dokumentierte Verbesserungen im Journey Lab | Teilweise | Nutzertestplanung, Beobachtungsprotokolle und empirischer Vergleich von Varianten. |
+| UX-Methodik | Ziele, Verhalten, Jobs-to-be-done, Empathie und Unterstützungsbedarf im Persona-Designer; explizite Annahmen und Belege; dokumentierte Journey-Verbesserungen | Teilweise | Nutzertestplanung, Beobachtungsprotokolle, empirischer Variantenvergleich und methodisch validierte Segmentierung. Ein umfangreiches Profil allein ist keine Nutzerforschung. |
 | Medienausgabe | Web, JSON, CSV und exportierbare SVG-Grafiken | Teilweise | Ein zusammenhängender Ergebnisbericht sowie PDF-/Präsentationsausgabe. |
 
 ## Erschließung und Integration
@@ -63,7 +63,7 @@ Stand: 07.11.2026. Grundlage: [Data & AI Professional, Akademie der Deutschen Me
 
 | Kurselement | Unterstützung nach der Erweiterung | Bewertung | Noch sinnvoll |
 |---|---|---|---|
-| Marketing und Produkt | Vertriebsbeispiel, Strategiekurve und Journey mit Verbesserungen und Erfolgskriterien | Teilweise | Vollständige Fälle zu Segmenten, Experimenten, Kampagnen und Produktentscheidungen. |
+| Marketing und Produkt | Vertriebsbeispiel, Strategiekurve, Persona-Vergleich und separate persona-bezogene Journeys mit Verbesserungen und Erfolgskriterien | Teilweise | Vollständige Fälle zu empirisch begründeten Segmenten, Experimenten, Kampagnen und Produktentscheidungen. |
 | Datenbasierte Modelle | Strategische Angebotsvergleiche und praktische Demonstratoren | Teilweise | Erlöslogik, Kosten, Nutzenhypothesen, Wirtschaftlichkeit und messbare Validierung. |
 | Fachliches Modelling | Strategie-Handlungsfelder und Journey-Struktur | Teilweise | Eigenständiger Value Proposition Canvas und Service-Blueprint mit Front-/Backstage und Unterstützungsprozessen. |
 
@@ -79,5 +79,7 @@ Stand: 07.11.2026. Grundlage: [Data & AI Professional, Akademie der Deutschen Me
 ## Evidenz und Grenzen
 
 Die Implementierung und die konkreten Grenzen sind in [Erweiterte Projektlabore](learning-studios.md) dokumentiert. Der gemeinsame Rechtekatalog enthält sechs zusätzliche unabhängige Gruppenrechte. Projektvorlagen unterstützen alle neuen Laborarten und Startinhalte. Die bestehenden Sperren der jeweils verwendeten Datenquelle gelten zusätzlich.
+
+Der [Persona-Designer](persona-designer.md) erweitert das Journey-Labor unter derselben Freigabe. Die fünf Arbeitsmodelle und ihre Forschungsgrundlagen sind dort verlinkt. Gespeicherte Profilstände machen die Perspektive einer Journey nachvollziehbar; sie liefern keine automatische inhaltliche Validierung der Persona oder ihrer Annahmen.
 
 Die automatisierten Prüfungen umfassen Kern-API, bestehende Labore, neue HTTP-Zugriffe, Migration, alle 15 Datensichten, Quellenisolation, Versionskonflikte, Gesprächshistorien, Wiederholungsschutz und Anbieter-Verträge. Anbieteraufrufe wurden synthetisch geprüft. Der optionale echte MariaDB-Test benötigt den isolierten CI-Service. Produktion, reale Providerkapazität und vollständige Browser-/Geräteabdeckung sind nicht aus lokalen Prüfungen ableitbar.

@@ -63,6 +63,19 @@ with tempfile.TemporaryDirectory(prefix='ectro-studio-http-') as private:
         check(next(p for p in alice.ok('projects')['projects'] if p['id']==seeded)['lab_entry']=='visualization','New studio template entry survives project creation')
         check(alice.call('lab.save',{'project':seeded,'kind':'conversation','name':'Forbidden','content':{'messages':[]}})[0]==403,'Template tool restriction protects other labs')
         check(alice.call('studio.sources',{'project':seeded,'kind':'assistant'})[0]==403,'Source APIs respect project tool restrictions')
+        persona_content={'name':'HTTP Persona','model':'jobs','goal':'Find a course','context':'Little time','fields':{'job':'Learn with project data'}}
+        persona=alice.ok('studio.persona.save',{'project':pid,'content':persona_content})['persona']
+        check(alice.call('studio.persona.save',{'project':pid,'content':persona_content},csrf=False)[0]==403,'Persona writes require CSRF')
+        check(bob.call('studio.personas',{'project':pid})[0]==404,'Persona library is isolated by project access')
+        check(alice.call('studio.personas',{'project':seeded})[0]==403,'Project tools restrict persona library')
+        check(alice.ok('studio.personas',{'project':pid})['personas'][0]['id']==persona['id'],'Saved profile is listed')
+        check(alice.call('studio.persona.save',{'project':pid,'id':persona['id'],'version':0,'content':persona_content})[0]==409,'Stale persona edits cannot overwrite current version')
+        archived=alice.ok('studio.persona.archive',{'project':pid,'id':persona['id'],'version':1,'archived':True})['persona']
+        check(archived['archived'] and archived['version']==2,'HTTP archive preserves profile and advances version')
+        group=next(g for g in admin.ok('admin.groups')['groups'] if g['id']==gid)
+        admin.ok('admin.group.features.save',{'id':gid,'version':group['version'],'features':{'journey_lab':False}})
+        check(alice.call('studio.personas',{'project':pid})[0]==403,'Revocation blocks existing persona session')
+        check(alice.call('studio.persona.archive',{'project':pid,'id':persona['id'],'version':2,'archived':False})[0]==403,'Revocation also protects persona mutations')
         print(f'{checks} studio HTTP, CSRF, source isolation, revocation and template checks passed.')
     finally:
         os.killpg(server.pid,signal.SIGTERM);server.wait(timeout=5)

@@ -1,7 +1,7 @@
 {
   "public/assets/THIRD-PARTY-LICENSES.txt": "823083c3993d4f76e676e56db3c8162b87ac00bd3f900229e8260f66b87f759b",
   "public/assets/app.css": "9c353da2a7e3194d9d546f281cd6fcdcf24add8aa3400b8e595273fd6723c804",
-  "public/assets/app.js": "3029e355da1b23944fa95f08ba1764e0de00a34ee97944c5fa278723815e2b4d",
+  "public/assets/app.js": "be1aa4cd6b6656c8d918f15f1bcf766d22ddd86eb532c50556dd7c9c728fad0e",
   "public/assets/brand/logo-dark.svg": "2b33fd5248db698e5f95a19bb12af84defbf8c787c8292fefa7c87c48ffc1371",
   "public/assets/brand/logo-icon.svg": "43003eecd874d3596644157d68a4647ac0d0f0bd6e7f2336fde0a68b04c6fe7e",
   "public/assets/brand/logo.svg": "9922ed33c6eb5368728190460a965f7a4df48e43633209501363025636648511",
@@ -62,7 +62,7 @@
   "public/assets/runtime/python/pyodide.asm.wasm": "5effb6a1a6cc4a1a85bec4622701aa797c031e1de923cbbaf2ad47abdc4ab325",
   "public/assets/runtime/python/pyodide.js": "24a458425dcb4ea9836eb5ce26701d18cb769374e2b79247602ba605bf093278",
   "public/assets/runtime/python/python_stdlib.zip": "71fee17f88a6260ec8c9c7c063533ee59c021fdc88a1ce76247378d3c4a35f4c",
-  "public/assets/studio.css": "43cef4283d9deab963a0b5d5f4fdde6c8babd9ade63e4edb16fd6a988bfe4b68",
+  "public/assets/studio.css": "11df4c2cfa261b7be0f801a69ee7759c2dd23efd22fb35ceb079a77b1e548aba",
   "public/assets/vector-worker.js": "dbcfe96c01d0627aef93a2de61551dcebf4c0f82c4148769c4b3e1d291d89a05",
   "app/certs/hetzner-mysql-ca.pem": "1da43be7f918ae2226a5f689d64535e2e3846b8ba2b15c2e4faed5c7f247f5b8"
 }
