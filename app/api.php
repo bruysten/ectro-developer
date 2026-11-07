@@ -327,7 +327,7 @@ try {
                 foreach(all('SELECT DISTINCT group_id FROM messages WHERE user_id=?',[$uid]) as $group)query('INSERT INTO chat_state(group_id,revision) VALUES(?,1) ON CONFLICT(group_id) DO UPDATE SET revision=revision+1',[$group['group_id']]);
                 foreach(all('SELECT group_id FROM group_members WHERE user_id=?',[$uid]) as $memberGroup)bumpGroupVersion($memberGroup['group_id']);query('DELETE FROM users WHERE id=?',[$uid]); audit($u['id'],'admin.user.delete'); }); removePracticeData($uid); jsonOut(['ok'=>true]);
         case 'admin.groups':
-            $groups=all('SELECT g.*,COALESCE((SELECT version FROM group_revisions r WHERE r.group_id=g.id),1) version,(SELECT COUNT(*) FROM group_members WHERE group_id=g.id) members FROM groups g ORDER BY name');
+            $groups=all("SELECT g.*,COALESCE(pref.address_mode,'formal') address_mode,COALESCE((SELECT version FROM group_revisions r WHERE r.group_id=g.id),1) version,(SELECT COUNT(*) FROM group_members WHERE group_id=g.id) members FROM groups g LEFT JOIN group_preferences pref ON pref.group_id=g.id ORDER BY name");
             $members=[];
             foreach(all('SELECT group_id,user_id FROM group_members') as $member) $members[$member['group_id']][]=$member['user_id'];
             foreach($groups as &$group){$group['user_ids']=$members[$group['id']]??[];$group['periods']=groupPeriodsPublic($group['id']);}
@@ -335,6 +335,7 @@ try {
             jsonOut(['groups'=>$groups]);
         case 'admin.group.features.save': jsonOut(['ok'=>true,'group'=>saveGroupPermissions($u,$data)]);
         case 'admin.group.save':
+            if(array_key_exists('address_mode',$data))groupAddressInput($data['address_mode']);
             $gid=textField($data,'id',32,false); $name=textField($data,'name',80); $description=textField($data,'description',500,false); $flags=array_key_exists('features',$data)?featureInput($data['features']):null;
             $replaceMembers=array_key_exists('users',$data); $members=$data['users']??[];
             if ($replaceMembers) {
@@ -347,6 +348,7 @@ try {
                 if ($gid) { $old=one('SELECT * FROM groups WHERE id=?',[$gid]);if(!$old)fail(404,'Gruppe nicht gefunden.');compareGroupVersion($gid,$data['version']??null);query('UPDATE groups SET name=?,description=?,features=? WHERE id=?',[$name,$description,$flags??$old['features'],$gid]);bumpGroupVersion($gid); }
                 else { $gid=id(); query('INSERT INTO groups VALUES(?,?,?,?,?)',[$gid,$name,$description,$flags??featureInput([]),now()]);query('INSERT INTO group_revisions VALUES(?,1)',[$gid]); }
                 if(array_key_exists('periods',$data))saveGroupPeriods($gid,groupPeriodsInput($data['periods'],groupPeriods($gid)));
+                if(array_key_exists('address_mode',$data))saveGroupAddress($gid,$data['address_mode']);
                 if ($replaceMembers) {
                     query('DELETE FROM group_members WHERE group_id=?',[$gid]);
                     foreach($members as $memberId) query('INSERT INTO group_members VALUES(?,?)',[$gid,$memberId]);

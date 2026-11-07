@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
  must_change_password INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, last_login TEXT
 );
 CREATE TABLE IF NOT EXISTS groups (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', features TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS group_preferences (group_id TEXT PRIMARY KEY REFERENCES groups(id) ON DELETE CASCADE, address_mode TEXT NOT NULL DEFAULT 'formal' CHECK(address_mode IN ('formal','informal')));
 CREATE TABLE IF NOT EXISTS group_members (group_id TEXT REFERENCES groups(id) ON DELETE CASCADE, user_id TEXT REFERENCES users(id) ON DELETE CASCADE, PRIMARY KEY(group_id,user_id));
 CREATE TABLE IF NOT EXISTS group_periods (
  group_id TEXT PRIMARY KEY REFERENCES groups(id) ON DELETE CASCADE,

@@ -1,3 +1,4 @@
+import './address.mjs';
 import assert from 'node:assert/strict';
 import {groupPeriodErrors,periodValues} from '../src/group-periods.js';
 import {accessWindowDelay} from '../src/access-window.js';

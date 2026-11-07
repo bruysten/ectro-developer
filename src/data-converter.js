@@ -1,3 +1,4 @@
+import {ui} from './address.js';
 const labels={csv:'CSV',tsv:'TSV',json:'JSON',xml:'XML'};
 const csvRows=(text,delimiter)=>{
   const rows=[];let row=[],cell='',quoted=false;
@@ -54,7 +55,7 @@ function parseJson(text){
   return [{Wert:value??''}];
 }
 export function parseData(text,format){
-  if(!text.trim())throw Error('Fügen Sie zuerst Daten ein oder wählen Sie eine Datei aus.');
+  if(!text.trim())throw Error(ui('Fügen Sie zuerst Daten ein oder wählen Sie eine Datei aus.'));
   if(format==='csv'||format==='tsv')return csvRows(text.replace(/^\uFEFF/,''),format==='tsv'?'\t':detectCsvDelimiter(text));
   if(format==='json')return parseJson(text);
   if(format==='xml')return parseXml(text);

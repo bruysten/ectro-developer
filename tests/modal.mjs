@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {uiError} from '../src/address.js';
 
 // Exercise the actual application helper with deterministic native close events.
 // Browsers queue these events, so an old close can reach a reopened base dialog.
@@ -22,7 +23,7 @@ const scoped=(selector,root)=>root?.owner?$(selector,root.owner):$(selector,root
 function prepare(dialog){dialog.form.owner=dialog;return dialog;}
 prepare(base);document.createElement=()=>prepare(new Dialog());
 const bind=(action,handler,dialog)=>{assert.equal(action,'close-modal');dialog.requestClose=handler;};
-const modal=new Function('$','bind','ib','button','document','FormData',helper+';return modal;')(scoped,bind,()=>'',()=>'',document,class FormData{});
+const modal=new Function('$','bind','ib','button','document','FormData','uiError',helper+';return modal;')(scoped,bind,()=>'',()=>'',document,class FormData{},uiError);
 const drain=async()=>{for(let i=0;i<5;i++)await Promise.resolve();};
 
 const first=modal('Profile','',async()=>{});
