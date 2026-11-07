@@ -1,3 +1,4 @@
+import {mountCanvasLab} from './canvas.js';
 import {ui} from './address.js';
 import {STUDIO_LABS,studioExample,STUDIO_LABELS} from './studio-models.js';
 import {escapeHtml as e,downloadText} from './studio-charts.js';
@@ -17,6 +18,7 @@ export function labsHubHtml(flags,icon,project=''){
 export async function mountStudio(root,ctx){
  const {api,get,flags,icon,modal,confirm,toast,user}=ctx,params=new URLSearchParams(location.hash.split('?')[1]||''),route=location.hash.slice(1).split('?')[0],kind=Object.keys(STUDIO_LABS).find(k=>STUDIO_LABS[k].route===route),definition=STUDIO_LABS[kind];
  if(!definition||!flags[definition.feature]||!flags.files)throw Error('Dieses Labor ist nicht freigegeben.');
+ if(kind==='canvas')return mountCanvasLab(root,{...ctx,navigation:studioNavigation(flags,'canvas')});
  let alive=true,object=null,info=null,objectDirty=false,localDirty=false,busy=false,sequence=0,disposeBody=null,timer=null,revision=0,saving=null;
  const live=()=>alive&&ctx.isCurrent();
  const states=new Map(),{projects}=await get('lab.projects');if(!live())return()=>{};let pid=projects.find(p=>p.id===params.get('project'))?.id||projects.find(p=>p.id===ctx.project)?.id||projects[0]?.id,requested=params.get('object');
