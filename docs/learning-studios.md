@@ -114,3 +114,9 @@ Die neuen Prüfungen sind in die vorhandenen CI-Einstiege eingebunden: `tests/in
 ## Gestaltung im Visualisation Lab
 
 Unter Ergebnis → Gestaltung lassen sich Farben, Typografie, Formen, Rundungen, Linien, Ringbreite und Kontrast je Arbeit bearbeiten. Die SVG-Ausgabe enthält Titel, Legende und eingebettete Gestaltung. Umfang, geprüfte Datensichten und Grenzen stehen in [Gestaltung und Prüfbericht](visualisation-lab-audit.md).
+
+## Stichprobenverzerrung sichtbar machen
+
+Die Übung zeigt den Kundenmix (200 aktive / 800 selten aktive Kunden) und den Antwortmix (80 / 20) direkt als zwei gleich große Anteilsbalken mit absoluten Zahlen. Die Ja-/Nein-Frage, die beobachteten Gruppenquoten (72/80 = 90 % und 8/20 = 40 %) sowie die Annahme gleicher Gruppenquoten beim Hochrechnen sind unmittelbar sichtbar. „Anteile aller Kunden verwenden“ wechselt zwischen 72 + 8 = 80 von 100 Antworten und 180 + 320 = 500 von 1.000 Kunden. Die 50 % werden als Hochrechnung bezeichnet.
+
+Browsergeprüft: beide Zustände bei 320/390/768/1024 Pixeln ohne Seitenüberlauf; Tastaturumschaltung mit erhaltenem Fokus; Auswahl einer Interpretation, Speichern und Neuladen; Wechsel zu den übrigen drei Übungen. Die Antwortzuordnung wird beim Auswählen als JSON-Objekt aufgebaut, damit eine zunächst leere, aus der API als Array gelesene Zuordnung nicht beim Speichern verloren geht. Modelltests prüfen Gruppenanteile, unveränderte Gruppenquoten und beide sichtbaren Rechenwege.

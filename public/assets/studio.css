@@ -160,3 +160,47 @@
 .studio-style-preview-jump { margin-bottom:18px; }
 .studio-design-preview { scroll-margin-top:90px; }
 @media(min-width:1100px){.studio-style-preview-jump{display:none!important}}
+
+/* Sampling: show composition first, then reweight the same group rates. */
+.sampling-overview { margin-top:22px; }
+.sampling-compositions { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px; }
+.sampling-composition { min-width:0;border:1px solid var(--border-strong);padding:18px; }
+.sampling-composition-head { display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px; }
+.sampling-composition-head h4 { margin:0; }
+.sampling-composition-head>strong { font-size:23px;color:var(--text-strong);font-weight:500; }
+.sampling-mix,.sampling-result-bar { display:flex;width:100%;overflow:hidden;border-radius:4px;background:var(--surface-sunken); }
+.sampling-mix { height:36px; }
+.sampling-mix>span { display:grid;place-items:center;min-width:0;color:#fff;font-size:12px;font-weight:600; }
+.sampling-group-0 { background:#246f88; }.sampling-group-1 { background:#72549d; }
+.sampling-group-dot { display:inline-block;width:9px;height:9px;flex:0 0 9px;border-radius:2px; }
+.sampling-composition ul { margin:14px 0 0;padding:0;display:grid;gap:9px;list-style:none; }
+.sampling-composition li { display:flex;align-items:center;gap:8px;font-size:12px;min-width:0; }
+.sampling-composition li strong { margin-left:auto;font-weight:600; }.sampling-composition li small { width:38px;text-align:right;color:var(--text-muted);font-size:11px; }
+.sampling-rates { margin-top:20px; }
+.sampling-rates h4 { margin-bottom:10px; }
+.sampling-rates>div { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px; }
+.sampling-rate { display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:14px 16px;background:var(--surface-sunken);align-items:center; }
+.sampling-rate>span,.sampling-formulas>div>span { display:flex;align-items:center;gap:8px;font-size:12px; }
+.sampling-rate strong { grid-row:1/3;grid-column:2;font-size:25px;font-weight:500; }
+.sampling-rate small { font-size:11px;color:var(--text-muted); }
+.studio-page .sampling-rates>p { margin:12px 0 0;font-size:12px;color:var(--text-muted); }
+.sampling-rates>p>span { color:var(--text-strong);font-weight:600;margin-right:5px; }
+.sampling-result { margin-bottom:22px; }
+.sampling-result-heading { display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px; }
+.sampling-result-heading h4,.studio-page .sampling-result-heading p { margin:0; }
+.studio-page .sampling-result-heading p { font-size:12px;color:var(--text-muted); }
+.sampling-result-heading strong { color:var(--text-strong);font-size:27px;font-weight:500; }
+.sampling-formulas { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px; }
+.sampling-formulas>div { padding:14px 16px;border:1px solid var(--border-strong);min-width:0; }
+.studio-page .sampling-formulas p { font-size:20px;font-weight:500;margin:7px 0 2px;font-variant-numeric:tabular-nums; }
+.sampling-formulas p>span { color:var(--text-muted);padding:0 3px;font-weight:400; }
+.sampling-formulas small { font-size:11px;color:var(--text-muted);line-height:1.6; }
+.sampling-result-bar { height:22px;border:1px solid var(--border-strong); }
+.sampling-result-bar>span { transition:width 180ms ease; }
+.sampling-result-scale { display:flex;justify-content:space-between;gap:8px;align-items:baseline;margin-top:7px;font-size:11px;color:var(--text-muted); }
+.studio-page .sampling-result-scale p { margin:0;font-size:12px;color:var(--text-strong);text-align:center; }
+@media(max-width:600px){.sampling-compositions,.sampling-rates>div,.sampling-formulas{grid-template-columns:1fr;gap:12px}.sampling-composition{padding:14px}.sampling-result-heading{align-items:flex-start;flex-direction:column}.sampling-formulas p{font-size:21px}}
+@media(prefers-reduced-motion:reduce){.sampling-result-bar>span{transition:none}}
+
+.studio-experiment.sampling-toggle { padding:8px 12px;margin:14px 0; }
+@media(min-width:900px){.sampling-rates{display:grid;grid-template-columns:180px minmax(0,1fr);gap:10px 16px;align-items:center}.sampling-rates h4{margin:0}.studio-page .sampling-rates>p{grid-column:1/-1;margin:0}}
