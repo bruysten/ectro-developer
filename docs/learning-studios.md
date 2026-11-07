@@ -77,6 +77,10 @@ Direkte Einstiege bestehen aus dem Daten-Labor, dem Graph-Labor und der projektg
 
 ## Customer Journey Lab
 
+Der integrierte **Persona-Designer** verwaltet bis zu 20 projektweit wiederverwendbare Personas einschließlich Archiv. Fünf verlustfrei wechselbare Modelle reichen vom Kurzprofil über Ziele & Verhalten, Jobs-to-be-done und Empathie bis zum umfassenden Profil. Zwei oder drei Personas lassen sich feldweise vergleichen, optional nur mit Unterschieden; fehlende Angaben bleiben sichtbar. Die Bibliothek bietet Suche, Duplizieren, Archivieren/Wiederherstellen und CSV-Export. Forschung, Bedienung, Sicherheitsgrenzen und Prüfungen sind in [Persona-Designer](persona-designer.md) dokumentiert.
+
+Eine Journey übernimmt einen vollständigen Persona-Stand als gespeicherte Kopie. Bibliotheksänderungen überschreiben ihn nicht; ein neuerer Stand lässt sich ausdrücklich übernehmen. Eine neue Journey startet leer oder mit ausdrücklich als Annahmen kopierten Phasen. Der Designer verwendet dieselben Projekt- und Gruppenfreigaben wie das Journey-Labor.
+
 `/#journey-lab` verbindet Persona, übergeordnetes Ziel, Kontext, geordnete Phasen und eine Stimmungskurve. Jede Phase enthält Ziel, Handlung, Touchpoint, Kanal, Stimmung, Hürde, Verbesserung, Verantwortliche, Erfolgskriterium und Belegtext. Annahmen und dokumentierte Beobachtungen werden unterschieden. Offene Belege, Verantwortliche und Erfolgskriterien erscheinen als Handlungshinweise, ohne einen künstlichen Qualitätsscore zu vergeben.
 
 Bis zu 20 Phasen lassen sich anlegen, bearbeiten, duplizieren, mit beschrifteten Buttons umordnen und entfernen. Es gibt ein vollständig bearbeitbares Weiterbildungsbeispiel und einen CSV-Export.

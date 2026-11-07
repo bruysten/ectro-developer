@@ -105,6 +105,7 @@ try {
                 $target=['group_id'=>$gid,'user_id'=>null];
                 $size=(int)query('SELECT COALESCE(SUM(length(CAST(f.content AS BLOB))+COALESCE(a.size,0)),0) FROM files f LEFT JOIN workspace_uploads a ON a.file_id=f.id WHERE project_id=?',[$pid])->fetchColumn();
                 $size+=(int)query('SELECT COALESCE(SUM(length(CAST(content AS BLOB))),0) FROM lab_objects WHERE project_id=?',[$pid])->fetchColumn();
+                $size+=(int)query('SELECT COALESCE(SUM(length(CAST(content AS BLOB))),0) FROM lab_personas WHERE project_id=?',[$pid])->fetchColumn();
                 if (workspaceBytes($target)+$size>SPACE_LIMIT) fail(422,'Der Gruppen-Workspace ist voll (20 MB).');
                 query('UPDATE projects SET group_id=?,created_by=user_id,user_id=NULL,updated_at=? WHERE id=?',[$gid,now(),$pid]);
                 // Canonical LF text is required by CodeMirror collaboration.

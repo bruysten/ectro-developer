@@ -59,3 +59,14 @@ CREATE TABLE IF NOT EXISTS ai_grants (project_id TEXT REFERENCES projects(id) ON
 CREATE TABLE IF NOT EXISTS ai_calls (id TEXT PRIMARY KEY, user_id TEXT REFERENCES users(id) ON DELETE SET NULL, project_id TEXT REFERENCES projects(id) ON DELETE CASCADE, connection_id TEXT REFERENCES ai_connections(id) ON DELETE CASCADE, state TEXT NOT NULL, result TEXT, tokens INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL, UNIQUE(user_id,id));
 CREATE INDEX IF NOT EXISTS ai_calls_connection ON ai_calls(connection_id,project_id,created);
 CREATE TABLE IF NOT EXISTS project_connections (project_id TEXT PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE, host TEXT NOT NULL, db_name TEXT NOT NULL, username TEXT NOT NULL, secret TEXT NOT NULL);
+
+CREATE TABLE IF NOT EXISTS lab_personas (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    content TEXT NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    archived INTEGER NOT NULL DEFAULT 0 CHECK (archived IN (0,1)),
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS lab_personas_project ON lab_personas(project_id,archived,name);

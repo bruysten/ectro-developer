@@ -243,7 +243,8 @@ function projectManager(array $u,array $p,bool $deleting=false): void {
 function workspaceBytes(array $p): int {
     $labBytes=(int)query('SELECT COALESCE(SUM(length(CAST(content AS BLOB))),0) FROM lab_objects WHERE project_id IN (SELECT id FROM projects WHERE '.($p['group_id']?'group_id=?':'user_id=?').')',[$p['group_id']?:$p['user_id']])->fetchColumn();
     $aiBytes=(int)query("SELECT COALESCE(SUM(CASE WHEN state='running' THEN 1048576 ELSE COALESCE(length(CAST(result AS BLOB)),0) END),0) FROM ai_calls WHERE project_id IN (SELECT id FROM projects WHERE ".($p['group_id']?'group_id=?':'user_id=?').')',[$p['group_id']?:$p['user_id']])->fetchColumn();
-    return $labBytes+$aiBytes+(int)query('SELECT COALESCE(SUM(length(CAST(f.content AS BLOB))+COALESCE(a.size,0)),0) FROM files f JOIN projects p ON p.id=f.project_id LEFT JOIN workspace_uploads a ON a.file_id=f.id WHERE '.($p['group_id']?'p.group_id=?':'p.user_id=?'),[$p['group_id']?:$p['user_id']])->fetchColumn();
+    $personaBytes=(int)query('SELECT COALESCE(SUM(length(CAST(content AS BLOB))),0) FROM lab_personas WHERE project_id IN (SELECT id FROM projects WHERE '.($p['group_id']?'group_id=?':'user_id=?').')',[$p['group_id']?:$p['user_id']])->fetchColumn();
+    return $labBytes+$aiBytes+$personaBytes+(int)query('SELECT COALESCE(SUM(length(CAST(f.content AS BLOB))+COALESCE(a.size,0)),0) FROM files f JOIN projects p ON p.id=f.project_id LEFT JOIN workspace_uploads a ON a.file_id=f.id WHERE '.($p['group_id']?'p.group_id=?':'p.user_id=?'),[$p['group_id']?:$p['user_id']])->fetchColumn();
 }
 function filePath(string $path): string {
     if (!$path || strlen($path) > 240 || !preg_match('~^[\pL\pN _./-]+$~u', $path) || str_starts_with($path, '/') || str_contains($path, '//')) fail(422, 'Bitte verwenden Sie einen relativen Dateinamen ohne Sonderzeichen.');

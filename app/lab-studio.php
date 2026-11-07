@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/lab-personas.php';
 
 const STUDIO_KINDS = ['conversation','assistant','evaluation','reasoning','visualization','journey'];
 const STUDIO_VIEWS = ['table','bar','column','stacked','line','area','scatter','histogram','boxplot','heatmap','donut','treemap','kpi','network','strategy'];
@@ -98,7 +99,9 @@ function studioValidate(string $kind,array $c): array {
             foreach(['name'=>100,'goal'=>1000,'action'=>1000,'touchpoint'=>500,'channel'=>180,'pain'=>2000,'opportunity'=>2000,'owner'=>180,'kpi'=>500,'evidence'=>2000] as $key=>$max)$stage[$key]=studioText($s[$key]??'',$max);
             if(!is_int($s['emotion']??null)||$s['emotion']< -2||$s['emotion']>2)fail(422,'Stimmung liegt zwischen −2 und +2.');$stage['emotion']=$s['emotion'];$stage['evidenceType']=studioEnum($s['evidenceType']??'assumption',['assumption','observed']);$stages[]=$stage;
         }
-        $source=studioSourceInput($c['source']??null);if(($source['type']??'')==='text')fail(422,'Eine Journey-Quelle benötigt strukturierte Tabellendaten.');return ['persona'=>$p,'stages'=>$stages,'source'=>$source];
+        $snapshot=isset($c['personaSnapshot'])?studioPersonaContent($c['personaSnapshot']):null;$ref=null;
+        if(isset($c['personaRef'])){$v=studioRecord($c['personaRef']);$id=studioText($v['id']??'',32);if(!preg_match('/^[a-f0-9]{32}$/D',$id)||!is_int($v['version']??null)||$v['version']<1||!$snapshot)fail(422,'Ungültiger Persona-Stand.');$ref=['id'=>$id,'version'=>$v['version']];}
+        $source=studioSourceInput($c['source']??null);if(($source['type']??'')==='text')fail(422,'Eine Journey-Quelle benötigt strukturierte Tabellendaten.');return ['persona'=>$p,'stages'=>$stages,'source'=>$source,'personaRef'=>$ref,'personaSnapshot'=>$snapshot];
     }
     fail(422,'Unbekanntes Labor.');
 }
@@ -184,6 +187,9 @@ function studioEvaluate(array $u,array $data,?callable $transport=null): array {
     return ['object'=>labSave($u,[...$o,'project'=>$o['project_id'],'content'=>$c])];
 }
 function studioDispatch(array $u,string $action,array $data): never {
+    if($action==='studio.personas')jsonOut(studioPersonas($u,textField($data,'project',32)));
+    if($action==='studio.persona.save')jsonOut(['persona'=>studioPersonaSave($u,$data)]);
+    if($action==='studio.persona.archive')jsonOut(['persona'=>studioPersonaArchive($u,$data)]);
     if($action==='studio.chat')jsonOut(studioChat($u,$data));
     if($action==='studio.evaluate')jsonOut(studioEvaluate($u,$data));
     [$pid,$kind]=studioAccess($u,$data);
