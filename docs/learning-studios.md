@@ -110,3 +110,7 @@ Die Modelltests führen auch die PHP-Vertragsprüfungen gegen die tatsächlichen
 Die lokale Browserprüfung umfasst die neuen Bereiche, Quellenwahl aus JSON und Graphen, Speichern mit anschließender Weiterbearbeitung, Journey-Bearbeitung, Belegprüfung, interaktive Interpretation sowie schmale Viewports. Reale KI-Anbieter, Produktionsdatenbanken und ein Live-Deployment sind damit nicht abgenommen.
 
 Die neuen Prüfungen sind in die vorhandenen CI-Einstiege eingebunden: `tests/integration.py` führt die Studio-HTTP-Suite aus, `tests/lab-models.mjs` die Studio-Modelle und PHP-Verträge, `tests/project-migration.php` die Studio-Migration und `tests/sql-training.php` den echten MariaDB-Quellenvertrag. Die Workflowdatei benötigt dafür keine Änderung.
+
+## Gestaltung im Visualisation Lab
+
+Unter Ergebnis → Gestaltung lassen sich Farben, Typografie, Formen, Rundungen, Linien, Ringbreite und Kontrast je Arbeit bearbeiten. Die SVG-Ausgabe enthält Titel, Legende und eingebettete Gestaltung. Umfang, geprüfte Datensichten und Grenzen stehen in [Gestaltung und Prüfbericht](visualisation-lab-audit.md).

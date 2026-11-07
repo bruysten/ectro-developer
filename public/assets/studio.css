@@ -115,3 +115,48 @@
 @media(max-width:700px){.studio-mobile-chart-note { display:block; }}
 
 .studio-result,.studio-journey-editor { scroll-margin-top:90px; }
+
+/* Chart styling stays local to a saved visualization, including its value table. */
+.studio-style-editor { border:1px solid var(--border-strong);margin:0 0 20px;background:var(--surface-card);min-width:0; }
+.studio-style-editor>summary { display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;padding:16px;cursor:pointer;font-size:14px;font-weight:600; }
+.studio-style-editor>summary::after { content:'＋';grid-column:2;grid-row:1;margin-left:auto;font-size:18px;font-weight:400; }
+.studio-style-editor[open]>summary::after { content:'−'; }
+.studio-style-editor>summary small { grid-column:1/-1;font-size:12px;font-weight:400;color:var(--text-muted); }
+.studio-style-body { padding:0 18px 18px;min-width:0; }
+.studio-style-presets { display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 22px; }
+.studio-style-layout { display:grid;gap:22px;min-width:0; }
+.studio-style-layout fieldset { min-width:0;border:0;border-top:1px solid var(--border-strong);padding:16px 0 0;margin:0; }
+.studio-style-layout legend { font-size:13px;font-weight:600;padding-right:12px; }
+.studio-style-colors { display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,175px),1fr));gap:12px; }
+.studio-style-surfaces { margin-top:20px; }
+.studio-style-color { display:grid;grid-template-columns:40px minmax(0,1fr);gap:6px 9px;align-items:center;min-width:0;font-size:12px; }
+.studio-style-color>span { grid-column:1/-1; }
+.studio-page .studio-style-color input[type=color] { width:40px;height:40px;min-width:40px;padding:3px;border:1px solid var(--border-strong);border-radius:4px;background:var(--surface-card);cursor:pointer; }
+.studio-page .studio-style-color input[type=text] { width:100%;height:40px;padding:6px;font:11px var(--font-mono); }
+.studio-style-color [aria-invalid=true] { border-color:var(--accent); }
+.studio-style-range>span { display:flex;justify-content:space-between;gap:8px; }
+.studio-style-range output { font:12px var(--font-mono);color:var(--text-muted); }
+.studio-style-toggles { display:flex;flex-wrap:wrap;gap:16px;margin-top:16px;font-size:13px; }
+.studio-style-contrast { padding:12px 14px;background:var(--surface-sunken);font-size:12px;margin-top:20px;line-height:1.7; }
+.studio-visual { background:var(--chart-bg);color:var(--chart-text);font-family:var(--chart-font);font-size:var(--chart-font-size);font-weight:var(--chart-weight);border-radius:var(--chart-radius);padding:12px;min-width:0; }
+.studio-visual .studio-note,.studio-visual .studio-kpi>span,.studio-visual .studio-kpi>small { color:inherit; }
+.studio-svg text { font-family:inherit; }
+.studio-visual .studio-legend { font-size:inherit; }
+.studio-visual .studio-kpi { background:var(--chart-bg);border:1px solid var(--chart-grid);border-left-width:4px;border-radius:var(--chart-radius); }
+.studio-visual-table table { background:var(--chart-bg);color:var(--chart-text);font-family:inherit;font-size:inherit;font-weight:inherit; }
+.studio-visual-table :is(th,td) { background:var(--chart-bg);color:var(--chart-text);border-color:var(--chart-grid); }
+@media(max-width:560px){.studio-style-body{padding:0 12px 12px}.studio-style-editor>summary small{flex-basis:100%}.studio-style-colors{grid-template-columns:repeat(2,minmax(0,1fr))}.studio-visual{padding:8px}}
+.studio-design-workspace,.studio-design-preview { min-width:0; }
+@media(min-width:1100px){
+ .studio-design-workspace:has(.studio-style-editor[open]) { display:grid;grid-template-columns:280px minmax(0,1fr);gap:18px;align-items:start; }
+ .studio-design-workspace:has(.studio-style-editor[open]) .studio-style-editor { max-height:640px;overflow:auto;overscroll-behavior:contain; }
+ .studio-design-workspace:has(.studio-style-editor[open]) .studio-style-colors { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .studio-design-workspace:has(.studio-style-editor[open]) .studio-style-editor>summary small { flex-basis:100%; }
+ .studio-design-workspace:has(.studio-style-editor[open]) .studio-design-preview { position:sticky;top:90px; }
+}
+.studio-style-invalid { padding:12px;background:var(--surface-accent-soft);color:var(--accent);font-size:12px;line-height:1.6;margin-top:14px; }
+.studio-result { scroll-margin-top:90px; }
+
+.studio-style-preview-jump { margin-bottom:18px; }
+.studio-design-preview { scroll-margin-top:90px; }
+@media(min-width:1100px){.studio-style-preview-jump{display:none!important}}
