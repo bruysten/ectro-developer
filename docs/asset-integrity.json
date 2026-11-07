@@ -1,7 +1,8 @@
 {
   "public/assets/THIRD-PARTY-LICENSES.txt": "823083c3993d4f76e676e56db3c8162b87ac00bd3f900229e8260f66b87f759b",
-  "public/assets/app.css": "0009a0269636eee41aa54007733dedf2c94008f6708243a855b0408be9517d7e",
-  "public/assets/app.js": "26f3967f413836bcc6cf7979757edae877fefe883efb850c454dcc6e3ec4ad4f",
+  "public/assets/admin.css": "caa9a821fe7c0390e6b0cac9d63b4eadeaeb15b8dfd54a0fdc7608677b1ade0c",
+  "public/assets/app.css": "3346dc56551ea1e40d55e2808e277bec49c34ab64cbcdd72b0523bfbe3205767",
+  "public/assets/app.js": "9078362b2a2ac98fd4642f543e64718e7f13faa1625167f5134e039acfb237f3",
   "public/assets/brand/logo-dark.svg": "2b33fd5248db698e5f95a19bb12af84defbf8c787c8292fefa7c87c48ffc1371",
   "public/assets/brand/logo-icon.svg": "43003eecd874d3596644157d68a4647ac0d0f0bd6e7f2336fde0a68b04c6fe7e",
   "public/assets/brand/logo.svg": "9922ed33c6eb5368728190460a965f7a4df48e43633209501363025636648511",
