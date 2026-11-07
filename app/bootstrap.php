@@ -5,7 +5,7 @@ require_once __DIR__ . '/group-periods.php';
 require_once __DIR__ . '/group-address.php';
 
 const APP_ROOT = __DIR__ . '/..';
-const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter', 'data_lab', 'graph', 'ai', 'rag', 'neural', 'chat_lab', 'assistant_lab', 'evaluation_lab', 'reasoning_lab', 'visualization_lab', 'journey_lab'];
+const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter', 'data_lab', 'graph', 'ai', 'rag', 'neural', 'chat_lab', 'assistant_lab', 'evaluation_lab', 'reasoning_lab', 'visualization_lab', 'journey_lab', 'canvas_lab'];
 const CONVERTER_FORMATS = ['csv', 'tsv', 'json', 'xml'];
 const FILE_LIMIT = 524288;
 const SPACE_LIMIT = 20971520;

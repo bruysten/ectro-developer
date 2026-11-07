@@ -1,12 +1,16 @@
 # Erweiterte Projektlabore
 
-Stand: 07.11.2026. Die neuen Bereiche ergänzen die vorhandenen Daten-, Graph- und KI-Werkstätten. Der gemeinsame Einstieg liegt unter **Labore** (`/#labs`). Die bestehenden Einstiege bleiben erreichbar. Alle Arbeiten gehören zu einem persönlichen oder gemeinsamen Projekt.
+Stand: 07.11.2026. Die neuen Bereiche ergänzen die vorhandenen Daten-, Graph- und KI-Werkstätten. Der gemeinsame Einstieg liegt unter **Labore** (`/#labs`). Die bestehenden Einstiege bleiben erreichbar. Die Projektlabore gehören zu einem persönlichen oder gemeinsamen Projekt. Das eigenständige [Canvas Lab](canvas-lab.md) ergänzt sie mit privaten und gruppenweiten Boards ohne Projektvoraussetzung.
 
 ## Bedienung und Speicherung
 
 Jeder Bereich verwendet dieselbe Reihenfolge: Projekt auswählen, gespeicherte Arbeit öffnen oder mit **Neu** ein bearbeitbares Beispiel anlegen, bearbeiten und **Speichern**. **Mehr** enthält Umbenennen, JSON-Import/-Export, Neu laden und Löschen. Bei Versionskonflikten bleibt der lokale Entwurf erhalten. Neu laden und Arbeitswechsel schützen ungespeicherte Änderungen. Gespeicherte Arbeiten anderer Projektmitglieder werden bei sauberem Entwurf regelmäßig abgeglichen. Das ist keine gleichzeitige Zeichen-für-Zeichen-Bearbeitung der Labore.
 
 Die Oberfläche verwendet vorhandene Entrosphere-Tokens, native beschriftete Formulare und einen gemeinsamen Projektkopf. Detailoptionen liegen in aufklappbaren Bereichen. Auf kleinen Bildschirmen werden Formulare einspaltig. Breite Diagramme, Journey-Phasen und Tabellen scrollen innerhalb ihrer eigenen Bereiche; Diagrammwerte stehen zusätzlich als Tabelle bereit.
+
+## Canvas Lab
+
+`/#canvas-lab` bietet Business Model Canvas, Value Proposition Canvas, Lean Canvas, Empathy Map und Experiment Canvas mit mehreren privaten oder gemeinsamen Boards. Kartenänderungen werden unmittelbar gespeichert und regelmäßig synchronisiert; getrennte Karten lassen sich parallel bearbeiten, Konflikte derselben Karte bleiben explizit. Die Details zu Sichtbarkeit, Wiederherstellung, Export und autarkem Betrieb stehen in [Canvas Lab](canvas-lab.md).
 
 ## Chatbot-Labor
 

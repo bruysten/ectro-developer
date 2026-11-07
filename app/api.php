@@ -12,12 +12,13 @@ require_once __DIR__ . '/password-recovery.php';
 require_once __DIR__ . '/php-runner.php';
 require_once __DIR__ . '/lab-api.php';
 require_once __DIR__ . '/group-permissions.php';
+require_once __DIR__.'/canvases.php';
 secureHeaders();
 try {
     keyBytes(); sessionStart();
     $action = $_GET['action'] ?? 'bootstrap';
     $method = $_SERVER['REQUEST_METHOD'];
-    $readActions = ['lab.object','lab.projects','lab.info','ai.connections','admin.labs','bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.overview','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info','admin.mail','admin.mail.templates','profile','team','team.profile','converter.config','php.mode'];
+    $readActions = ['canvas.list','canvas.get','lab.object','lab.projects','lab.info','ai.connections','admin.labs','bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.overview','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info','admin.mail','admin.mail.templates','profile','team','team.profile','converter.config','php.mode'];
     if ($method !== 'GET' && $method !== 'POST') fail(405, 'Methode nicht erlaubt.');
     if (!in_array($action, $readActions, true) && $method !== 'POST') fail(405, 'Diese Aktion benötigt POST.');
     if (in_array($action, $readActions, true) && $method !== 'GET') fail(405, 'Diese Aktion benötigt GET.');
@@ -74,6 +75,7 @@ try {
     if((str_starts_with($action,'db.')||str_starts_with($action,'training.'))&&!empty($data['participant'])){$target=textField($data,'participant',32);$gid=textField($data,'group',32);if($u['role']!=='admin')teacherTarget($u,$target,$gid);$student=one('SELECT * FROM users WHERE id=? AND active=1',[$target]);if(!$student)fail(404,'Teilnehmer nicht gefunden.');$GLOBALS['academyDbUser']=$student;if(in_array($action,['db.connect','db.disconnect'],true)&&$target!==$u['id'])fail(403,'Persönliche Verbindungen verwaltet der Teilnehmer selbst.');}
     if((str_starts_with($action,'db.')||str_starts_with($action,'training.'))&&!empty($data['project'])){$GLOBALS['academyDbProject']=textField($data,'project',32);project($u,$GLOBALS['academyDbProject']);}
     if ($action === 'php.mode') jsonOut(['mode'=>phpExecutionMode()]);
+    if(str_starts_with($action,'canvas.'))canvasDispatch($u,$action,$data);
     if(str_starts_with($action,'studio.'))studioDispatch($u,$action,$data);
     if(str_starts_with($action,'lab.')||str_starts_with($action,'ai.')||str_starts_with($action,'presence.')||$action==='admin.labs'||str_starts_with($action,'admin.ai.'))labDispatch($u,$action,$data);
     switch ($action) {

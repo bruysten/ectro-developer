@@ -65,7 +65,7 @@ Stand: 07.11.2026. Grundlage: [Data & AI Professional, Akademie der Deutschen Me
 |---|---|---|---|
 | Marketing und Produkt | Vertriebsbeispiel, Strategiekurve, Persona-Vergleich und separate persona-bezogene Journeys mit Verbesserungen und Erfolgskriterien | Teilweise | Vollständige Fälle zu empirisch begründeten Segmenten, Experimenten, Kampagnen und Produktentscheidungen. |
 | Datenbasierte Modelle | Strategische Angebotsvergleiche und praktische Demonstratoren | Teilweise | Erlöslogik, Kosten, Nutzenhypothesen, Wirtschaftlichkeit und messbare Validierung. |
-| Fachliches Modelling | Strategie-Handlungsfelder und Journey-Struktur | Teilweise | Eigenständiger Value Proposition Canvas und Service-Blueprint mit Front-/Backstage und Unterstützungsprozessen. |
+| Fachliches Modelling | Strategie-Handlungsfelder, Journey-Struktur und Canvas Lab mit Business Model Canvas, Value Proposition Canvas, Lean Canvas, Empathy Map und Experiment Canvas; private und gemeinsame Boards mit Kartenrevisionen | Direkt für die Canvas-Methoden, teilweise insgesamt | Service-Blueprint mit Front-/Backstage und Unterstützungsprozessen; fachliche Validierung mit realer Forschung. |
 
 ## Prioritäten für die nächste Ausbaustufe
 
@@ -74,7 +74,7 @@ Stand: 07.11.2026. Grundlage: [Data & AI Professional, Akademie der Deutschen Me
 3. **Wiederholbarkeit:** Quellenstände, Transformationshistorie, vollständige Datenbankabfragen und versionierte Analyseergebnisse nachvollziehbar miteinander verbinden. Live-Quellen sind derzeit ausdrücklich keine unveränderlichen Snapshots.
 4. **Dokumente und Tabellen erschließen:** Direkter XLSX-Import, PDF-/Office-Texterschließung und bei Bedarf OCR schließen die verbleibenden Medienbrüche.
 5. **Empirische Methoden:** Weitere Statistikfälle, Nutzertests und bewertbare Geschäftsmodelle ergänzen die neuen Interpretations- und Journey-Werkzeuge.
-6. **Fachvorlagen:** Canvas, Service-Blueprint, Projektplan und eine kleine Blockchain-Demonstration vervollständigen die bisher offenen Kursmethoden.
+6. **Fachvorlagen:** Service-Blueprint, Projektplan und eine kleine Blockchain-Demonstration vervollständigen die bisher offenen Kursmethoden.
 
 ## Evidenz und Grenzen
 

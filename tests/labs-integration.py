@@ -191,3 +191,6 @@ with tempfile.TemporaryDirectory(prefix='academy-labs-test-') as private:
         print(f'{checks} lab/API/security checks passed; 25-session read batch: {time.monotonic()-start:.3f}s.')
     finally:
         os.killpg(server.pid,signal.SIGTERM);server.wait(timeout=10)
+
+# Standalone boards share the same authentication, group access and HTTP guards.
+subprocess.run(['python3',str(ROOT/'tests/canvas-http.py')],cwd=ROOT,check=True)

@@ -13,6 +13,7 @@ export const PERMISSION_SECTIONS=[
     ['graph','Graph-Labor & Ontologien','Entitäten, Eigenschaften, Knoten und Kanten modellieren.'],
     ['visualization_lab','Visualisation Lab','Projektdaten vergleichen, erklären und als Strategiekurve darstellen.'],
     ['reasoning_lab','Analysefehler-Labor','Kausalität, Stichproben, Mittelwerte und Simpson-Paradox untersuchen.'],
+    ['canvas_lab','Canvas Lab','Geschäftsmodelle und Kundenverständnis privat oder gemeinsam entwickeln.'],
     ['journey_lab','Customer Journey Lab','Kundenwege, Touchpoints, Belege und Verbesserungen gestalten.']]},
   {id:'ai',name:'KI & Modelle',icon:'neurology',features:[
     ['ai','KI-Zugänge & Prompt-Werkstatt','Eigene API-Schlüssel und freigegebene Projektmodelle nutzen.'],
@@ -26,7 +27,7 @@ export const PERMISSION_SECTIONS=[
     ['team','Team','Freigegebene Profile der Lerngruppe ansehen.']]},
 ];
 export const PERMISSION_CATALOG=Object.fromEntries(PERMISSION_SECTIONS.flatMap(s=>s.features.map(([key,label,copy])=>[key,[label,copy]])));
-const dependencies={editor:['files'],html:['files','editor'],php:['files','editor'],python:['files','editor'],data_lab:['files'],graph:['files'],rag:['files'],neural:['files'],chat_lab:['files','ai'],assistant_lab:['files'],evaluation_lab:['files'],visualization_lab:['files'],reasoning_lab:['files'],journey_lab:['files']};
+const dependencies={editor:['files'],html:['files','editor'],php:['files','editor'],python:['files','editor'],data_lab:['files'],graph:['files'],rag:['files'],neural:['files'],chat_lab:['files','ai'],assistant_lab:['files'],evaluation_lab:['files'],visualization_lab:['files'],reasoning_lab:['files'],journey_lab:['files'],canvas_lab:['files']};
 export const normalizedPermissions=flags=>Object.fromEntries(Object.keys(PERMISSION_CATALOG).map(key=>[key,flags?.[key]!==false]));
 
 export function mountPermissionEditor(root,{features={},system={},esc,onChange=()=>{}}){
