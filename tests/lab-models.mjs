@@ -1,3 +1,4 @@
+import './studio-models.mjs';
 import assert from 'node:assert/strict';
 import {networkExample,trainEpoch,evaluate,forward} from '../src/neural.js';
 import {quality,queryDataset,joinDatasets,chunks,cosine} from '../src/lab-data.js';

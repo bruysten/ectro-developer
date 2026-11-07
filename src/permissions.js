@@ -9,17 +9,23 @@ export const PERMISSION_SECTIONS=[
     ['database','MySQL & MariaDB','Freigegebene Datenbanken und SQL-Training nutzen.'],
     ['converter','Daten-Labor · Umwandeln','CSV, TSV, JSON und XML lokal umwandeln; auch ohne Projektzugriff.'],
     ['data_lab','Daten-Labor · Datensätze','Projektdatensätze importieren, prüfen, analysieren und visualisieren.'],
-    ['graph','Graph-Labor & Ontologien','Entitäten, Eigenschaften, Knoten und Kanten modellieren.']]},
+    ['graph','Graph-Labor & Ontologien','Entitäten, Eigenschaften, Knoten und Kanten modellieren.'],
+    ['visualization_lab','Visualisation Lab','Projektdaten vergleichen, erklären und als Strategiekurve darstellen.'],
+    ['reasoning_lab','Analysefehler-Labor','Kausalität, Stichproben, Mittelwerte und Simpson-Paradox untersuchen.'],
+    ['journey_lab','Customer Journey Lab','Kundenwege, Touchpoints, Belege und Verbesserungen gestalten.']]},
   {id:'ai',name:'KI & Modelle',icon:'neurology',features:[
     ['ai','KI-Zugänge & Prompt-Werkstatt','Eigene API-Schlüssel und freigegebene Projektmodelle nutzen.'],
     ['rag','RAG-Werkstatt','Embeddings, Suchvergleich, Reranking und Graph-RAG.'],
-    ['neural','Neuronale Netze','Netze gestalten, trainieren und bewerten.']]},
+    ['neural','Neuronale Netze','Netze gestalten, trainieren und bewerten.'],
+    ['chat_lab','Chatbot-Labor','Projektgespräche mit fortlaufendem Kontext führen.'],
+    ['assistant_lab','Assistenten-Builder','Regeln, Wissen und lesende Projektwerkzeuge bündeln.'],
+    ['evaluation_lab','Quellenprüfungs-Labor','Antworten mit Referenzen und belegten Aussagen vergleichen.']]},
   {id:'team',name:'Zusammenarbeit',icon:'groups',features:[
     ['chat','Gruppenchat','Nachrichten und freigegebene Anhänge austauschen.'],
     ['team','Team','Freigegebene Profile der Lerngruppe ansehen.']]},
 ];
 export const PERMISSION_CATALOG=Object.fromEntries(PERMISSION_SECTIONS.flatMap(s=>s.features.map(([key,label,copy])=>[key,[label,copy]])));
-const dependencies={editor:['files'],html:['files','editor'],php:['files','editor'],python:['files','editor'],data_lab:['files'],graph:['files'],rag:['files'],neural:['files']};
+const dependencies={editor:['files'],html:['files','editor'],php:['files','editor'],python:['files','editor'],data_lab:['files'],graph:['files'],rag:['files'],neural:['files'],chat_lab:['files','ai'],assistant_lab:['files'],evaluation_lab:['files'],visualization_lab:['files'],reasoning_lab:['files'],journey_lab:['files']};
 export const normalizedPermissions=flags=>Object.fromEntries(Object.keys(PERMISSION_CATALOG).map(key=>[key,flags?.[key]!==false]));
 
 export function mountPermissionEditor(root,{features={},system={},esc,onChange=()=>{}}){

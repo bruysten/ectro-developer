@@ -31,3 +31,7 @@ try{
     trainingCheck($run(['action'=>'delete','conditions'=>[['column'=>'id','operator'=>'>=','value'=>'1']],'limit'=>1])->rowCount()===1&&(int)$pdo->query('SELECT COUNT(*) FROM training_products')->fetchColumn()===1,'MariaDB DELETE respects limit');
     echo ($checks-$before)." MariaDB training execution checks passed.\n";
 }finally{$pdo->exec('DROP TABLE IF EXISTS training_products');}
+
+// The existing CI step supplies the isolated MariaDB DSN for this read-only source contract.
+passthru(escapeshellarg(PHP_BINARY).' '.escapeshellarg(__DIR__.'/studio-mysql.php'), $studioStatus);
+if ($studioStatus !== 0) throw new RuntimeException('Studio MariaDB source checks failed.');

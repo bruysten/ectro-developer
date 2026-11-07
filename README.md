@@ -23,6 +23,10 @@ Eine Entwicklungsumgebung für Schulungen und Online-Trainings. HTML/CSS/JavaScr
 - Daten-Converter für CSV, TSV, JSON und XML. Der Adminbereich schaltet das Werkzeug und die verfügbaren Formate frei; die Umwandlung bleibt im Browser.
 - Gruppenchat mit inkrementeller AJAX-Aktualisierung.
 
+## Erweiterte Lernlabore
+
+Unter **Labore** stehen fortlaufende Projektgespräche, ein Assistenten-Builder, Quellenprüfung mit Referenzfällen, vier interaktive Analysefehler-Übungen, ein Visualisation Lab mit 15 Datensichten und ein Customer Journey Lab bereit. Alle sechs Bereiche besitzen eigene Gruppenfreigaben. Visualisierung und Journey nutzen projektgebundene Datensätze, JSON-Dateien, Graphen und MySQL-/MariaDB-Tabellen. [Bedienung, Rechte und Grenzen](docs/learning-studios.md) · [Aktualisierter Kursabgleich](docs/course-coverage.md).
+
 ## Ausführung und bewusste Grenzen
 
 PHP läuft standardmäßig im Browser; Administratoren können PHP alternativ auf dem Server ausführen lassen. Python bleibt browserbasiert. HTML-/JavaScript-Ausgaben erhalten eine isolierte Vorschau.

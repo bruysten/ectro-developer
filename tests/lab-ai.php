@@ -14,6 +14,12 @@ $connections=[];foreach([['openai','chat'],['anthropic','chat'],['daimon','chat'
     if($cap==='chat')checkAi(str_contains($r['text'],'Antwort'),'Chat normalized');elseif($cap==='embedding')checkAi($r['vectors']===[[1,0],[0,1]],'Embedding order normalized');else checkAi($r['results'][0]['index']===1,'Reranker normalized');
     $before=$calls;$cached=aiRun($u,$request,$transport);checkAi($calls===$before&&$cached===$r,'Idempotent replay does not call provider twice');
 }
+foreach(array_slice($connections,0,3) as $connection){
+    $observed=[];$capture=function($c,$path,$payload)use($transport,&$observed){$observed=$payload;return $transport($c,$path,$payload);};
+    aiRun($u,['project'=>$pid,'connection'=>$connection['id'],'operation'=>'chat','request'=>id(),'system'=>'Keep context.','messages'=>[['role'=>'user','content'=>'Remember apple.'],['role'=>'assistant','content'=>'Apple remembered.'],['role'=>'user','content'=>'What did I say?']]],$capture);
+    $messages=$connection['provider']==='openai'?$observed['input']:$observed['messages'];if($connection['provider']==='daimon')array_shift($messages);
+    checkAi(count($messages)===3&&$messages[0]['content']==='Remember apple.'&&$messages[1]['role']==='assistant','Provider keeps full role-separated conversation history.');
+}
 $chat=$connections[0];expectAi(422,fn()=>aiConnectionSave($u,[...$chat,'provider'=>'anthropic','key'=>'','shared'=>true]));
 $learnerId=id();query('INSERT INTO users(id,name,email,password,role,created_at) VALUES(?,?,?,?,?,?)',[$learnerId,'Lernender','learner@example.test','not-a-password','user',now()]);$learner=one('SELECT * FROM users WHERE id=?',[$learnerId]);$learnerProject=createProject($learner,'Freigegebenes Modell','web');$daimon=$connections[2];
 expectAi(403,fn()=>aiConnectionSave($learner,['name'=>'Verboten','provider'=>'daimon','model'=>'test','key'=>'synthetic-not-a-real-key']));
