@@ -1,3 +1,4 @@
+import {ui} from './address.js';
 import {ChangeSet,Text} from '@codemirror/state';
 import {collab,getSyncedVersion,sendableUpdates,receiveUpdates} from '@codemirror/collab';
 
@@ -30,7 +31,7 @@ export function synchronizeEditor(view,document,request,onState) {
         for(const update of sendableUpdates(view.state).slice(0,100)){const changes=update.changes.toJSON();const size=new TextEncoder().encode(JSON.stringify(changes)).length;if(updates.length&&bytes+size>3600000)break;updates.push(changes);bytes+=size;}
         const result=await request({version:getSyncedVersion(view.state),client:document.client,updates});
         if(stopped)return;
-        if(result.resync){blocked=true;status('Lange getrennt · Entwurf sichern',[],true);throw Error('Der Änderungsverlauf ist abgelaufen. Ihr Entwurf bleibt erhalten.');}
+        if(result.resync){blocked=true;status('Lange getrennt · Entwurf sichern',[],true);throw Error(ui('Der Änderungsverlauf ist abgelaufen. Ihr Entwurf bleibt erhalten.'));}
         const received=result.updates.map(u=>({...u,changes:ChangeSet.fromJSON(u.changes)}));
         for(const update of received)confirmed=update.changes.apply(confirmed);
         if(received.length)view.dispatch(receiveUpdates(view.state,received));
@@ -49,7 +50,7 @@ export function synchronizeEditor(view,document,request,onState) {
   return {
     start(){if(document.draft){for(const changes of document.draft.updates)view.dispatch({changes:ChangeSet.fromJSON(changes)});}status(pending()?'Entwurf wiederhergestellt · synchronisiert …':'Verbinden …');schedule(0);},
     changed(){if(stopped)return;cache();if(!blocked){onState({text:'Synchronisiert Änderungen …',people:null,dirty:pending(),recover:false});schedule(400);}},
-    async flush(){if(blocked)throw Error('Synchronisation pausiert. Bitte sichern Sie Ihren Entwurf.');for(let i=0;i<20;i++){await exchange();if(!pending())return;}throw Error('Änderungen werden noch synchronisiert. Bitte versuchen Sie es erneut.');},
+    async flush(){if(blocked)throw Error(ui('Synchronisation pausiert. Bitte sichern Sie Ihren Entwurf.'));for(let i=0;i<20;i++){await exchange();if(!pending())return;}throw Error(ui('Änderungen werden noch synchronisiert. Bitte versuchen Sie es erneut.'));},
     destroy(){cache();stopped=true;clearTimeout(timer);},
     discardDraft(){sessionStorage.removeItem(document.key);}
   };

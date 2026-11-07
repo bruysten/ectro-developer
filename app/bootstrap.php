@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/profile.php';
 require_once __DIR__ . '/group-periods.php';
+require_once __DIR__ . '/group-address.php';
 
 const APP_ROOT = __DIR__ . '/..';
 const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter', 'data_lab', 'graph', 'ai', 'rag', 'neural', 'chat_lab', 'assistant_lab', 'evaluation_lab', 'reasoning_lab', 'visualization_lab', 'journey_lab'];
@@ -103,6 +104,8 @@ function transaction(callable $fn): mixed {
 function now(): string { return gmdate('Y-m-d\TH:i:s\Z'); }
 function id(): string { return bin2hex(random_bytes(16)); }
 function jsonOut(array $data, int $status = 200): never {
+    if(isset($data['error'])&&is_string($data['error']))$data['error']=addressError($data['error']);
+    if(isset($GLOBALS['academyAddressMode']))header('X-Address-Mode: '.requestAddress());
     http_response_code($status); header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store'); echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE); exit;
 }
@@ -136,6 +139,7 @@ function currentUser(): ?array {
 }
 function requireUser(bool $admin = false,bool $allowClosed=false): array {
     $u = currentUser(); if (!$u) fail(401, 'Bitte melden Sie sich erneut an.');
+    setRequestAddress($admin?'formal':addressInfo($u)['mode']);
     if ($admin && $u['role'] !== 'admin') fail(403, 'Dieser Bereich ist Administratoren vorbehalten.'); if(!$allowClosed)requireLearningAccess($u);return $u;
 }
 function csrf(): void {
@@ -165,9 +169,9 @@ function emailField(array $data): string {
 function safeUser(array $u,bool $activeGroupsOnly=false): array {
     $groupScope=$activeGroupsOnly&&$u['role']!=='admin'?' AND '.groupOpenSql('g.id'):'';
     return ['profile'=>profileData($u['id']),'id' => $u['id'], 'name' => $u['name'], 'email' => $u['email'], 'role' => $u['role'], 'active' => (bool)$u['active'],
-        'access'=>learningAccess($u),'features' => json_decode($u['features'], true),
+        'access'=>learningAccess($u),'address'=>addressInfo($u),'features' => json_decode($u['features'], true),
         'created_at' => $u['created_at'], 'last_login' => $u['last_login'], 'must_change_password' => (bool)$u['must_change_password'],
-        'groups' => all('SELECT g.id,g.name FROM groups g JOIN group_members m ON m.group_id=g.id WHERE m.user_id=?'.$groupScope.' ORDER BY g.name', [$u['id']])];
+        'groups' => all("SELECT g.id,g.name,COALESCE(pref.address_mode,'formal') address_mode FROM groups g JOIN group_members m ON m.group_id=g.id LEFT JOIN group_preferences pref ON pref.group_id=g.id WHERE m.user_id=?".$groupScope.' ORDER BY g.name', [$u['id']])];
 }
 function sessionHours(): int {
     $hours=settings()['session_hours']??8;

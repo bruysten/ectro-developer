@@ -1,3 +1,4 @@
+import {ui} from './address.js';
 export function previewAttachment(file,root,sourceURL='/chat-file.php?'+new URLSearchParams({id:file.id})){
   root.textContent='Vorschau wird geladen …';const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),15000);let worker,url,pdfCleanup;
   const cleanup=()=>{controller.abort();clearTimeout(timeout);worker?.terminate();pdfCleanup?.();if(url)URL.revokeObjectURL(url);};
@@ -23,10 +24,10 @@ export function previewAttachment(file,root,sourceURL='/chat-file.php?'+new URLS
         if(part.name.startsWith('xl/'))return [...doc.getElementsByTagNameNS('*','row')].map(row=>[...row.getElementsByTagNameNS('*','c')].map(cell=>{const v=cell.getElementsByTagNameNS('*','v')[0]?.textContent||cell.textContent;return cell.getAttribute('t')==='s'?strings[Number(v)]??'':v;}).join('\t')).join('\n');
         const elements=[...doc.getElementsByTagName('*')];return elements.filter(el=>['p','h'].includes(el.localName)).map(el=>el.textContent).join('\n');
       }).join('\n\n');
-      const note=document.createElement('p');note.className='muted';note.textContent='Textvorschau · Layout, Bilder und Formatierung finden Sie im Original.';const pre=document.createElement('pre');pre.textContent=text||'Dieses Dokument enthält keinen darstellbaren Text.';root.replaceChildren(note,pre);
+      const note=document.createElement('p');note.className='muted';note.textContent=ui('Textvorschau · Layout, Bilder und Formatierung finden Sie im Original.');const pre=document.createElement('pre');pre.textContent=text||'Dieses Dokument enthält keinen darstellbaren Text.';root.replaceChildren(note,pre);
     } else if(['txt','md','csv','tsv','json','php','html','htm','css','js','mjs','py','xml','sql','yaml','yml','svg','ipynb','log','rtf'].includes(ext)){
       if(blob.size>2097152)throw Error('Die Datei ist für die Textvorschau zu groß. Bitte herunterladen.');const pre=document.createElement('pre');pre.textContent=await blob.text();root.replaceChildren(pre);
-    } else root.textContent='Für dieses Format ist keine Browser-Vorschau verfügbar. Laden Sie das Original herunter und öffnen Sie es in Ihrer Anwendung.';
+    } else root.textContent=ui('Für dieses Format ist keine Browser-Vorschau verfügbar. Laden Sie das Original herunter und öffnen Sie es in Ihrer Anwendung.');
   } catch(error){root.textContent=error.name==='AbortError'?'Die Vorschau wurde abgebrochen oder hat zu lange gedauert.':error.message;}
   finally{clearTimeout(timeout);}
   };void run();return cleanup;

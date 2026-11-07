@@ -1,0 +1,797 @@
+[
+  {
+    "formal": "Verbinden Sie zuerst Ihre Datenbank.",
+    "informal": "Verbinde zuerst deine Datenbank."
+  },
+  {
+    "formal": "Wählen Sie eine Tabelle und fügen Sie Spalten per Drag-and-drop hinzu.",
+    "informal": "Wähle eine Tabelle und füge Spalten per Drag-and-drop hinzu."
+  },
+  {
+    "formal": "Öffnen Sie den SQL-Helper erneut.",
+    "informal": "Öffne den SQL-Helper erneut."
+  },
+  {
+    "formal": "Wählen Sie zuerst eine Tabelle.",
+    "informal": "Wähle zuerst eine Tabelle."
+  },
+  {
+    "formal": "Wählen Sie eine Tabelle.",
+    "informal": "Wähle eine Tabelle."
+  },
+  {
+    "formal": "Ihre letzten Änderungen sind noch nicht gespeichert. Möchten Sie diesen Bereich trotzdem verlassen?",
+    "informal": "Deine letzten Änderungen sind noch nicht gespeichert. Möchtest du diesen Bereich trotzdem verlassen?"
+  },
+  {
+    "formal": "Bei Fragen zum Zugriffszeitraum wenden Sie sich an Ihre Kursleitung.",
+    "informal": "Bei Fragen zum Zugriffszeitraum wende dich an deine Kursleitung."
+  },
+  {
+    "formal": "Erstellen Sie den ersten Administrator mit Ihrem Einrichtungsschlüssel.",
+    "informal": "Erstelle den ersten Administrator mit deinem Einrichtungsschlüssel."
+  },
+  {
+    "formal": "Melden Sie sich an und machen Sie dort weiter, wo Ihre letzte Idee aufgehört hat.",
+    "informal": "Melde dich an und mache dort weiter, wo deine letzte Idee aufgehört hat."
+  },
+  {
+    "formal": "Ihr Name",
+    "informal": "Dein Name"
+  },
+  {
+    "formal": "Zugang erhalten Sie von Ihrer Kursleitung.",
+    "informal": "Zugang erhältst du von deiner Kursleitung."
+  },
+  {
+    "formal": "Ihr Administrator wurde angelegt.",
+    "informal": "Dein Administrator wurde angelegt."
+  },
+  {
+    "formal": "Wählen Sie ein neues Passwort mit mindestens 12 Zeichen. Nach dem Speichern melden Sie sich damit an.",
+    "informal": "Wähle ein neues Passwort mit mindestens 12 Zeichen. Nach dem Speichern melde dich damit an."
+  },
+  {
+    "formal": "Geben Sie die E-Mail-Adresse Ihres Zugangs ein. Sie erhalten einen Link, der 30 Minuten gültig ist.",
+    "informal": "Gib die E-Mail-Adresse deines Zugangs ein. Du erhältst einen Link, der 30 Minuten gültig ist."
+  },
+  {
+    "formal": "Ihr Passwort wurde geändert.",
+    "informal": "Dein Passwort wurde geändert."
+  },
+  {
+    "formal": "Melden Sie sich mit Ihrem neuen Passwort an.",
+    "informal": "Melde dich mit deinem neuen Passwort an."
+  },
+  {
+    "formal": "Ihr persönlicher Workspace.",
+    "informal": "Dein persönlicher Workspace."
+  },
+  {
+    "formal": "Bitte ersetzen Sie Ihr vorläufiges Passwort, bevor Sie Ihren Workspace öffnen.",
+    "informal": "Bitte ersetze dein vorläufiges Passwort, bevor du deinen Workspace öffnest."
+  },
+  {
+    "formal": "Verwenden Sie ein langes Passwort, das Sie nur hier nutzen.",
+    "informal": "Verwende ein langes Passwort, das du nur hier nutzt."
+  },
+  {
+    "formal": "Ihr Projekt ist bereit.",
+    "informal": "Dein Projekt ist bereit."
+  },
+  {
+    "formal": "Sie gehören noch keiner Gruppe an.",
+    "informal": "Du gehörst noch keiner Gruppe an."
+  },
+  {
+    "formal": "wenn Sie die Gruppe verlassen.",
+    "informal": "wenn du die Gruppe verlässt."
+  },
+  {
+    "formal": "Möchten Sie",
+    "informal": "Möchtest du"
+  },
+  {
+    "formal": "Erstellen Sie ein Projekt oder teilen Sie ein persönliches Projekt mit Ihrer Gruppe.",
+    "informal": "Erstelle ein Projekt oder teile ein persönliches Projekt mit deiner Gruppe."
+  },
+  {
+    "formal": "Ihre Projekte",
+    "informal": "Deine Projekte"
+  },
+  {
+    "formal": "Ihr Raum.",
+    "informal": "Dein Raum."
+  },
+  {
+    "formal": "Ihre nächste",
+    "informal": "Deine nächste"
+  },
+  {
+    "formal": "mit Ihren Projekten.",
+    "informal": "mit deinen Projekten."
+  },
+  {
+    "formal": "Ihr nächster Schritt beginnt hier.",
+    "informal": "Dein nächster Schritt beginnt hier."
+  },
+  {
+    "formal": "In Ihrem persönlichen Space",
+    "informal": "In deinem persönlichen Space"
+  },
+  {
+    "formal": "Platz für Ihre erste Idee",
+    "informal": "Platz für deine erste Idee"
+  },
+  {
+    "formal": "Starten Sie mit einer Web-Seite, einem PHP-Projekt oder einem Python-Script.",
+    "informal": "Starte mit einer Web-Seite, einem PHP-Projekt oder einem Python-Script."
+  },
+  {
+    "formal": "Hier erscheinen Ihre nächsten Schritte.",
+    "informal": "Hier erscheinen deine nächsten Schritte."
+  },
+  {
+    "formal": "Sie bearbeiten Projekte und Dateien von",
+    "informal": "Du bearbeitest Projekte und Dateien von"
+  },
+  {
+    "formal": "Ihre Dateien",
+    "informal": "Deine Dateien"
+  },
+  {
+    "formal": "Ihr Space ist bereit",
+    "informal": "Dein Space ist bereit"
+  },
+  {
+    "formal": "Wählen Sie einen anderen Teilnehmer oder kehren Sie zu Ihrem Workspace zurück.",
+    "informal": "Wähle einen anderen Teilnehmer oder kehre zu deinem Workspace zurück."
+  },
+  {
+    "formal": "Legen Sie Ihr erstes Projekt an, um Dateien zu erstellen.",
+    "informal": "Lege dein erstes Projekt an, um Dateien zu erstellen."
+  },
+  {
+    "formal": "HTML- und PHP-Dateien öffnen Sie über",
+    "informal": "HTML- und PHP-Dateien öffnest du über"
+  },
+  {
+    "formal": "Erstellen Sie eine Datei, um loszulegen.",
+    "informal": "Erstelle eine Datei, um loszulegen."
+  },
+  {
+    "formal": "Ihr Code bleibt in Ihrem persönlichen Workspace.",
+    "informal": "Dein Code bleibt in deinem persönlichen Workspace."
+  },
+  {
+    "formal": "Die freigegebenen Formate bestimmt Ihre Kursleitung.",
+    "informal": "Die freigegebenen Formate bestimmt deine Kursleitung."
+  },
+  {
+    "formal": "Ihr Workspace",
+    "informal": "Dein Workspace"
+  },
+  {
+    "formal": "Wählen Sie ein Projekt, um Code zu bearbeiten.",
+    "informal": "Wähle ein Projekt, um Code zu bearbeiten."
+  },
+  {
+    "formal": "Ihr Editor wartet auf Sie",
+    "informal": "Dein Editor wartet auf dich"
+  },
+  {
+    "formal": "Wählen Sie eine Vorlage und beginnen Sie mit Ihrem ersten Entwurf.",
+    "informal": "Wähle eine Vorlage und beginne mit deinem ersten Entwurf."
+  },
+  {
+    "formal": "Ihr Entwurf bleibt erhalten.",
+    "informal": "Dein Entwurf bleibt erhalten."
+  },
+  {
+    "formal": "Führen Sie eine Datei aus, um das Ergebnis hier zu sehen.",
+    "informal": "Führe eine Datei aus, um das Ergebnis hier zu sehen."
+  },
+  {
+    "formal": "Ihr Code. Ihr Space.",
+    "informal": "Dein Code. Dein Space."
+  },
+  {
+    "formal": "Wählen Sie eine HTML- oder PHP-Datei.",
+    "informal": "Wähle eine HTML- oder PHP-Datei."
+  },
+  {
+    "formal": "Diese Sprache ist für Ihren Zugang nicht freigegeben.",
+    "informal": "Diese Sprache ist für deinen Zugang nicht freigegeben."
+  },
+  {
+    "formal": "Wählen Sie eine HTML-, JavaScript-, PHP- oder Python-Datei.",
+    "informal": "Wähle eine HTML-, JavaScript-, PHP- oder Python-Datei."
+  },
+  {
+    "formal": "Ihre Datenbank verbinden.",
+    "informal": "Deine Datenbank verbinden."
+  },
+  {
+    "formal": "Ihre Zugangsdaten werden verschlüsselt gespeichert.",
+    "informal": "Deine Zugangsdaten werden verschlüsselt gespeichert."
+  },
+  {
+    "formal": "Ein Zugang. Ihre Tabellen.",
+    "informal": "Ein Zugang. Deine Tabellen."
+  },
+  {
+    "formal": "Ihre Kursleitung stellt Ihnen eine Datenbank und einen eigenen Datenbankbenutzer bereit.",
+    "informal": "Deine Kursleitung stellt dir eine Datenbank und einen eigenen Datenbankbenutzer bereit."
+  },
+  {
+    "formal": "Zugriff auf Ihre eigene Datenbank",
+    "informal": "Zugriff auf deine eigene Datenbank"
+  },
+  {
+    "formal": "Zusätzliche Hosts gibt Ihre Kursleitung im Adminbereich frei.",
+    "informal": "Zusätzliche Hosts gibt deine Kursleitung im Adminbereich frei."
+  },
+  {
+    "formal": "Nach dem Verbinden können Sie Tabellen erstellen, Datensätze bearbeiten und SQL-Abfragen ausführen.",
+    "informal": "Nach dem Verbinden kannst du Tabellen erstellen, Datensätze bearbeiten und SQL-Abfragen ausführen."
+  },
+  {
+    "formal": "Verbinden Sie Ihre eigene MySQL- oder MariaDB-Datenbank.",
+    "informal": "Verbinde deine eigene MySQL- oder MariaDB-Datenbank."
+  },
+  {
+    "formal": "Ihre Datenbank ist verbunden.",
+    "informal": "Deine Datenbank ist verbunden."
+  },
+  {
+    "formal": "Abfragen wirken direkt auf Ihre Datenbank.",
+    "informal": "Abfragen wirken direkt auf deine Datenbank."
+  },
+  {
+    "formal": "Ihre Datenbank",
+    "informal": "Deine Datenbank"
+  },
+  {
+    "formal": "Wählen Sie eine Tabelle oder erstellen Sie Ihre erste.",
+    "informal": "Wähle eine Tabelle oder erstelle deine erste."
+  },
+  {
+    "formal": "Ihre MySQL-Daten bleiben erhalten.",
+    "informal": "Deine MySQL-Daten bleiben erhalten."
+  },
+  {
+    "formal": "Ihre SQL-Abfrage",
+    "informal": "Deine SQL-Abfrage"
+  },
+  {
+    "formal": "Datensätze Ihrer Tabelle",
+    "informal": "Datensätze deiner Tabelle"
+  },
+  {
+    "formal": "Bauen Sie Ihre Abfrage Schritt für Schritt. SQL und Daten bleiben im Blick.",
+    "informal": "Baue deine Abfrage Schritt für Schritt. SQL und Daten bleiben im Blick."
+  },
+  {
+    "formal": "Erstellen Sie eine Tabelle, um direkt mit Ihren Daten zu arbeiten.",
+    "informal": "Erstelle eine Tabelle, um direkt mit deinen Daten zu arbeiten."
+  },
+  {
+    "formal": "Wählen Sie eine Tabelle, um Datensätze anzusehen und zu bearbeiten.",
+    "informal": "Wähle eine Tabelle, um Datensätze anzusehen und zu bearbeiten."
+  },
+  {
+    "formal": "Dieser Datensatz wird dauerhaft aus Ihrer Datenbank gelöscht.",
+    "informal": "Dieser Datensatz wird dauerhaft aus deiner Datenbank gelöscht."
+  },
+  {
+    "formal": "Bitte wählen Sie zuerst eine Tabelle.",
+    "informal": "Bitte wähle zuerst eine Tabelle."
+  },
+  {
+    "formal": "Laden Sie zuerst die Datensätze.",
+    "informal": "Lade zuerst die Datensätze."
+  },
+  {
+    "formal": "Für Schlüssel verwenden Sie VARCHAR statt TEXT.",
+    "informal": "Für Schlüssel verwende VARCHAR statt TEXT."
+  },
+  {
+    "formal": "Alle Spalten legen Sie selbst fest. Wählen Sie einen Primärschlüssel, um Datensätze später einzeln bearbeiten und löschen zu können.",
+    "informal": "Alle Spalten legst du selbst fest. Wähle einen Primärschlüssel, um Datensätze später einzeln bearbeiten und löschen zu können."
+  },
+  {
+    "formal": "Ihr Chat ist in der schwebenden Blase geöffnet.",
+    "informal": "Dein Chat ist in der schwebenden Blase geöffnet."
+  },
+  {
+    "formal": "Ihr Austausch mit der Lerngruppe.",
+    "informal": "Dein Austausch mit der Lerngruppe."
+  },
+  {
+    "formal": "Der Chat ist für Ihren Zugang nicht freigegeben.",
+    "informal": "Der Chat ist für deinen Zugang nicht freigegeben."
+  },
+  {
+    "formal": "Ihre Kursleitung kann Sie einer Gruppe zuordnen.",
+    "informal": "Deine Kursleitung kann dich einer Gruppe zuordnen."
+  },
+  {
+    "formal": "Ihr nicht gesendeter Entwurf wird verworfen.",
+    "informal": "Dein nicht gesendeter Entwurf wird verworfen."
+  },
+  {
+    "formal": "Legen Sie Benutzer an, ordnen Sie Gruppen zu und geben Sie genau die Werkzeuge frei, die Ihr Training braucht.",
+    "informal": "Lege Benutzer an, ordne Gruppen zu und gib genau die Werkzeuge frei, die dein Training braucht."
+  },
+  {
+    "formal": "Mitglieder können Sie hier beim Anlegen oder Bearbeiten einer Gruppe und in der Benutzerverwaltung zuordnen.",
+    "informal": "Mitglieder kannst du hier beim Anlegen oder Bearbeiten einer Gruppe und in der Benutzerverwaltung zuordnen."
+  },
+  {
+    "formal": "Raum für Ihre Lerngruppe",
+    "informal": "Raum für deine Lerngruppe"
+  },
+  {
+    "formal": "Projekttypen und Startdateien für Ihre Lernenden.",
+    "informal": "Projekttypen und Startdateien für deine Lernenden."
+  },
+  {
+    "formal": "Bitte geben Sie einen gültigen relativen Dateipfad ein.",
+    "informal": "Bitte gib einen gültigen relativen Dateipfad ein."
+  },
+  {
+    "formal": "Die Freigaben einer Lerngruppe bearbeiten Sie unter",
+    "informal": "Die Freigaben einer Lerngruppe bearbeitest du unter"
+  },
+  {
+    "formal": "Erlauben Sie nur die MySQL-Hosts, die für Ihr Training vorgesehen sind.",
+    "informal": "Erlaube nur die MySQL-Hosts, die für dein Training vorgesehen sind."
+  },
+  {
+    "formal": "Verwenden Sie für jeden Lernenden einen eigenen MySQL-Benutzer mit Rechten ausschließlich auf dessen Datenbank.",
+    "informal": "Verwende für jeden Lernenden einen eigenen MySQL-Benutzer mit Rechten ausschließlich auf dessen Datenbank."
+  },
+  {
+    "formal": "Beim Anlegen eines Benutzers können Sie den Versand und die Vorlage auswählen.",
+    "informal": "Beim Anlegen eines Benutzers kannst du den Versand und die Vorlage auswählen."
+  },
+  {
+    "formal": "Prüfen Sie zuerst in Mailjet, ob die Nachricht bereits versendet wurde.",
+    "informal": "Prüfe zuerst in Mailjet, ob die Nachricht bereits versendet wurde."
+  },
+  {
+    "formal": "Zugangsvorlagen wählen Sie beim Anlegen eines Benutzers aus.",
+    "informal": "Zugangsvorlagen wählst du beim Anlegen eines Benutzers aus."
+  },
+  {
+    "formal": "Ihr Profil",
+    "informal": "Dein Profil"
+  },
+  {
+    "formal": "Gespeichert wird nur Ihr Ausschnitt.",
+    "informal": "Gespeichert wird nur dein Ausschnitt."
+  },
+  {
+    "formal": "Ihre Rolle wird von der Kursleitung verwaltet.",
+    "informal": "Deine Rolle wird von der Kursleitung verwaltet."
+  },
+  {
+    "formal": "Ihre Links",
+    "informal": "Deine Links"
+  },
+  {
+    "formal": "Freiwillig. Sie können die Freigabe hier jederzeit für die Zukunft widerrufen. Ohne Freigabe bleibt Ihr Profil für andere Gruppenmitglieder unsichtbar; Ihre Lernumgebung können Sie weiterhin nutzen.",
+    "informal": "Freiwillig. Du kannst die Freigabe hier jederzeit für die Zukunft widerrufen. Ohne Freigabe bleibt dein Profil für andere Gruppenmitglieder unsichtbar; deine Lernumgebung kannst du weiterhin nutzen."
+  },
+  {
+    "formal": "So erscheinen Sie im Workspace und Chat.",
+    "informal": "So erscheinst du im Workspace und Chat."
+  },
+  {
+    "formal": "Bitte Ihre Profiländerungen zuerst speichern. Danach können Sie hier Ihr Passwort ändern.",
+    "informal": "Bitte deine Profiländerungen zuerst speichern. Danach kannst du hier dein Passwort ändern."
+  },
+  {
+    "formal": "Ihr Team",
+    "informal": "Dein Team"
+  },
+  {
+    "formal": "Ihre Kursleitung kann Sie einer Lerngruppe zuordnen.",
+    "informal": "Deine Kursleitung kann dich einer Lerngruppe zuordnen."
+  },
+  {
+    "formal": "Textvorschau · Layout, Bilder und Formatierung finden Sie im Original.",
+    "informal": "Textvorschau · Layout, Bilder und Formatierung findest du im Original."
+  },
+  {
+    "formal": "Laden Sie das Original herunter und öffnen Sie es in Ihrer Anwendung.",
+    "informal": "Lade das Original herunter und öffne es in deiner Anwendung."
+  },
+  {
+    "formal": "Synchronisation pausiert. Bitte sichern Sie Ihren Entwurf.",
+    "informal": "Synchronisation pausiert. Bitte sichere deinen Entwurf."
+  },
+  {
+    "formal": "Bitte versuchen Sie es erneut.",
+    "informal": "Bitte versuche es erneut."
+  },
+  {
+    "formal": "Mit Rückgängig können Sie die Änderung zurücknehmen.",
+    "informal": "Mit Rückgängig kannst du die Änderung zurücknehmen."
+  },
+  {
+    "formal": "Bereit für Ihre Daten",
+    "informal": "Bereit für deine Daten"
+  },
+  {
+    "formal": "Ihre Eingaben werden nicht hochgeladen.",
+    "informal": "Deine Eingaben werden nicht hochgeladen."
+  },
+  {
+    "formal": "Fügen Sie zuerst Daten ein oder wählen Sie eine Datei aus.",
+    "informal": "Füge zuerst Daten ein oder wähle eine Datei aus."
+  },
+  {
+    "formal": "Modellkennung Ihres Anbieters",
+    "informal": "Modellkennung deines Anbieters"
+  },
+  {
+    "formal": "Typen beschreiben Dinge. Eigenschaften und Regeln können Sie nach und nach ergänzen.",
+    "informal": "Typen beschreiben Dinge. Eigenschaften und Regeln kannst du nach und nach ergänzen."
+  },
+  {
+    "formal": "Exportieren Sie ihn vorher, um ihn zu behalten.",
+    "informal": "Exportiere ihn vorher, um ihn zu behalten."
+  },
+  {
+    "formal": "Ihre Persona",
+    "informal": "Deine Persona"
+  },
+  {
+    "formal": "Ihre Frage",
+    "informal": "Deine Frage"
+  },
+  {
+    "formal": "Sobald die Abfrage vollständig ist, sehen Sie hier Ihre Auswahl.",
+    "informal": "Sobald die Abfrage vollständig ist, siehst du hier deine Auswahl.",
+    "legacy": [
+      "Sobald die Abfrage vollständig ist, sehen Sie hier ihre Auswahl."
+    ]
+  },
+  {
+    "formal": "Wählen Sie unten einen Datensatz als Filter oder ziehen Sie eine Spalte hierher.",
+    "informal": "Wähle unten einen Datensatz als Filter oder ziehe eine Spalte hierher."
+  },
+  {
+    "formal": "Ausführen speichert Änderungen in Ihrer verbundenen Datenbank.",
+    "informal": "Ausführen speichert Änderungen in deiner verbundenen Datenbank."
+  },
+  {
+    "formal": "Ihre Änderungen im persönlichen Übungsbereich werden durch die Startdaten ersetzt.",
+    "informal": "Deine Änderungen im persönlichen Übungsbereich werden durch die Startdaten ersetzt."
+  },
+  {
+    "formal": "In Ihrer eigenen Datenbank",
+    "informal": "In deiner eigenen Datenbank"
+  },
+  {
+    "formal": "Ziehen Sie eine Spalte hierher, um gezielt auszuwählen.",
+    "informal": "Ziehe eine Spalte hierher, um gezielt auszuwählen."
+  },
+  {
+    "formal": "Ziehen Sie eine Spalte hierher, um einen Wert einzugeben.",
+    "informal": "Ziehe eine Spalte hierher, um einen Wert einzugeben."
+  },
+  {
+    "formal": "Änderungen verwerfen? Exportieren oder speichern Sie den Entwurf, um ihn zu behalten.",
+    "informal": "Änderungen verwerfen? Exportiere oder speichere den Entwurf, um ihn zu behalten."
+  },
+  {
+    "formal": "Ihre Nachricht",
+    "informal": "Deine Nachricht"
+  },
+  {
+    "formal": "Das Gespräch wird in Ihrem Projekt gespeichert; berechtigte Dozenten können es betreuen.",
+    "informal": "Das Gespräch wird in deinem Projekt gespeichert; berechtigte Dozenten können es betreuen."
+  },
+  {
+    "formal": "Womit möchten Sie beginnen?",
+    "informal": "Womit möchtest du beginnen?"
+  },
+  {
+    "formal": "Stellen Sie eine Frage.",
+    "informal": "Stelle eine Frage."
+  },
+  {
+    "formal": "Was soll Ihr Assistent können?",
+    "informal": "Was soll dein Assistent können?"
+  },
+  {
+    "formal": "Noch keine eigenen Wissensbausteine. Sie können stattdessen auch nur Projektquellen verknüpfen.",
+    "informal": "Noch keine eigenen Wissensbausteine. Du kannst stattdessen auch nur Projektquellen verknüpfen."
+  },
+  {
+    "formal": "Der Textabgleich prüft das Zitat; ob es die Aussage trägt, beurteilen Sie selbst.",
+    "informal": "Der Textabgleich prüft das Zitat; ob es die Aussage trägt, beurteilst du selbst."
+  },
+  {
+    "formal": "Vergleichen Sie Fakten, Quellenbezug und den Umgang mit fehlender Information.",
+    "informal": "Vergleiche Fakten, Quellenbezug und den Umgang mit fehlender Information."
+  },
+  {
+    "formal": "Ihre fachliche Bewertung",
+    "informal": "Deine fachliche Bewertung"
+  },
+  {
+    "formal": "Dokumentation Ihrer Prüfung",
+    "informal": "Dokumentation deiner Prüfung"
+  },
+  {
+    "formal": "Woran würden Sie eine Verbesserung erkennen?",
+    "informal": "Woran würdest du eine Verbesserung erkennen?",
+    "legacy": [
+      "Woran würdet ihr eine Verbesserung erkennen?"
+    ]
+  },
+  {
+    "formal": "Stimmung und Aussagen sind Annahmen, bis Sie sie belegt haben.",
+    "informal": "Stimmung und Aussagen sind Annahmen, bis du sie belegt hast.",
+    "legacy": [
+      "Stimmung und Aussagen sind Annahmen, bis ihr sie belegt habt."
+    ]
+  },
+  {
+    "formal": "Ordnen Sie Tabellenspalten den Journey-Feldern zu.",
+    "informal": "Ordne Tabellenspalten den Journey-Feldern zu."
+  },
+  {
+    "formal": "Ihre Interpretation",
+    "informal": "Deine Interpretation"
+  },
+  {
+    "formal": "Was bedeutet das für Ihr Projekt?",
+    "informal": "Was bedeutet das für dein Projekt?"
+  },
+  {
+    "formal": "Wählen Sie eine Aussage. Danach können Sie Ihre Interpretation mit der Erklärung vergleichen.",
+    "informal": "Wähle eine Aussage. Danach kannst du deine Interpretation mit der Erklärung vergleichen."
+  },
+  {
+    "formal": "Wählen Sie zuerst den Zweck, dann die Datensicht und die passenden Spalten.",
+    "informal": "Wähle zuerst den Zweck, dann die Datensicht und die passenden Spalten."
+  },
+  {
+    "formal": "Ihre Datensicht",
+    "informal": "Deine Datensicht"
+  },
+  {
+    "formal": "Was möchten Sie zeigen?",
+    "informal": "Was möchtest du zeigen?"
+  },
+  {
+    "formal": "Wählen Sie eine verfügbare Datenquelle.",
+    "informal": "Wähle eine verfügbare Datenquelle."
+  },
+  {
+    "formal": "Ihre Labore",
+    "informal": "Deine Labore"
+  },
+  {
+    "formal": "Wählen Sie eine Frage. Arbeiten Sie mit den Daten Ihres Projekts.",
+    "informal": "Wähle eine Frage. Arbeite mit den Daten deines Projekts."
+  },
+  {
+    "formal": "Für Ihren Zugang sind noch keine Labore freigegeben.",
+    "informal": "Für deinen Zugang sind noch keine Labore freigegeben."
+  },
+  {
+    "formal": "Hier beginnt Ihr Experiment.",
+    "informal": "Hier beginnt dein Experiment."
+  },
+  {
+    "formal": "Die Passwort-Wiederherstellung ist noch nicht verfügbar. Bitte wenden Sie sich an den Betreiber.",
+    "informal": "Die Passwort-Wiederherstellung ist noch nicht verfügbar. Bitte wende dich an den Betreiber.",
+    "error": true
+  },
+  {
+    "formal": "Bitte ändern Sie zuerst Ihr vorläufiges Passwort.",
+    "informal": "Bitte ändere zuerst dein vorläufiges Passwort.",
+    "error": true
+  },
+  {
+    "formal": "Sie gehören dieser Gruppe nicht an.",
+    "informal": "Du gehörst dieser Gruppe nicht an.",
+    "error": true
+  },
+  {
+    "formal": "Diese Datei wurde inzwischen geändert. Laden Sie sie neu, bevor Sie speichern. Ihr Entwurf bleibt im Editor.",
+    "informal": "Diese Datei wurde inzwischen geändert. Lade sie neu, bevor du speicherst. Dein Entwurf bleibt im Editor.",
+    "error": true
+  },
+  {
+    "formal": "Ihr Workspace ist voll (20 MB).",
+    "informal": "Dein Workspace ist voll (20 MB).",
+    "error": true
+  },
+  {
+    "formal": "Bitte geben Sie das Datenbankpasswort ein.",
+    "informal": "Bitte gib das Datenbankpasswort ein.",
+    "error": true
+  },
+  {
+    "formal": "Der Projekttyp wurde inzwischen geändert. Bitte aktualisieren Sie die Übersicht.",
+    "informal": "Der Projekttyp wurde inzwischen geändert. Bitte aktualisiere die Übersicht.",
+    "error": true
+  },
+  {
+    "formal": "Sie können Ihren eigenen Adminzugang nicht sperren oder herabstufen.",
+    "informal": "Du kannst deinen eigenen Adminzugang nicht sperren oder herabstufen.",
+    "error": true
+  },
+  {
+    "formal": "Sie können Ihren eigenen Zugang nicht löschen.",
+    "informal": "Du kannst deinen eigenen Zugang nicht löschen.",
+    "error": true
+  },
+  {
+    "formal": "Bitte geben Sie höchstens 20 Hosts an.",
+    "informal": "Bitte gib höchstens 20 Hosts an.",
+    "error": true
+  },
+  {
+    "formal": "Der Speicher ist vorübergehend nicht verfügbar. Bitte versuchen Sie es erneut.",
+    "informal": "Der Speicher ist vorübergehend nicht verfügbar. Bitte versuche es erneut.",
+    "error": true
+  },
+  {
+    "formal": "Bitte melden Sie sich erneut an.",
+    "informal": "Bitte melde dich erneut an.",
+    "error": true
+  },
+  {
+    "formal": "Die Sicherheitsprüfung ist fehlgeschlagen. Bitte laden Sie die Seite neu.",
+    "informal": "Die Sicherheitsprüfung ist fehlgeschlagen. Bitte lade die Seite neu.",
+    "error": true
+  },
+  {
+    "formal": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+    "informal": "Bitte gib eine gültige E-Mail-Adresse ein.",
+    "error": true
+  },
+  {
+    "formal": "Bitte wählen Sie mindestens zwei gültige Converter-Formate aus.",
+    "informal": "Bitte wähle mindestens zwei gültige Converter-Formate aus.",
+    "error": true
+  },
+  {
+    "formal": "Diese Funktion ist für Ihren Zugang nicht freigegeben.",
+    "informal": "Diese Funktion ist für deinen Zugang nicht freigegeben.",
+    "error": true
+  },
+  {
+    "formal": "Zu viele Anfragen. Bitte versuchen Sie es in wenigen Minuten erneut.",
+    "informal": "Zu viele Anfragen. Bitte versuche es in wenigen Minuten erneut.",
+    "error": true
+  },
+  {
+    "formal": "Dieser Teilnehmer gehört keiner Ihrer ausgewählten Gruppen an.",
+    "informal": "Dieser Teilnehmer gehört keiner deiner ausgewählten Gruppen an.",
+    "error": true
+  },
+  {
+    "formal": "Bitte verwenden Sie einen relativen Dateinamen ohne Sonderzeichen.",
+    "informal": "Bitte verwende einen relativen Dateinamen ohne Sonderzeichen.",
+    "error": true
+  },
+  {
+    "formal": "Sie sind nicht Mitglied dieser Gruppe.",
+    "informal": "Du bist nicht Mitglied dieser Gruppe.",
+    "error": true
+  },
+  {
+    "formal": "Die Datei wurde gelöscht. Ihr Entwurf bleibt erhalten.",
+    "informal": "Die Datei wurde gelöscht. Dein Entwurf bleibt erhalten.",
+    "error": true
+  },
+  {
+    "formal": "Der Zugriffszeitraum Ihrer Lerngruppen ist beendet.",
+    "informal": "Der Zugriffszeitraum deiner Lerngruppen ist beendet.",
+    "error": true
+  },
+  {
+    "formal": "Diese Gruppe wurde inzwischen geändert. Ihr Entwurf bleibt erhalten. Bitte die aktuellen Gruppenrechte laden.",
+    "informal": "Diese Gruppe wurde inzwischen geändert. Dein Entwurf bleibt erhalten. Bitte die aktuellen Gruppenrechte laden.",
+    "error": true
+  },
+  {
+    "formal": "Diese Verbindung dürfen Sie nicht freigeben.",
+    "informal": "Diese Verbindung darfst du nicht freigeben.",
+    "error": true
+  },
+  {
+    "formal": "Diese Persona wurde inzwischen geändert. Ihr Entwurf bleibt geöffnet; bitte separat sichern und die Bibliothek neu laden.",
+    "informal": "Diese Persona wurde inzwischen geändert. Dein Entwurf bleibt geöffnet; bitte separat sichern und die Bibliothek neu laden.",
+    "error": true
+  },
+  {
+    "formal": "Das Gespräch wurde inzwischen geändert. Bitte neu laden; Ihre Eingabe bleibt erhalten.",
+    "informal": "Das Gespräch wurde inzwischen geändert. Bitte neu laden; deine Eingabe bleibt erhalten.",
+    "error": true
+  },
+  {
+    "formal": "Inzwischen geändert. Ihr Entwurf bleibt erhalten; bitte zuerst exportieren oder neu laden.",
+    "informal": "Inzwischen geändert. Dein Entwurf bleibt erhalten; bitte zuerst exportieren oder neu laden.",
+    "error": true
+  },
+  {
+    "formal": "Bitte hinterlegen Sie zuerst Ihre Datenbankverbindung.",
+    "informal": "Bitte hinterlege zuerst deine Datenbankverbindung.",
+    "error": true
+  },
+  {
+    "formal": "Bitte verwenden Sie Buchstaben, Zahlen und Unterstriche für Tabellen- und Spaltennamen.",
+    "informal": "Bitte verwende Buchstaben, Zahlen und Unterstriche für Tabellen- und Spaltennamen.",
+    "error": true
+  },
+  {
+    "formal": "Bitte definieren Sie 1 bis 30 Spalten.",
+    "informal": "Bitte definiere 1 bis 30 Spalten.",
+    "error": true
+  },
+  {
+    "formal": "Bitte verwenden Sie eine einzelne Abfrage oder eine Tabellenoperation.",
+    "informal": "Bitte verwende eine einzelne Abfrage oder eine Tabellenoperation.",
+    "error": true
+  },
+  {
+    "formal": "Bitte wählen Sie eine PHP-Datei.",
+    "informal": "Bitte wähle eine PHP-Datei.",
+    "error": true
+  },
+  {
+    "formal": "Ihr Profil wurde inzwischen geändert. Bitte erneut öffnen.",
+    "informal": "Dein Profil wurde inzwischen geändert. Bitte erneut öffnen.",
+    "error": true
+  },
+  {
+    "formal": "Bitte prüfen Sie das Feld „",
+    "informal": "Bitte prüfe das Feld „",
+    "error": true,
+    "prefix": true
+  },
+  {
+    "formal": "Ihr Lernzugang beginnt am ",
+    "informal": "Dein Lernzugang beginnt am ",
+    "error": true,
+    "prefix": true
+  },
+  {
+    "formal": "Sie",
+    "informal": "Du",
+    "exact": true
+  },
+  {
+    "formal": "Ihre Tabellen",
+    "informal": "Deine Tabellen"
+  },
+  {
+    "formal": "IHRE AKTIVITÄT",
+    "informal": "DEINE AKTIVITÄT"
+  },
+  {
+    "formal": "Freigaben gelten für Ihre aktuellen Lerngruppen.",
+    "informal": "Freigaben gelten für deine aktuellen Lerngruppen."
+  },
+  {
+    "formal": "Ein paar Worte über Sie, Ihre Interessen oder Ihre Arbeit …",
+    "informal": "Ein paar Worte über dich, deine Interessen oder deine Arbeit …"
+  },
+  {
+    "formal": "Stellen Sie eine Frage oder knüpfen Sie an die letzte Antwort an …",
+    "informal": "Stelle eine Frage oder knüpfe an die letzte Antwort an …"
+  },
+  {
+    "formal": "Passend zu Ihrer Frage",
+    "informal": "Passend zu deiner Frage"
+  }
+]

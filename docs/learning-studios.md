@@ -89,6 +89,8 @@ Die gemeinsame Quellenauswahl kann Projekttabellen, JSON, Graphdaten und MySQL-/
 
 ## Administration, Rechte und Migration
 
+Gruppen können die Frontend-Ansprache **Siezen** oder **Duzen** festlegen; Standard ist **Siezen**. Bei Mehrfachzuordnung hat der aktuell laufende Kurs Vorrang. Die Ansprache gilt einheitlich im Frontend und ist unabhängig vom gerade geöffneten Projekt. Regeln, Schutz eigener Inhalte und Prüfungen sind in [Ansprache nach Lerngruppe](group-address.md) beschrieben.
+
 Neue unabhängige Gruppenrechte: `chat_lab`, `assistant_lab`, `evaluation_lab`, `reasoning_lab`, `visualization_lab`, `journey_lab`. Sie erscheinen in beiden bestehenden Wegen der Gruppenfreigabe. Globale und individuelle Sperren gelten zusätzlich. Laborobjekt-API, Quellen-API und Modellaktionen prüfen die Freigaben serverseitig; das Verstecken der Navigation ist keine Zugriffskontrolle.
 
 Projektvorlagen und Projektwerkzeuge können die neuen Arten einzeln freigeben, mit Startinhalten ausstatten und als Startbereich verwenden. Quellzugriff benötigt zusätzlich die Rechte der Quelle (`files`, `data_lab`, `graph` oder `database`). Modellaufrufe benötigen weiterhin `ai` sowie einen tatsächlich verfügbaren persönlichen oder freigegebenen Projektzugang. API-Schlüssel sind weder Bestandteil der neuen Objekte noch ihrer Exporte.

@@ -53,6 +53,23 @@ with tempfile.TemporaryDirectory(prefix='academy-group-periods-') as private:
         project=learner.ok('project.create',{'name':'Gruppenprojekt','template':'web','group':first})['id']
         personal=learner.ok('project.create',{'name':'Persönlich','template':'web'})['id']
         teacher.ok('files',project=personal)
+        check(group(first)['address_mode']=='formal','Existing groups default to Siezen')
+        check(learner.ok('bootstrap')['user']['address']['mode']=='formal','Default frontend address is formal')
+        before_address=group(first)
+        save(first,address_mode='informal')
+        boot=learner.ok('bootstrap');check(boot['user']['address']['mode']=='informal' and boot['user']['address']['group_id']==first,'Single accessible group controls whole frontend voice')
+        status,error=learner.call('file.save',{'project':personal,'path':'invalid?.txt','content':'not saved','version':0})
+        check(status==422 and error['error'].startswith('Bitte verwende'),'Authenticated API errors follow group voice')
+        save(first,description='Preference survives metadata edit')
+        check(group(first)['address_mode']=='informal','Older clients omitting address preserve it')
+        check(admin.call('admin.group.save',{'id':first,'version':before_address['version'],'name':'Stale','address_mode':'formal'})[0]==409,'Stale editor cannot overwrite address')
+        current_address=group(first)
+        for mode in [None,True,1,[],{},'du','FORMAL']:
+            check(admin.call('admin.group.save',{'id':first,'version':current_address['version'],'name':'Must not persist','address_mode':mode})[0]==422,'Address enum is strict')
+        check(group(first)==current_address,'Invalid address is atomic')
+        payload={'id':first,'version':current_address['version'],'name':current_address['name'],'address_mode':'formal'}
+        check(admin.call('admin.group.save',payload,csrf=False)[0]==403,'Address setting requires CSRF')
+        check(learner.call('admin.group.save',payload)[0]==403 and teacher.call('admin.group.save',payload)[0]==403,'Only administrators can change group address')
         original=group(first)
         for periods in [ {'access_start':day(3),'access_end':day(2)}, {'access_start':'2026-02-29'}, {'course_start':day(1)}, {'access_start':day(1),'course_start':day(0),'course_end':day(2)}, {'access_end':day(1),'course_start':day(0),'course_end':day(2)}, {'access_start':False}, {'access_start_at':0} ]:
             check(admin.call('admin.group.save',{'id':first,'version':original['version'],'name':'Must not persist','periods':periods})[0]==422,'Malformed or out-of-bounds dates rejected atomically')
@@ -61,6 +78,11 @@ with tempfile.TemporaryDirectory(prefix='academy-group-periods-') as private:
         check(learner.call('admin.group.save',{'id':first,'version':original['version'],'name':'Unauthorized','periods':{'access_end':day(-1)}})[0]==403,'Learner cannot change dates')
         save(first,periods={'access_start':day(-7),'access_end':day(0),'course_start':day(-2),'course_end':day(0)})
         check(group(first)['periods']['state']=='active','Today is included in end date')
+        check(teacher.ok('bootstrap')['user']['address']['mode']=='informal','Current course wins over a second formal staff group')
+        save(staff,periods={'course_start':day(-1),'course_end':day(1)})
+        check(teacher.ok('bootstrap')['user']['address']['mode']=='formal' and teacher.ok('bootstrap')['user']['address']['conflict'],'Conflicting overlapping courses fall back to Siezen')
+        check(learner.ok('bootstrap')['user']['address']['mode']=='informal','Foreign course preferences do not affect another user')
+        save(staff,periods={'course_start':None,'course_end':None})
         boot=learner.ok('bootstrap');check(boot['user']['access']['next_transition']>time.time(),'Server provides next boundary for open browsers')
         preserved=group(first)['periods']
         check(admin.call('admin.group.save',{'id':first,'version':original['version'],'name':'Stale','periods':{'access_end':day(2)}})[0]==409,'Stale dialogs cannot overwrite newer periods')
