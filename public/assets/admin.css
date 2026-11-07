@@ -6,7 +6,7 @@
 .admin-surface :is(.two-col,.form-grid,.stats-grid)>*,.admin-surface .panel { min-width:0; }
 .admin-surface :is(.panel p,.notice,.stat small,.activity-item>span,.lab-list-row) { overflow-wrap:anywhere; }
 .admin-surface .table-wrap { max-width:100%;overscroll-behavior-inline:contain; }
-.admin-surface .table-wrap:focus-visible { outline:2px solid var(--focus-ring);outline-offset:3px; }
+.admin-surface .table-wrap:focus-visible { outline:2px solid var(--accent);outline-offset:3px; }
 .admin-surface .admin-table-hint { margin:12px 0 8px;font-size:11px;line-height:1.6;color:var(--text-muted); }
 .admin-surface .admin-table-hint[hidden] { display:none; }
 .admin-surface .toolbar>.field { min-width:min(180px,100%);max-width:100%; }
