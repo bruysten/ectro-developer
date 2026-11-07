@@ -25,3 +25,7 @@ try {
 } finally {
     foreach(glob($dir.'/*') as $file)unlink($file);rmdir($dir);
 }
+
+// Keep the independent legacy lab migration in the existing CI migration entry point.
+passthru(escapeshellarg(PHP_BINARY).' '.escapeshellarg(__DIR__.'/studio-migration.php'), $studioStatus);
+if ($studioStatus !== 0) throw new RuntimeException('Studio migration checks failed.');

@@ -1,8 +1,9 @@
 <?php
 declare(strict_types=1);
 
-const LAB_KINDS = ['graph','dataset','network','prompt','rag'];
-const LAB_FEATURES = ['graph'=>'graph','dataset'=>'data_lab','network'=>'neural','prompt'=>'ai','rag'=>'rag'];
+require_once __DIR__.'/lab-studio.php';
+const LAB_KINDS = ['graph','dataset','network','prompt','rag','conversation','assistant','evaluation','reasoning','visualization','journey'];
+const LAB_FEATURES = ['graph'=>'graph','dataset'=>'data_lab','network'=>'neural','prompt'=>'ai','rag'=>'rag','conversation'=>'chat_lab','assistant'=>'assistant_lab','evaluation'=>'evaluation_lab','reasoning'=>'reasoning_lab','visualization'=>'visualization_lab','journey'=>'journey_lab'];
 const LAB_GRAPH_ICONS = ['category','person','apartment','location_on','description','event','inventory_2','school','psychology','database','public','hub'];
 
 function labLimits(): array {
@@ -28,6 +29,7 @@ function labNumeric(mixed $v): float {
 }
 function labValidate(string $kind,mixed $content): array {
     if(!in_array($kind,LAB_KINDS,true)||!is_array($content))fail(422,'Ungültiger Laborinhalt.');labJson($content);$lim=labLimits();
+    if(in_array($kind,STUDIO_KINDS,true))return studioValidate($kind,$content);
     if($kind==='graph'){
         $types=[];foreach(labList($content['types']??[],50) as $type){if(!is_array($type))fail(422,'Ungültiger Entitätstyp.');$name=labName($type['name']??null);if(isset($types[$name]))fail(422,'Doppelter Entitätstyp.');if(array_key_exists('color',$type)&&(!is_string($type['color'])||!preg_match('/^#[0-9a-f]{6}$/iD',$type['color'])))fail(422,'Knotentyp benötigt eine gültige Farbe (#RRGGBB).');if(array_key_exists('icon',$type)&&!in_array($type['icon'],LAB_GRAPH_ICONS,true))fail(422,'Unbekanntes Knotentyp-Icon.');$fields=[];foreach(labList($type['fields']??[],30) as $f){$fn=labName($f['name']??null);if(isset($fields[$fn])||!in_array($f['type']??'text',['text','number','boolean'],true)||!is_bool($f['required']??false))fail(422,'Ungültige Eigenschaft.');$fields[$fn]=$f;}$types[$name]=$fields;}
         $rules=[];$ruleKeys=[];foreach(labList($content['relations']??[],100) as $rule){if(!is_array($rule))fail(422,'Ungültiger Beziehungstyp.');$name=labName($rule['name']??null);$from=labName($rule['from']??null);$to=labName($rule['to']??null);$key=json_encode([$name,$from,$to]);if(isset($ruleKeys[$key])||!isset($types[$from],$types[$to]))fail(422,'Beziehungstyp benötigt gültige Entitätstypen und darf nicht doppelt vorkommen.');$ruleKeys[$key]=true;$rules[$name][]=[$from,$to];}
@@ -65,7 +67,7 @@ function labTypeConfig(string $id): array {
     return json_decode(one('SELECT config FROM lab_type_config WHERE type_id=?',[$id])['config']??'{}',true);
 }
 function labConfigInput(mixed $c): array {
-    if(!is_array($c))fail(422,'Ungültige Laborvorlage.');$tools=labList($c['tools']??[],5);foreach($tools as $tool)if(!is_string($tool))fail(422,'Ungültiges Werkzeug.');if(array_diff($tools,LAB_KINDS))fail(422,'Unbekanntes Labor.');$entry=$c['entry']??'editor';if(!in_array($entry,['editor',...LAB_KINDS],true)||($entry!=='editor'&&!in_array($entry,$tools,true)))fail(422,'Startbereich ist nicht freigegeben.');
+    if(!is_array($c))fail(422,'Ungültige Laborvorlage.');$tools=labList($c['tools']??[],count(LAB_KINDS));foreach($tools as $tool)if(!is_string($tool))fail(422,'Ungültiges Werkzeug.');if(array_diff($tools,LAB_KINDS))fail(422,'Unbekanntes Labor.');$entry=$c['entry']??'editor';if(!in_array($entry,['editor',...LAB_KINDS],true)||($entry!=='editor'&&!in_array($entry,$tools,true)))fail(422,'Startbereich ist nicht freigegeben.');
     $seeds=labList($c['seeds']??[],20);foreach($seeds as &$seed){if(!in_array($seed['kind']??'',$tools,true))fail(422,'Startinhalt benötigt ein aktiviertes Labor.');$seed=['kind'=>$seed['kind'],'name'=>labName($seed['name']??null),'content'=>labValidate($seed['kind'],$seed['content']??null)];}unset($seed);
     $groups=labList($c['groups']??[],1000);foreach($groups as $gid)if(!is_string($gid)||!one('SELECT id FROM groups WHERE id=?',[$gid]))fail(422,'Unbekannte Vorlagengruppe.');$out=['tools'=>array_values(array_unique($tools)),'entry'=>$entry,'seeds'=>$seeds,'groups'=>$groups];labJson($out);return $out;
 }
@@ -127,7 +129,7 @@ function labRpc(array $u,array $data): array {
 }
 
 function learningContext(array $u,array $data): void {
-    $routes=['dashboard','projects','files','editor','database','sql-training','converter','graph','data-lab','ai-lab','chat','team'];$route=$data['route']??'';if(!in_array($route,$routes,true))fail(422,'Unbekannte Ansicht.');$context=['route'=>$route];if(isset($data['analysis'])&&is_array($data['analysis'])){foreach(['column','term','operator','group','measure','aggregate','chartKind','chartX','chartY','vectorView','vectorProjection','vectorAxes','vectorSelected','vectorThreshold','converterFrom','converterTo'] as $key)if(isset($data['analysis'][$key])&&is_string($data['analysis'][$key])&&mb_strlen($data['analysis'][$key])<=120)$context['analysis'][$key]=$data['analysis'][$key];}if(isset($data['step'])&&is_int($data['step'])&&$data['step']>=0&&$data['step']<=5)$context['step']=$data['step'];foreach(['tab'=>['data','model','quality','analysis','convert'],'mode'=>['practice','mysql']] as $key=>$values)if(isset($data[$key])&&in_array($data[$key],$values,true))$context[$key]=$data[$key];foreach(['table'=>64,'node'=>80] as $key=>$max){$value=textField($data,$key,$max,false);if($value!=='')$context[$key]=$value;}$pid=textField($data,'project',32,false);
+    $routes=['dashboard','projects','files','editor','database','sql-training','converter','graph','data-lab','ai-lab','labs','chat-lab','assistant-lab','evaluation-lab','reasoning-lab','visualization-lab','journey-lab','chat','team'];$route=$data['route']??'';if(!in_array($route,$routes,true))fail(422,'Unbekannte Ansicht.');$context=['route'=>$route];if(isset($data['analysis'])&&is_array($data['analysis'])){foreach(['column','term','operator','group','measure','aggregate','chartKind','chartX','chartY','vectorView','vectorProjection','vectorAxes','vectorSelected','vectorThreshold','converterFrom','converterTo'] as $key)if(isset($data['analysis'][$key])&&is_string($data['analysis'][$key])&&mb_strlen($data['analysis'][$key])<=120)$context['analysis'][$key]=$data['analysis'][$key];}if(isset($data['step'])&&is_int($data['step'])&&$data['step']>=0&&$data['step']<=5)$context['step']=$data['step'];foreach(['tab'=>['data','model','quality','analysis','convert'],'mode'=>['practice','mysql']] as $key=>$values)if(isset($data[$key])&&in_array($data[$key],$values,true))$context[$key]=$data[$key];foreach(['table'=>64,'node'=>80] as $key=>$max){$value=textField($data,$key,$max,false);if($value!=='')$context[$key]=$value;}$pid=textField($data,'project',32,false);
     if($pid){labAccess($u,$pid);$context['project']=$pid;$path=textField($data,'file',240,false);if($path&&one('SELECT id FROM files WHERE project_id=? AND path=?',[$pid,$path]))$context['file']=$path;$oid=textField($data,'object',32,false);if($oid&&one('SELECT id FROM lab_objects WHERE project_id=? AND id=?',[$pid,$oid]))$context['object']=$oid;}
     query('INSERT INTO learning_presence VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET context=excluded.context,touched=excluded.touched',[$u['id'],labJson($context),time()]);
 }

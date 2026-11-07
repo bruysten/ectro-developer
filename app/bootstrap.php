@@ -4,7 +4,7 @@ require_once __DIR__ . '/profile.php';
 require_once __DIR__ . '/group-periods.php';
 
 const APP_ROOT = __DIR__ . '/..';
-const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter', 'data_lab', 'graph', 'ai', 'rag', 'neural'];
+const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter', 'data_lab', 'graph', 'ai', 'rag', 'neural', 'chat_lab', 'assistant_lab', 'evaluation_lab', 'reasoning_lab', 'visualization_lab', 'journey_lab'];
 const CONVERTER_FORMATS = ['csv', 'tsv', 'json', 'xml'];
 const FILE_LIMIT = 524288;
 const SPACE_LIMIT = 20971520;
@@ -41,6 +41,29 @@ function db(): PDO {
     $pdo = new PDO('sqlite:' . dataDir() . '/app.sqlite', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
     $pdo->exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL;');
     $pdo->exec(file_get_contents(__DIR__ . '/schema.sql'));
+    // Extend the object constraint atomically, retaining IDs, revisions and foreign keys.
+    if (!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_objects'")->fetchColumn(), "'journey'")) {
+        $pdo->exec('BEGIN IMMEDIATE');
+        try {
+            if (!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_objects'")->fetchColumn(), "'journey'")) {
+                $pdo->exec("CREATE TABLE lab_objects_upgrade (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK(kind IN ('graph','dataset','network','prompt','rag','conversation','assistant','evaluation','reasoning','visualization','journey')), name TEXT NOT NULL, content TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL)");
+                $pdo->exec('INSERT INTO lab_objects_upgrade SELECT * FROM lab_objects; DROP TABLE lab_objects; ALTER TABLE lab_objects_upgrade RENAME TO lab_objects; CREATE INDEX lab_objects_project ON lab_objects(project_id,kind)');
+                // Expand only the former full default. Deliberately restricted projects stay restricted.
+                $oldKinds=['graph','dataset','network','prompt','rag'];
+                foreach (['lab_project_config'=>'project_id','lab_type_config'=>'type_id'] as $table=>$key) {
+                    foreach ($pdo->query('SELECT * FROM '.$table)->fetchAll() as $row) {
+                        $c=json_decode($row['config'],true);
+                        if (isset($c['tools']) && count($c['tools'])===5 && !array_diff($oldKinds,$c['tools'])) {
+                            $c['tools']=[...$oldKinds,'conversation','assistant','evaluation','reasoning','visualization','journey'];
+                            $stmt=$pdo->prepare('UPDATE '.$table.' SET config=? WHERE '.$key.'=?');$stmt->execute([json_encode($c,JSON_UNESCAPED_UNICODE),$row[$key]]);
+                        }
+                    }
+                }
+                if ($pdo->query('PRAGMA foreign_key_check')->fetch()) throw new RuntimeException('Lab migration foreign key validation failed.');
+            }
+            $pdo->exec('COMMIT');
+        } catch (Throwable $e) {$pdo->exec('ROLLBACK');throw $e;}
+    }
     // Rebuild the role constraint without changing user IDs or dependent records.
     if(!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'")->fetchColumn(), "'teacher'")){
         $pdo->exec('PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE');

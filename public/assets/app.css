@@ -5,6 +5,7 @@
 @import url('./design/tokens/effects.css');
 @import url('./design/tokens/base.css');
 @import url('./design/components/components.css');
+@import url('./studio.css');
 
 :root { --sidebar: 244px; }
 .permission-tools { display:grid;grid-template-columns:minmax(180px,1.5fr) minmax(140px,1fr) minmax(140px,1fr);gap:12px;align-items:end; }

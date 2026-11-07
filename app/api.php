@@ -74,6 +74,7 @@ try {
     if((str_starts_with($action,'db.')||str_starts_with($action,'training.'))&&!empty($data['participant'])){$target=textField($data,'participant',32);$gid=textField($data,'group',32);if($u['role']!=='admin')teacherTarget($u,$target,$gid);$student=one('SELECT * FROM users WHERE id=? AND active=1',[$target]);if(!$student)fail(404,'Teilnehmer nicht gefunden.');$GLOBALS['academyDbUser']=$student;if(in_array($action,['db.connect','db.disconnect'],true)&&$target!==$u['id'])fail(403,'Persönliche Verbindungen verwaltet der Teilnehmer selbst.');}
     if((str_starts_with($action,'db.')||str_starts_with($action,'training.'))&&!empty($data['project'])){$GLOBALS['academyDbProject']=textField($data,'project',32);project($u,$GLOBALS['academyDbProject']);}
     if ($action === 'php.mode') jsonOut(['mode'=>phpExecutionMode()]);
+    if(str_starts_with($action,'studio.'))studioDispatch($u,$action,$data);
     if(str_starts_with($action,'lab.')||str_starts_with($action,'ai.')||str_starts_with($action,'presence.')||$action==='admin.labs'||str_starts_with($action,'admin.ai.'))labDispatch($u,$action,$data);
     switch ($action) {
         case 'converter.config': needFeature($u,'converter');jsonOut(['formats'=>converterFormats()]);

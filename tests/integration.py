@@ -624,3 +624,6 @@ with tempfile.TemporaryDirectory(prefix='ectro-test-') as private:
         print(f'{CHECKS} API/security integration checks passed.')
     finally:
         server.terminate();server.wait(timeout=10)
+
+# Exercise studio HTTP authorization through the established CI entry point.
+subprocess.run(['python3', str(ROOT / 'tests/studio-integration.py')], check=True)
