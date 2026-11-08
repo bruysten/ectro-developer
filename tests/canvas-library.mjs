@@ -1,0 +1,25 @@
+import assert from 'node:assert/strict';
+import {createCanvasLibrary,canvasLibraryItems} from '../src/canvas-library.js';
+const row=(id,version=1,deleted_at=null)=>({id,version,deleted_at,archived:false,group_id:null,name:id,kind:'business',updated_at:'2026-11-08'});
+const store=createCanvasLibrary(),old=Array.from({length:5},(_,i)=>row('old-'+i));
+assert(store.accept(store.begin(),old));
+const late=store.begin();
+for(const c of old){store.invalidate();store.observe({...c,version:2,deleted_at:'2026-11-08T12:00:00Z'});}
+const afterDelete=store.begin();
+assert(!store.accept(late,old),'Pre-delete polling cannot restore active versions');
+assert(store.accept(afterDelete,old.map(c=>({...c,version:2,deleted_at:'deleted'}))));
+assert.equal(canvasLibraryItems(store.rows).length,0);
+assert.equal(canvasLibraryItems(store.rows,{filter:'trash'}).length,5);
+const beforeCreation=store.begin();store.invalidate();store.observe(row('new'));
+assert(!store.accept(beforeCreation,old),'A pending list cannot replace the catalog after creation');
+const authoritative=store.begin();assert(store.accept(authoritative,[...old.map(c=>({...c,version:2,deleted_at:'deleted'})),row('new')]));
+assert.deepEqual(canvasLibraryItems(store.rows).map(c=>c.id),['new']);
+assert.equal(canvasLibraryItems(store.rows,{filter:'trash'}).length,5);
+const staleRead=store.begin(),newRead=store.begin();assert(store.accept(newRead,store.rows));assert(!store.accept(staleRead,old),'Out-of-order reads cannot replace a newer snapshot');
+const lowerVersions=store.begin();assert(store.accept(lowerVersions,[...old,row('new')]));assert.equal(canvasLibraryItems(store.rows).length,1,'Monotonic versions protect every board, not only the open one');
+const beforePurge=store.begin();store.forget('old-0');assert(!store.accept(beforePurge,old));assert(!store.rows.some(c=>c.id==='old-0'));
+store.observe({...row('old-1',3),deleted_at:null});assert.equal(canvasLibraryItems(store.rows).length,2,'Explicit restore with a newer version remains possible');
+assert(canvasLibraryItems(store.rows,{filter:'private'}).every(c=>!c.group_id&&!c.deleted_at));
+assert.equal(canvasLibraryItems(store.rows,{filter:'shared'}).length,0);
+assert.equal(canvasLibraryItems(store.rows,{query:'new'}).length,1);
+console.log('Canvas catalog regression verified: delete all → create one, late/out-of-order lists, every-row revision guards, purge, explicit restore and separate active/trash filters.');

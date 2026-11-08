@@ -27,7 +27,7 @@ export function graphEdgeGeometry(a,b,offset=0){
   return {path:`M ${a.x+dx/d*r} ${a.y+dy/d*r} L ${b.x-dx/d*r} ${b.y-dy/d*r}`,label:{x:(a.x+b.x)/2,y:(a.y+b.y)/2-8}};
 }
 
-export function bindGraphDrag(stage,graph,{changed,draw,chooseNode,fail}){
+export function bindGraphDrag(stage,graph,{changed,draw,chooseNode,fail,beginMove}){
   const offsets=graphEdgeOffsets(graph);
   const nodes=new Map(graph.nodes.map((node,index)=>[node.id,{node,index}]));
   const incident=new Map(graph.nodes.map(n=>[n.id,[]]));
@@ -61,10 +61,10 @@ export function bindGraphDrag(stage,graph,{changed,draw,chooseNode,fail}){
     el.onpointermove=e=>{
       if(!drag||drag.el!==el||drag.id!==e.pointerId)return;
       const p=point(e);
-      if(Math.hypot(p.x-drag.start.x,p.y-drag.start.y)>3)drag.moved=true;
+      if(!drag.moved&&Math.hypot(p.x-drag.start.x,p.y-drag.start.y)>3){drag.moved=true;beginMove?.();}
       if(!drag.moved)return;
-      drag.node.x=Math.max(45,Math.min(10000,drag.position.x+p.x-drag.start.x));
-      drag.node.y=Math.max(45,Math.min(10000,drag.position.y+p.y-drag.start.y));
+      drag.node.x=Math.max(-100000,Math.min(100000,drag.position.x+p.x-drag.start.x));
+      drag.node.y=Math.max(-100000,Math.min(100000,drag.position.y+p.y-drag.start.y));
       el.setAttribute('transform',`translate(${drag.node.x},${drag.node.y})`);
       updateEdges(drag.node.id);
     };
@@ -161,5 +161,5 @@ export function bindGraphViewport(stage,graph,state,{clear,escape,chooseNode,fai
   };
   search.onkeydown=e=>{if(e.key==='Escape'){search.value='';hide();stage.focus();e.stopPropagation();}if(e.key==='ArrowDown'){e.preventDefault();results.querySelector('button')?.focus();}if(e.key==='Enter'&&!results.hidden){e.preventDefault();results.querySelector('button')?.click();}};
   const outside=e=>{if(!e.target.closest('.graph-search-wrap'))hide();};document.addEventListener('pointerdown',outside);
-  return {fit,zoom,focus,dispose(){observer.disconnect();document.removeEventListener('pointerdown',outside);stage.removeEventListener('pointerdown',down);stage.removeEventListener('pointermove',move);stage.removeEventListener('pointerup',up);stage.removeEventListener('pointercancel',cancel);stage.removeEventListener('lostpointercapture',cancel);stage.removeEventListener('wheel',wheel);stage.removeEventListener('keydown',key);}};
+  return {fit,zoom,focus,freeze(){state.autoFit=false;},dispose(){observer.disconnect();document.removeEventListener('pointerdown',outside);stage.removeEventListener('pointerdown',down);stage.removeEventListener('pointermove',move);stage.removeEventListener('pointerup',up);stage.removeEventListener('pointercancel',cancel);stage.removeEventListener('lostpointercapture',cancel);stage.removeEventListener('wheel',wheel);stage.removeEventListener('keydown',key);}};
 }

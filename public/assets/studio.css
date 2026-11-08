@@ -521,3 +521,15 @@
 @media(max-width:700px){
  .landscape-catalog table { display:block;width:100%;min-width:0; }.landscape-catalog thead { position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap; }.landscape-catalog tbody { display:grid;gap:12px; }.landscape-catalog tr { display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;padding:14px;border:1px solid var(--border-subtle); }.landscape-catalog td { display:block;padding:0;border:0;min-width:0; }.landscape-catalog td:first-child { grid-column:1/-1; }.landscape-catalog td:not(:first-child)::before { content:attr(data-label);display:block;font:9px var(--font-mono);text-transform:uppercase;color:var(--text-muted);margin-bottom:6px; }.landscape-catalog td:first-child .link { font-size:15px;font-weight:500; }.landscape-catalog .table-wrap { border:0; }
 }
+/* One alignment rule for short and multi-line fields in the Landscape editor. */
+.landscape-profile-dialog .form-grid { align-items:start; }
+.landscape-profile-dialog .landscape-wide { grid-column:1/-1; }
+.studio-form-dialog { max-width:calc(100vw - 20px);max-height:calc(100dvh - 24px);overflow:hidden; }
+.studio-form-dialog>form { display:flex;flex-direction:column;max-height:calc(100dvh - 26px);min-height:0; }
+.studio-form-dialog :is(.dialog-head,.dialog-foot) { flex:none; }
+.studio-form-dialog .dialog-head { align-items:flex-start;gap:16px; }
+.studio-form-dialog .dialog-head h2 { min-width:0;max-height:24dvh;overflow:auto;overflow-wrap:anywhere; }
+.studio-form-dialog .dialog-body { min-height:0;flex:1;overflow:auto;overscroll-behavior:contain; }
+.studio-form-dialog .dialog-foot { flex-wrap:wrap; }
+.studio-form-dialog .dialog-foot .es-btn { min-height:44px;max-width:100%;white-space:normal; }
+@media(max-width:700px){.studio-form-dialog :is(.dialog-head,.dialog-body,.dialog-foot){padding:18px}.studio-form-dialog .dialog-head h2{font-size:22px}.studio-form-dialog .form-grid{grid-template-columns:minmax(0,1fr)}.studio-form-dialog .field :is(input,select,textarea){font-size:16px}}

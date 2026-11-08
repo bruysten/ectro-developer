@@ -29,10 +29,10 @@ verwenden den Stil des Arbeitsbereichs. Alle Darstellungen sind eigener Code.
 
 - **Value Proposition Canvas:** Angebotsquadrat links mit Produkte/Leistungen,
   Nutzenstiftern und Problemlösern; Kundenkreis rechts mit Kundenaufgaben,
-  Schwierigkeiten und erwünschtem Nutzen. Die entsprechenden Segmente sind mit
-  Maus, Touch oder Tastatur auswählbar. Anzahl und Kurzvorschau stammen aus den
-  tatsächlichen Karten. Der gewählte Bereich zeigt darunter vollständige Karten
-  und den bekannten Editor. Auf schmalen Geräten stehen Quadrat und Kreis untereinander.
+  Schwierigkeiten und erwünschtem Nutzen. Echte Karten liegen direkt in den Segmenten und können dort bearbeitet und
+  zwischen Bereichen gezogen werden. Eine Felderansicht zeigt dieselben Karten
+  vergrößert und startet auf schmalen Displays automatisch. Die geometrische
+  Arbeitsfläche bleibt über „Canvas“ in einem eigenen Scrollbereich erreichbar.
 - **Empathy Map:** Denken/Fühlen oben, Hören links, Sehen rechts, Sagen/Handeln
   unten um die Person; Pains und Gains als untere Reihe. Vorhandene `thinks`/`feels`
   sowie `says`/`does` werden nur in der Ansicht zusammengefasst. Ihre Kennungen und
@@ -169,3 +169,10 @@ Die Browserprüfung erfolgte in lokalem Chromium mit synthetischen Daten. Native
 Mobilgeräte, Safari/Firefox und Bildschirmtastaturen sind damit nicht pauschal
 abgenommen. Automatische Verknüpfungen von Karten zu Personas, Journeys oder
 Messdaten, versionierte Rückblicke und Kommentare sind mögliche spätere Erweiterungen.
+
+
+## Nachprüfung vom 8. November 2026
+
+Karten direkt auf Empathy Map und VPC, robuste Bibliotheksaktualisierung und die
+Lösch-/Neuanlageregression sind in [Canvas-, Graph- und Formular-Korrekturen](canvas-graph-interactions.md) dokumentiert. Nach Löschen oder Archivieren bleibt
+der bisherige Bereich erhalten; der Papierkorb wird ausdrücklich ausgewählt.
