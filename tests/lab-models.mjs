@@ -1,3 +1,4 @@
+import './journey-navigation.mjs';
 import './landscape-blueprint.mjs';
 import {spawnSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
