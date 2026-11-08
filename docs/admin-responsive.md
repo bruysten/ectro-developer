@@ -1,6 +1,6 @@
 # Responsive Prüfung des Adminbereichs
 
-Stand: 7. November 2026. Lokale Browserprüfung mit isolierten synthetischen Daten.
+Stand: 8. November 2026. Lokale Browserprüfung mit isolierten synthetischen Daten.
 
 ## Prüfraster
 
@@ -74,3 +74,46 @@ Diese Prüfung deckt den lokalen Chromium-Browser und die genannten Formate ab.
 Sie ersetzt keine Geräteprüfung in Safari/Firefox oder mit eingeblendeter
 Bildschirmtastatur. Die Dialoggrenzen verwenden dynamische Viewporthöhen (`dvh`),
 damit sie sich an Änderungen des verfügbaren Platzes anpassen können.
+
+
+## Nachprüfung nach den Labor-Erweiterungen · 8. November 2026
+
+Die zehn Hauptansichten wurden erneut in allen sechs oben genannten Formaten geprüft:
+**60/60 ohne horizontalen Seitenüberlauf**. Zusätzlich wurden zehn Dialogzustände
+jeweils in diesen sechs Formaten vermessen: Benutzeranlage, die drei Gruppentabs,
+Mailvorlage, KI-Verbindung mit Daimon-Feldern, Gruppenbudget, Administratorprofil,
+Profil/KI-Zugänge und Startdateianlage. **60/60 Dialogzustände** blieben innerhalb des
+Viewports, mit sichtbarer Fußleiste, intern scrollbarem Inhalt und ohne seitlichen
+Überlauf des Dialoginhalts. Speichern und externe Provider wurden dafür nicht aufgerufen.
+
+Neu gefundene und korrigierte Details:
+
+- **Offene Projekttyp-Freigaben:** Ein langer Gruppenname verbreiterte die Seite
+  bei 320 Pixeln auf 399 Pixel. Lange Bezeichnungen und Summary-Texte brechen nun um;
+  die Checkbox behält ihre Größe. Die korrigierte Seite bleibt bei 320 Pixeln.
+- **Gruppentabs:** Der dritte Tab war auf schmalen Displays nur teilweise sichtbar.
+  Alle drei Tabs stehen jetzt in gleich breiten Spalten, mit umbruchfähigen Titeln
+  und einer eigenen Zeile für den Freigabenzähler.
+- **Rechtefilter:** Bis 480 Pixel stehen die beiden Filter untereinander, sodass
+  die Auswahl lesbar bleibt.
+- **Querformat-Navigation:** Bei 568 × 320 Pixeln blieb zuvor nur eine 47 Pixel hohe
+  Navigationsfläche. Ein kompakter Kopf schafft jetzt 180 Pixel, während Profil
+  und Abmeldung unten sichtbar bleiben. Logo und Schließen-Taste überlappen nicht.
+- **Mobile Bedienung:** Symbolschaltflächen, Schalter-Labels und Dialogaktionen
+  erhalten mindestens 44 Pixel hohe Trefferflächen. Formularfelder verwenden auf
+  schmalen Displays 16 Pixel Schrift, um Fokus-Zoom auf mobilen Browsern vorzubeugen.
+  Die Dialogüberschrift passt sich an den Platz neben der Schließen-Taste an.
+
+Gefüllte KI-Verbindungs- und Budgetkarten wurden mit langen ungetrennten Namen
+geprüft. Der aufgeklappte Projekttyp-Editor einschließlich Gruppenverfügbarkeit und
+JSON-Startdaten, die geöffneten globalen Werkzeugfreigaben sowie die
+Gruppenchat-Verwaltung passen jeweils in allen sechs Formaten. Eine überlaufende
+Labortabelle blieb per Pfeiltasten scrollbar, ohne die Seite seitlich zu verschieben.
+Die Browserkonsole enthielt keine Warnungen oder Fehler. Zusätzliche Testgruppen
+und inaktive Verbindungsattrappen wurden nach der Prüfung entfernt.
+
+Die Änderungen betreffen ausschließlich `admin.css`; das Frontend erhält keine
+zusätzlichen Regeln. Build, Asset-Integrität sowie bestehende Regressionstests für
+Benutzerverzeichnis, Gruppenzeiträume/Freigaben, Mailvorlagen und ausgelieferte
+Vorschau-Assets wurden geprüft. Die oben genannten Grenzen der Browserprüfung
+gelten weiterhin; insbesondere ist dies keine Abnahme auf physischen iOS-Geräten.
