@@ -73,9 +73,11 @@ CREATE TABLE IF NOT EXISTS lab_personas (
 CREATE INDEX IF NOT EXISTS lab_personas_project ON lab_personas(project_id,archived,name);
 
 -- Standalone private/group boards; scope is immutable. Sharing creates an explicit copy.
-CREATE TABLE IF NOT EXISTS canvases (id TEXT PRIMARY KEY,owner_id TEXT REFERENCES users(id) ON DELETE CASCADE,group_id TEXT REFERENCES groups(id) ON DELETE CASCADE,created_by TEXT REFERENCES users(id) ON DELETE SET NULL,kind TEXT NOT NULL CHECK(kind IN ('business','value','lean','empathy','experiment')),name TEXT NOT NULL,content TEXT NOT NULL,version INTEGER NOT NULL DEFAULT 1,archived INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,CHECK ((owner_id IS NULL)!=(group_id IS NULL)));
+CREATE TABLE IF NOT EXISTS canvases (id TEXT PRIMARY KEY,owner_id TEXT REFERENCES users(id) ON DELETE CASCADE,group_id TEXT REFERENCES groups(id) ON DELETE CASCADE,created_by TEXT REFERENCES users(id) ON DELETE SET NULL,kind TEXT NOT NULL CHECK(kind IN ('business','value','lean','empathy','experiment','smart','swot','pestel')),name TEXT NOT NULL,content TEXT NOT NULL,version INTEGER NOT NULL DEFAULT 1,archived INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,CHECK ((owner_id IS NULL)!=(group_id IS NULL)));
 CREATE INDEX IF NOT EXISTS canvases_owner ON canvases(owner_id,updated_at);
 CREATE INDEX IF NOT EXISTS canvases_group ON canvases(group_id,updated_at);
 CREATE TABLE IF NOT EXISTS canvas_mutations (canvas_id TEXT NOT NULL REFERENCES canvases(id) ON DELETE CASCADE,id TEXT NOT NULL,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,request_hash TEXT NOT NULL,PRIMARY KEY(canvas_id,id));
 
 CREATE TABLE IF NOT EXISTS canvas_removed_cards (canvas_id TEXT NOT NULL REFERENCES canvases(id) ON DELETE CASCADE,card_id TEXT NOT NULL,PRIMARY KEY(canvas_id,card_id));
+
+CREATE TABLE IF NOT EXISTS canvas_trash (canvas_id TEXT PRIMARY KEY REFERENCES canvases(id) ON DELETE CASCADE,deleted_at TEXT NOT NULL,deleted_by TEXT REFERENCES users(id) ON DELETE SET NULL);

@@ -6,6 +6,12 @@ const root=path.resolve(import.meta.dirname,'..');
 process.chdir(root);
 await mkdir('public/assets/runtime/php/8_4_25',{recursive:true});
 await mkdir('public/assets/runtime/python',{recursive:true});
+// Embed the local board stylesheet for standalone, network-free print exports.
+const canvasPrintBase=':root{--surface-card:#fff;--border-subtle:#d5d5d5;--border-strong:#9b9b9b;--text-strong:#252525;--text-muted:#666;--accent:#b2026c;--surface-accent-soft:#f9edf4;--font-body:Arial,sans-serif;--font-mono:monospace}body{font:14px/1.5 system-ui,sans-serif;margin:24px;color:#252525}button{font:inherit}.canvas-note{break-inside:avoid}.canvas-print-notes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;margin-top:24px}.canvas-credit{margin-top:20px}.hidden{display:none}';
+const canvasScreenCss=await readFile('public/assets/canvas.css','utf8');
+const canvasGridPrint=[['@media(min-width:1200px){','@media(max-width:900px){'],['@media(min-width:901px){','@media(min-width:1200px){.canvas-board--smart']].map(([start,end])=>{const from=canvasScreenCss.indexOf(start),to=canvasScreenCss.indexOf(end,from);return canvasScreenCss.slice(from,to).replace(/^@media[^{]*\{/,'').replace(/\}\s*$/,'');}).join('');
+const canvasPrintOverrides='@media print{'+canvasGridPrint+'body{margin:0;font-size:11px}.canvas-question{font-size:10px}.canvas-note-text{font-size:11px}.canvas-original-map{break-inside:avoid}.canvas-print-notes{break-before:page}.canvas-board--swot{grid-template-columns:1fr 1fr}.canvas-value-map{grid-template-columns:minmax(0,1fr) 30px minmax(0,1fr)}.canvas-fit{transform:none}.canvas-zone-preview{display:block}.canvas-board--experiment .canvas-notes{max-height:none!important;overflow:visible!important}}';
+await writeFile('src/canvas-print-style.json',JSON.stringify(canvasPrintBase+canvasScreenCss+canvasPrintOverrides));
 await build({entryPoints:['src/app.js','src/preview.js','src/chat-preview-worker.js','src/pdf-preview.js','src/lab-worker.js','src/vector-worker.js'],outdir:'public/assets',bundle:true,format:'esm',target:'es2022',minify:true,legalComments:'eof'});
 // Keep the loader as a separate ESM file so import.meta.url resolves its local WASM binary.
 await build({entryPoints:['src/php-runtime.js'],outfile:'public/assets/runtime/php/runtime.js',bundle:true,format:'esm',target:'es2022',minify:true,

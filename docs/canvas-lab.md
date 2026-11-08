@@ -1,6 +1,6 @@
 # Canvas Lab
 
-Stand: 07.11.2026. Einstieg: **Labore → Canvas Lab** (`/#canvas-lab`).
+Stand: 08.11.2026. Einstieg: **Labore → Canvas Lab** (`/#canvas-lab`).
 
 ## Modelle und Einsatz
 
@@ -8,15 +8,53 @@ Stand: 07.11.2026. Einstieg: **Labore → Canvas Lab** (`/#canvas-lab`).
 | --- | --- | --- |
 | Business Model Canvas | Neun Bausteine eines Geschäftsmodells zusammen betrachten | Strategiekurve und Datenanalyse zur Prüfung des Modells |
 | Value Proposition Canvas | Angebot und Kundenprofil in sechs Feldern aufeinander beziehen | Persona-Designer und Customer Journey zur Kundenperspektive |
-| Lean Canvas | Frühe Geschäftsideen auf Probleme, Lösung und wirtschaftliche Annahmen verdichten | Business Model Canvas für die weitere Ausarbeitung |
+| Lean Canvas | Neun Hauptblöcke mit den Unterbereichen bestehende Alternativen, High-Level Concept und Early Adopters | Business Model Canvas für die weitere Ausarbeitung |
 | Empathy Map | Aussagen, Gedanken, Verhalten, Gefühle und offene Forschungsfragen trennen | Personas und Journeys mit Beobachtungen fundieren |
-| Experiment Canvas | Annahmen, Auswahl, Versuchsaufbau, Messung und Entscheidungsregel dokumentieren; Ergebnisse und Konsequenzen festhalten | Analysefehler-Labor für Interpretation und Stichprobenrisiken |
+| Experiment Canvas | Planung links (Risiko, Hypothese, Aufbau), Auswertung rechts (Ergebnisse, Schlussfolgerung, nächste Schritte) | Analysefehler-Labor für Interpretation und Stichprobenrisiken |
+
+| SMART Goals | Ziele spezifisch, messbar, erreichbar, relevant und terminiert ausarbeiten | Experiment- und Strategiearbeit mit überprüfbaren Zielen |
+| SWOT | Interne Stärken/Schwächen oben und externe Chancen/Risiken unten; hilfreich links, hinderlich rechts | Strategiekurve und Canvas-Geschäftsmodell |
+| PESTEL | Politische, wirtschaftliche, gesellschaftliche, technologische, ökologische und rechtliche Einflüsse erfassen | Externe Faktoren für SWOT begründen |
 
 Die Modelle erhalten dieselbe Bedienlogik. Karten unterstützen Text, Feldzuordnung,
 vier Farben, Priorität und die Typen **Annahme**, **Beleg** und **Entscheidung**.
 Ein Beleg erfordert einen Quellen-/Beobachtungstext. Die Markierung allein ist keine
 inhaltliche Validierung. Ein bearbeitbares synthetisches Beispiel ist optional.
 Die Feldzählung zeigt nur die Befüllung, keine fachliche Qualitätsbewertung.
+
+## Visuelle Logik der Vorlagen
+
+Die Struktur der Methoden bleibt erhalten; Farben, Typografie und Bedienelemente
+verwenden den Stil des Arbeitsbereichs. Alle Darstellungen sind eigener Code.
+
+- **Value Proposition Canvas:** Angebotsquadrat links mit Produkte/Leistungen,
+  Nutzenstiftern und Problemlösern; Kundenkreis rechts mit Kundenaufgaben,
+  Schwierigkeiten und erwünschtem Nutzen. Die entsprechenden Segmente sind mit
+  Maus, Touch oder Tastatur auswählbar. Anzahl und Kurzvorschau stammen aus den
+  tatsächlichen Karten. Der gewählte Bereich zeigt darunter vollständige Karten
+  und den bekannten Editor. Auf schmalen Geräten stehen Quadrat und Kreis untereinander.
+- **Empathy Map:** Denken/Fühlen oben, Hören links, Sehen rechts, Sagen/Handeln
+  unten um die Person; Pains und Gains als untere Reihe. Vorhandene `thinks`/`feels`
+  sowie `says`/`does` werden nur in der Ansicht zusammengefasst. Ihre Kennungen und
+  Inhalte bleiben bestehen. Offene Fragen und Erkenntnisse bleiben als ergänzender
+  Forschungsbereich erreichbar. Neu hinzu kommen `hear`, `see`, `pains`, `gains`.
+- **Lean Canvas:** Das Raster der LEANSTACK-Vorlage bleibt mit neun Hauptblöcken
+  erhalten. `alternatives` liegt im Problemblock, `concept` beim Nutzenversprechen
+  und `adopters` bei den Kundensegmenten. Ältere Notizen werden nicht automatisch
+  in neue Unterbereiche umgedeutet. Auf kleinen Geräten sind alle Felder ohne
+  seitlichen Seitenüberlauf verfügbar; einzelne Felder können fokussiert werden.
+- **Experiment Canvas:** Zwei versetzte Spalten mit sechs Bereichen entsprechend
+  der Vorlage von Design a Better Business. Die bisherigen Felder bleiben als
+  Untergliederung erhalten. Die neue riskanteste Annahme ergänzt sie. Karten der
+  Schlussfolgerung können als validiert, widerlegt oder nicht eindeutig bewertet
+  werden; das ist eine dokumentierte Einschätzung, kein automatischer statistischer Test.
+- **SMART, SWOT und PESTEL:** fünf aufeinanderfolgende Zielkriterien, eine
+  Vier-Felder-Matrix beziehungsweise sechs Umweltbereiche. Die SWOT-Achsen werden
+  ausdrücklich als intern/extern und hilfreich/hinderlich bezeichnet.
+
+Die Druckdatei bettet die lokale Canvas-CSS ein und nutzt dieselbe Darstellung.
+Für geometrische Übersichten wird eine vollständige Notizübersicht ergänzt;
+beim Drucken werden scrollbare Experimentnotizen vollständig ausgegeben.
 
 ## Private und gemeinsame Arbeiten
 
@@ -35,6 +73,15 @@ dabei nicht freigegeben. Kartenkennungen und Revisionen der Kopie sind unabhäng
 Erstellende Person und Administration können Gruppenboards umbenennen oder
 archivieren; alle freigegebenen Mitglieder können Karten bearbeiten. Archivierung
 ist reversibel und gilt für das ganze Board, bei Gruppen entsprechend für alle.
+
+**Mehr → Löschen** verschiebt die Arbeit in den **Papierkorb**. Sie verschwindet
+aus aktiven Ansichten und kann dort nicht bearbeitet oder kopiert werden. Die
+erstellende Person bzw. die Administration bei Gruppenboards kann sie
+wiederherstellen. **Endgültig löschen** ist ausschließlich im Papierkorb und nach
+einer zusätzlichen Bestätigung verfügbar. Der Server prüft Rechte und Boardrevision
+vor dem Löschen; Karten, Änderungshistorie und Tombstones werden mitgelöscht.
+Normale Gruppenmitglieder können fremde Gruppenboards nicht löschen. Der
+Papierkorb ist auch nach Neuladen über denselben Ansichtslink erreichbar.
 
 Die Administration steuert **Canvas Lab** über `canvas_lab` in Gruppenfreigaben und
 Systemeinstellungen. Wie die anderen Labore benötigt es `files`. Die standalone
@@ -87,10 +134,12 @@ Methodenquellen und Credits erscheinen unter dem Board und in Exporten:
   unterscheiden diese Einbindung von der allgemeinen methodischen Nutzung.
 - [Lean Canvas, Ash Maurya / LEANSTACK](https://leanstack.s3.amazonaws.com/templates/lean-canvas-v4.pdf),
   adaptiert vom Business Model Canvas; CC BY-SA 3.0.
-- Empathy Map und Experiment Canvas sind eigene Lernansichten, keine kopierten
-  Poster oder fremden Softwarekomponenten.
+- [Experiment Canvas, Design a Better Business](https://www.designabetterbusiness.tools/tools/experiment-canvas), Original von Ash Maurya.
+- [Empathy Map, Dave Gray / XPLANE](https://medium.com/@davegray/updated-empathy-map-canvas-46df22df3c8a); umgesetzt ist die klassische sechsfach gegliederte Variante nach der bereitgestellten Vorlage.
+- [SWOT](https://www.cipd.org/en/knowledge/factsheets/swot-analysis-factsheet/) und [PESTLE](https://www.cipd.org/en/knowledge/factsheets/pestle-analysis-factsheet/), CIPD, als methodische Referenzen für SWOT und PESTEL.
+- Alle Grafiken und Oberflächen sind eigene Implementierungen; es werden keine fremden Poster, Symbole oder Softwarekomponenten eingebettet.
 
-Grenzen: 100 Boards je privatem Bereich bzw. Gruppe einschließlich Archiv,
+Grenzen: 100 Boards je privatem Bereich bzw. Gruppe einschließlich Archiv und Papierkorb; endgültiges Löschen gibt den Platz wieder frei,
 300 Karten pro Board, 2.000 Zeichen Kartentext, 1.000 Zeichen Belegtext, 1 MB
 Inhalt/Import. Die Kartenansicht verwendet auf kleinen Geräten einspaltige Felder;
 eine Feldauswahl erlaubt konzentriertes Arbeiten. Breite Geräte zeigen beim BMC
@@ -99,17 +148,18 @@ nebeneinander. Farbe ist immer durch Textstatus ergänzt.
 
 ## Prüfung
 
-- `node tests/canvas-models.mjs`: alle fünf Frontend-Beispiele gegen PHP-Validierung;
-  43 Prüfungen für private Isolation, Gruppenrechte, Kartenrevisionen, unabhängige
+- `node tests/canvas-models.mjs`: alle acht Frontend-Beispiele gegen PHP-Validierung;
+  62 Prüfungen für private Isolation, Gruppenrechte, Kartenrevisionen, unabhängige
   Änderungen, Replay, Tombstones, Archivierung, Kopien, Feld-/Textgrenzen und Entzug.
 - `python3 tests/canvas-http.py`: echte unabhängige HTTP-Sitzungen, CSRF-/Methodenschutz,
   parallele Kartenanlagen, konkurrierende Änderung derselben Karte (200/409),
   idempotente Wiederholung und unmittelbare Sperre nach Freigabenentzug.
+- `tests/canvas-board.mjs` prüft die acht Strukturen, gültiges SVG-XML, sichere Texte und autarke Druckdateien. `tests/canvas-migration.php` prüft die Erweiterung bestehender Datenbanken einschließlich unveränderter Inhalte, Revisionen, Archiv, Papierkorb, Mutationen und Tombstones.
 - Beide Tests sind über bestehende CI-Einstiege eingebunden. Die vollständigen
   lokalen API- und Laborprüfungen liefen erfolgreich (597 bzw. 309 Checks, zusätzlich
   Passwort-/Studio- und Canvas-HTTP-Prüfungen).
-- Browser: fünf Modelle in sechs Formaten (320×844, 390×844, 568×320, 768×844,
-  1280×844, 1440×900), ohne horizontalen Seitenüberlauf. Anlage- und Karteneditor
+- Browser: acht Modelle in sieben Formaten (320×844, 390×844, 568×320, 768×844,
+  1024×844, 1280×844, 1440×1000), ohne horizontalen Seitenüberlauf. Anlage- und Karteneditor
   einschließlich Querformat mit sichtbarer Fußleiste geprüft. Live-Empfang einer
   zweiten Person, Konfliktvergleich und Kopiesicherung, Wiederaufnahme nach Reload,
   Belegpflicht, Verschiebung, private Kopie, Archiv/Wiederherstellung und

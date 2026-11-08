@@ -37,6 +37,25 @@ with tempfile.TemporaryDirectory(prefix='ectro-canvas-http-') as private:
   with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:race=list(pool.map(lambda pair:pair[0].call('canvas.mutate',pair[1])[0],[(a,payload('A revision',card['id'],1)),(b,payload('B revision',card['id'],1))]))
   assert sorted(race)==[200,409],race
   p=payload('Lost response');first=a.ok('canvas.mutate',p)['canvas'];retry=a.ok('canvas.mutate',p)['canvas'];assert first['version']==retry['version'];assert len(retry['content']['cards'])==3
+  trash={'id':shared['id'],'op':'trash','mutation':uuid.uuid4().hex,'version':retry['version']}
+  assert b.call('canvas.mutate',trash)[0]==403
+  trashed=a.ok('canvas.mutate',trash)['canvas'];assert trashed['deleted_at']
+  assert a.call('canvas.get',id=shared['id'])[0]==404
+  assert b.call('canvas.mutate',payload('Hidden trash edit'))[0]==404
+  assert out.call('canvas.get',id=shared['id'],trash='1')[0]==404
+  assert b.ok('canvas.get',id=shared['id'],trash='1')['canvas']['deleted_at']
+  assert any(c['id']==shared['id'] and c['deleted_at'] for c in a.ok('canvas.list')['canvases'])
+  restored=a.ok('canvas.mutate',{'id':shared['id'],'op':'restore','mutation':uuid.uuid4().hex,'version':trashed['version']})['canvas'];assert restored['content']==retry['content'] and not restored['deleted_at']
+  assert a.call('canvas.purge',{'id':shared['id'],'version':restored['version']})[0]==409
+  probe=a.ok('canvas.create',{'kind':'smart','name':'Purge test','group':gid})['canvas']
+  probe=a.ok('canvas.mutate',{'id':probe['id'],'op':'trash','mutation':uuid.uuid4().hex,'version':probe['version']})['canvas']
+  assert b.call('canvas.purge',{'id':probe['id'],'version':probe['version']})[0]==403
+  assert a.call('canvas.purge',{'id':probe['id'],'version':0})[0]==409
+  assert a.call('canvas.purge',{'id':probe['id'],'version':probe['version']},csrf=False)[0]==403
+  a.ok('canvas.purge',{'id':probe['id'],'version':probe['version']})
+  assert a.call('canvas.get',id=probe['id'],trash='1')[0]==404
+  for kind in ['smart','swot','pestel']:
+   assert a.ok('canvas.create',{'kind':kind,'name':kind})['canvas']['kind']==kind
   group=next(g for g in admin.ok('admin.groups')['groups'] if g['id']==gid);admin.ok('admin.group.features.save',{'id':gid,'version':group['version'],'features':{'canvas_lab':False}});assert a.call('canvas.get',id=shared['id'])[0]==403;assert b.call('canvas.mutate',payload('Revoked'))[0]==403
   print('Canvas HTTP verified: private isolation, group access, method/CSRF guards, independent-session merging, same-card race, idempotent retry and live revocation.')
  finally:os.killpg(server.pid,signal.SIGTERM);server.wait(timeout=10)

@@ -10,7 +10,7 @@ Die Oberfläche verwendet vorhandene Entrosphere-Tokens, native beschriftete For
 
 ## Canvas Lab
 
-`/#canvas-lab` bietet Business Model Canvas, Value Proposition Canvas, Lean Canvas, Empathy Map und Experiment Canvas mit mehreren privaten oder gemeinsamen Boards. Kartenänderungen werden unmittelbar gespeichert und regelmäßig synchronisiert; getrennte Karten lassen sich parallel bearbeiten, Konflikte derselben Karte bleiben explizit. Die Details zu Sichtbarkeit, Wiederherstellung, Export und autarkem Betrieb stehen in [Canvas Lab](canvas-lab.md).
+`/#canvas-lab` bietet Business Model Canvas, Value Proposition Canvas, Lean Canvas, Empathy Map, Experiment Canvas, SMART Goals, SWOT und PESTEL mit mehreren privaten oder gemeinsamen Boards. Kartenänderungen werden unmittelbar gespeichert und regelmäßig synchronisiert; getrennte Karten lassen sich parallel bearbeiten, Konflikte derselben Karte bleiben explizit. Die Details zu Sichtbarkeit, Wiederherstellung, Export und autarkem Betrieb stehen in [Canvas Lab](canvas-lab.md).
 
 ## Chatbot-Labor
 
