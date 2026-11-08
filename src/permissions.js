@@ -14,6 +14,8 @@ export const PERMISSION_SECTIONS=[
     ['visualization_lab','Visualisation Lab','Projektdaten vergleichen, erklären und als Strategiekurve darstellen.'],
     ['reasoning_lab','Analysefehler-Labor','Kausalität, Stichproben, Mittelwerte und Simpson-Paradox untersuchen.'],
     ['canvas_lab','Canvas Lab','Geschäftsmodelle und Kundenverständnis privat oder gemeinsam entwickeln.'],
+    ['landscape_lab','Digital Landscape Lab','Systeme, Datenbestände und Datenflüsse im Unternehmen erfassen.'],
+    ['blueprint_lab','Service Blueprint · Journey Lab','Sichtbare Leistungen, interne Abläufe und Abhängigkeiten innerhalb einer Journey bearbeiten.'],
     ['journey_lab','Customer Journey Lab','Kundenwege, Touchpoints, Belege und Verbesserungen gestalten.']]},
   {id:'ai',name:'KI & Modelle',icon:'neurology',features:[
     ['ai','KI-Zugänge & Prompt-Werkstatt','Eigene API-Schlüssel und freigegebene Projektmodelle nutzen.'],

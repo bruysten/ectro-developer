@@ -18,7 +18,7 @@ Stand: 08.11.2026. Grundlage: [Data & AI Professional, Akademie der Deutschen Me
 |---|---|---|---|
 | Governance und Projektzyklus | Technische Freigaben, Projektvorlagen und gemeinsame Gruppenbudgets für KI-Aufrufe und Tokens | Teilweise | Verantwortliche, Datenkatalog, Herkunft, fachliche Freigabe, Pilot und Rollout als Arbeitsablauf. |
 | Informationsarchitektur | Typisierte Graphmodelle, Regeln, Datenquellen und kontrollierter Assistentenkontext | Direkt | Vergleichende Architekturvorlagen und Modellierungsaufgaben. |
-| Ökosysteme | Graphen mit Akteuren, Systemen, Beziehungen und Pfaden | Direkt | Vorbereitete Unternehmenslandkarten mit konkreter Aufgabenstellung. |
+| Ökosysteme | Graphen sowie Digital Landscape Lab mit Systemprofilen, Datenbeständen, gerichteten Schnittstellen, Zuständigkeiten und Abhängigkeitsszenarien | Direkt | Vorbereitete Unternehmenslandkarten mit konkreter Aufgabenstellung. |
 | KI-Prinzipien | Prompts, RAG, echte kleine Netze sowie neue Gesprächs- und Prüfabläufe | Direkt | Farbklassifikation einschließlich Zwei-Eingaben-Variante, tatsächliche Trainingsanimation und getrennte Testbeispiele sind ergänzt. Ein durchgängiger didaktischer Pfad zwischen den einzelnen Experimenten bleibt sinnvoll. |
 | Chat-Anwendung | Gespeicherter, rollengetrennter Verlauf mit Rückfragen und Quellenkontext | Direkt | Optional Streaming, längere Gespräche mit expliziter Zusammenfassung und komfortable Gesprächssuche. |
 | Eigene Assistenten | Builder mit Regeln, Wissen, Quellen, Gesprächseinstiegen und lesenden Werkzeugen | Direkt im Produkt | Die spezifische Erstellung und Veröffentlichung eines GPT in ChatGPT bleibt eine separate Anbieterübung. Autonome Aktionen sind nicht enthalten. |
@@ -31,7 +31,7 @@ Stand: 08.11.2026. Grundlage: [Data & AI Professional, Akademie der Deutschen Me
 |---|---|---|---|
 | Datensichten und Strategie | 15 Ansichten einschließlich Strategiekurve und vier bearbeitbarer Handlungsfelder | Direkt | Anwendungsfälle mit echten Kundenbelegen statt ausschließlich eigener Strategiebewertungen. |
 | Darstellungswahl | Zweckbasierte Auswahl, Einsatzhinweise und Schutz gegen ungeeignete Kombinationen | Direkt | Weitere Lernfälle zu Achsenmanipulation, Unsicherheitsdarstellung und Gestaltungsfehlern. |
-| Kundenweg und Kontakte | Journey mit Phasen, Touchpoints, Stimmung und Belegen; projektweite Persona-Bibliothek mit fünf Modellen, Vergleich und wiederverwendbaren Profilständen | Direkt | Erhebung und Auswertung echter Interviews, Belege je Aussage, automatische Messdatenverknüpfung und Vergleich mehrerer Persona-Journeys. |
+| Kundenweg und Kontakte | Journey mit Phasen, Touchpoints, Stimmung und Belegen; verbundener Service-Blueprint mit sichtbaren/internen Leistungen und Abhängigkeiten; projektweite Persona-Bibliothek mit fünf Modellen, Vergleich und wiederverwendbaren Profilständen | Direkt | Erhebung und Auswertung echter Interviews, Belege je Aussage, automatische Messdatenverknüpfung und Vergleich mehrerer Persona-Journeys. |
 | Interface-Gestaltung | Bestehendes Web-Prototyping; klare praktische Oberflächen in den neuen Laboren | Direkt | Geführte Gestaltungsübungen für Teilnehmende ohne Codekenntnisse. |
 | UX-Methodik | Ziele, Verhalten, Jobs-to-be-done, Empathie und Unterstützungsbedarf im Persona-Designer; explizite Annahmen und Belege; dokumentierte Journey-Verbesserungen | Teilweise | Nutzertestplanung, Beobachtungsprotokolle, empirischer Variantenvergleich und methodisch validierte Segmentierung. Ein umfangreiches Profil allein ist keine Nutzerforschung. |
 | Medienausgabe | Web, JSON, CSV und exportierbare SVG-Grafiken | Teilweise | Ein zusammenhängender Ergebnisbericht sowie PDF-/Präsentationsausgabe. |
@@ -65,7 +65,7 @@ Stand: 08.11.2026. Grundlage: [Data & AI Professional, Akademie der Deutschen Me
 |---|---|---|---|
 | Marketing und Produkt | Vertriebsbeispiel, Strategiekurve, Persona-Vergleich und separate persona-bezogene Journeys mit Verbesserungen und Erfolgskriterien | Teilweise | Vollständige Fälle zu empirisch begründeten Segmenten, Experimenten, Kampagnen und Produktentscheidungen. |
 | Datenbasierte Modelle | Strategische Angebotsvergleiche und praktische Demonstratoren | Teilweise | Erlöslogik, Kosten, Nutzenhypothesen, Wirtschaftlichkeit und messbare Validierung. |
-| Fachliches Modelling | Strategie-Handlungsfelder, Journey-Struktur und Canvas Lab mit Business Model Canvas, Value Proposition Canvas, Lean Canvas, Empathy Map, Experiment Canvas, SMART Goals, SWOT und PESTEL; private und gemeinsame Boards mit Kartenrevisionen und Verschieben per Maus oder Tastatur | Direkt für die Canvas-Methoden, teilweise insgesamt | Service-Blueprint mit Front-/Backstage und Unterstützungsprozessen; fachliche Validierung mit realer Forschung. |
+| Fachliches Modelling | Strategie-Handlungsfelder, Journey-Struktur und Canvas Lab mit Business Model Canvas, Value Proposition Canvas, Lean Canvas, Empathy Map, Experiment Canvas, SMART Goals, SWOT und PESTEL; private und gemeinsame Boards mit Kartenrevisionen und Verschieben per Maus oder Tastatur | Direkt für die Canvas-Methoden, teilweise insgesamt | Service-Blueprint ist als verbundene Journey-Ansicht ergänzt. Fachliche Validierung mit realer Forschung und überprüfbaren Geschäftskennzahlen bleibt offen. |
 
 ## Prioritäten für die nächste Ausbaustufe
 
@@ -74,7 +74,7 @@ Stand: 08.11.2026. Grundlage: [Data & AI Professional, Akademie der Deutschen Me
 3. **Wiederholbarkeit:** Quellenstände, Transformationshistorie, vollständige Datenbankabfragen und versionierte Analyseergebnisse nachvollziehbar miteinander verbinden. Live-Quellen sind derzeit ausdrücklich keine unveränderlichen Snapshots.
 4. **Dokumente und Tabellen erschließen:** Direkter XLSX-Import, PDF-/Office-Texterschließung und bei Bedarf OCR schließen die verbleibenden Medienbrüche.
 5. **Empirische Methoden:** Weitere Statistikfälle, Nutzertests und bewertbare Geschäftsmodelle ergänzen die neuen Interpretations- und Journey-Werkzeuge.
-6. **Fachvorlagen:** Service-Blueprint, Projektplan und eine kleine Blockchain-Demonstration vervollständigen die bisher offenen Kursmethoden.
+6. **Fachvorlagen:** Projektplan und eine kleine Blockchain-Demonstration ergänzen die bisher offenen Kursmethoden. Der Service-Blueprint ist jetzt im Journey Lab vorhanden.
 
 ## Evidenz und Grenzen
 
@@ -83,3 +83,5 @@ Die Implementierung und die konkreten Grenzen sind in [Erweiterte Projektlabore]
 Der [Persona-Designer](persona-designer.md) erweitert das Journey-Labor unter derselben Freigabe. Die fünf Arbeitsmodelle und ihre Forschungsgrundlagen sind dort verlinkt. Gespeicherte Profilstände machen die Perspektive einer Journey nachvollziehbar; sie liefern keine automatische inhaltliche Validierung der Persona oder ihrer Annahmen.
 
 Die automatisierten Prüfungen umfassen Kern-API, bestehende Labore, neue HTTP-Zugriffe, Migration, alle 15 Datensichten, Quellenisolation, Versionskonflikte, Gesprächshistorien, Wiederholungsschutz und Anbieter-Verträge. Anbieteraufrufe wurden synthetisch geprüft. Der optionale echte MariaDB-Test benötigt den isolierten CI-Service. Produktion, reale Providerkapazität und vollständige Browser-/Geräteabdeckung sind nicht aus lokalen Prüfungen ableitbar.
+
+Der aktuelle Umfang der beiden Ergänzungen ist unter [Service-Blueprint und Digital Landscape Lab](landscape-blueprint.md) dokumentiert. Als nächste eigenständige Lernwerkzeuge bleiben ein Datenfluss Lab für wiederholbare Verarbeitung und ein Experiment Lab für simulierte Versuche sinnvoll.

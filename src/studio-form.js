@@ -1,0 +1,4 @@
+// Shared form lifecycle: warn before discarding edits, and never apply after navigation.
+export function studioForm(ctx){let dialog=null,disposed=false;
+ return {async open(title,html,submit,label='Übernehmen',options={}){let dirty=false;try{return await ctx.modal(title,html,async data=>{if(disposed||!ctx.alive())throw Error('Die Arbeit ist nicht mehr geöffnet.');await submit(data);dirty=false;ctx.localDraft?.(false);},label,{...options,beforeClose:async()=>!dirty||await ctx.confirm('Eingaben verwerfen','Die Eingaben in diesem Formular wurden noch nicht übernommen. Verwerfen?','Verwerfen'),after:el=>{dialog=el;el.querySelector('form').addEventListener('input',()=>{dirty=true;ctx.localDraft?.(true,'Formular noch nicht übernommen');});options.after?.(el);}});}finally{dialog=null;ctx.localDraft?.(false);}},dispose(){disposed=true;if(dialog?.open)dialog.close();}};
+}

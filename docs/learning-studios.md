@@ -162,3 +162,7 @@ Graphkanten unterstützen A → B, A ← B, A ↔ B und A — B beim Anlegen und
 Automatisierte Prüfungen umfassen Kartenverschiebung und Konflikte, alle vier Kantenrichtungen, die drei Konverterformate, Farbbeispiele und tatsächliche Trainingszwischenstände sowie Gruppenbudgets einschließlich Parallelreservierung, Wiederholung und Widerruf. HTTP-Tests prüfen zusätzlich Adminrolle, CSRF, Methoden, Versionierung und die Ausgabe ausschließlich sicherer Verbindungsmetadaten.
 
 Browsergeprüft wurden gleiche Kachelmaße auf Desktop und bei 390 px, alle projektbezogenen Lab-Ansichten bei 390 px, Journey/Persona-Wechsel ohne Verschiebung des Arbeitsrahmens, Daten-/KI-Projektstart, Training und Stop, Graphpfeile, Gestaltungsvorschau und alle acht Adminseiten bei 320 px. Mausziehen und Tastaturverschieben von Canvas-Karten wurden im Browser geprüft. Touch-/Stift-Verhalten ist durch Controller-Tests abgedeckt; eine physische Geräteprüfung steht aus. Reale Anbieteraufrufe wurden nicht ausgelöst.
+
+## Service-Blueprint und Unternehmenslandschaft
+
+Das Journey Lab enthält nun einen separat pro Gruppe freigebbaren Service-Blueprint. Das neue Digital Landscape Lab erfasst mehrere Systemprofile, eigene Datenbestände und gerichtete Datenflüsse pro Projekt. Beide verwenden den kompakten Laborrahmen, die bestehenden privaten bzw. gemeinsamen Projekte und serverseitige Rechte-/Versionsprüfungen. Details, Grenzen, Quellen und Prüfungen stehen in [Service-Blueprint und Digital Landscape Lab](landscape-blueprint.md).

@@ -10,7 +10,7 @@ function labDispatch(array $u,string $action,array $data): never {
         case 'lab.info':
             $pid=textField($data,'project',32);$p=labAccess($u,$pid);$objects=[];foreach(all('SELECT id,project_id,kind,name,version,updated_at,length(CAST(content AS BLOB)) bytes FROM lab_objects WHERE project_id=? ORDER BY kind,name',[$pid]) as $o){try{labAccess($u,$pid,$o['kind']);$o['version']=(int)$o['version'];$objects[]=$o;}catch(ApiError){}}$c=json_decode(one('SELECT config FROM lab_project_config WHERE project_id=?',[$pid])['config']??'{}',true);jsonOut(['project'=>$p,'objects'=>$objects,'config'=>$c,'limits'=>labLimits(),'connections'=>features($u)['ai']?aiAvailable($u,$pid):[]]);
         case 'lab.object': jsonOut(['object'=>labObject($u,textField($data,'id',32))]);
-        case 'lab.validate': labAccess($u,textField($data,'project',32),textField($data,'kind',20));jsonOut(['content'=>labValidate($data['kind'],$data['content']??null)]);
+        case 'lab.validate': if(($data['kind']??'')==='journey'&&isset($data['content']['blueprint']))needFeature($u,'blueprint_lab');labAccess($u,textField($data,'project',32),textField($data,'kind',20));jsonOut(['content'=>labValidate($data['kind'],$data['content']??null)]);
         case 'lab.save': jsonOut(['object'=>labSave($u,$data)]);
         case 'lab.delete': transaction(function()use($u,$data){$o=labObject($u,textField($data,'id',32));if(($data['version']??null)!==$o['version'])fail(409,'Inzwischen geändert. Bitte neu laden.');query('DELETE FROM lab_objects WHERE id=?',[$o['id']]);audit($u['id'],'lab.delete',['project'=>$o['project_id']]);});jsonOut(['ok'=>true]);
         case 'lab.rpc': rateLimit('lab.rpc.'.$u['id'],300,60);jsonOut(labRpc($u,$data));
