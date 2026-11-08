@@ -1,4 +1,5 @@
 import './address.mjs';
+import './workspace-access.mjs';
 import assert from 'node:assert/strict';
 import {groupPeriodErrors,periodValues} from '../src/group-periods.js';
 import {accessWindowDelay} from '../src/access-window.js';

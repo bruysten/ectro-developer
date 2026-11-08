@@ -179,7 +179,7 @@ function emailField(array $data): string {
     $v = strtolower(textField($data, 'email', 254)); if (!filter_var($v, FILTER_VALIDATE_EMAIL)) fail(422, 'Bitte geben Sie eine gültige E-Mail-Adresse ein.'); return $v;
 }
 function safeUser(array $u,bool $activeGroupsOnly=false): array {
-    $groupScope=$activeGroupsOnly&&$u['role']!=='admin'?' AND '.groupOpenSql('g.id'):'';
+    $groupScope=$activeGroupsOnly&&!workspaceManagement($u)?' AND '.groupOpenSql('g.id'):'';
     return ['profile'=>profileData($u['id']),'id' => $u['id'], 'name' => $u['name'], 'email' => $u['email'], 'role' => $u['role'], 'active' => (bool)$u['active'],
         'access'=>learningAccess($u),'address'=>addressInfo($u),'features' => json_decode($u['features'], true),
         'created_at' => $u['created_at'], 'last_login' => $u['last_login'], 'must_change_password' => (bool)$u['must_change_password'],
@@ -245,7 +245,7 @@ function teacherParticipants(array $u): array {
 }
 function project(array $u, string $pid): array {
     requireLearningAccess($u);
-    if($u['role']==='admin'){$p=one('SELECT p.*,g.name group_name,owner.name owner_name FROM projects p LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users owner ON owner.id=p.user_id WHERE p.id=?',[$pid]);if(!$p)fail(404,'Projekt nicht gefunden.');return $p;}
+    if(workspaceManagement($u)){$p=one('SELECT p.*,g.name group_name,owner.name owner_name FROM projects p LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users owner ON owner.id=p.user_id WHERE p.id=?',[$pid]);if(!$p)fail(404,'Projekt nicht gefunden.');return $p;}
     $p=one("SELECT p.*,g.name group_name,owner.name owner_name FROM projects p LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users owner ON owner.id=p.user_id WHERE p.id=? AND (p.user_id=? OR EXISTS(SELECT 1 FROM group_members m WHERE m.group_id=p.group_id AND m.user_id=? AND ".groupOpenSql('m.group_id').") OR (?='teacher' AND owner.role IN ('user','teacher') AND EXISTS(SELECT 1 FROM group_members student JOIN group_members teacher ON teacher.group_id=student.group_id WHERE student.user_id=p.user_id AND teacher.user_id=? AND ".groupOpenSql('student.group_id').")))",[$pid,$u['id'],$u['id'],$u['role']==='teacher'&&features($u)['files']?'teacher':'user',$u['id']]);if(!$p)fail(404,'Projekt nicht gefunden.');return $p;
 }
 function visibleProjects(array $u,string $target='',string $gid=''): array {

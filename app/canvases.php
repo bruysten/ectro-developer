@@ -13,7 +13,7 @@ const CANVAS_SECTIONS=[
 ];
 function canvasNeed(array $u): void {needFeature($u,'files');needFeature($u,'canvas_lab');}
 function canvasGroups(array $u): array {
- return all('SELECT g.id,g.name FROM groups g WHERE '.($u['role']==='admin'?'1=1':'EXISTS(SELECT 1 FROM group_members m WHERE m.group_id=g.id AND m.user_id=?) AND '.groupOpenSql('g.id')).' ORDER BY g.name',$u['role']==='admin'?[]:[$u['id']]);
+ return all('SELECT g.id,g.name FROM groups g WHERE '.(workspaceManagement($u)?'1=1':'EXISTS(SELECT 1 FROM group_members m WHERE m.group_id=g.id AND m.user_id=?) AND '.groupOpenSql('g.id')).' ORDER BY g.name',workspaceManagement($u)?[]:[$u['id']]);
 }
 function canvasAccess(array $u,string $id,bool $includeDeleted=false): array {
  canvasNeed($u);$row=one('SELECT c.*,g.name group_name,t.deleted_at FROM canvases c LEFT JOIN groups g ON g.id=c.group_id LEFT JOIN canvas_trash t ON t.canvas_id=c.id WHERE c.id=?',[$id]);

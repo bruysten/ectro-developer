@@ -16,7 +16,7 @@ function chatSharingInput(mixed $s): array {
 }
 function chatAccess(array $u,string $group,bool $admin=false): void {
     if(!one('SELECT id FROM groups WHERE id=?',[$group]))fail(404,'Gruppe nicht gefunden.');
-    if($admin&&$u['role']==='admin')return;
+    if($admin&&workspaceManagement($u))return;
     needFeature($u,'chat');if(!one('SELECT 1 FROM group_members WHERE group_id=? AND user_id=?',[$group,$u['id']]))fail(403,'Sie sind nicht Mitglied dieser Gruppe.');requireGroupPeriod($u,$group);
 }
 function chatHistory(string $gid,int $before=0,int $after=0): array {

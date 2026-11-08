@@ -11,6 +11,7 @@ class Client:
         self.base=base;self.token='';self.opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
     def call(self,action,data=None,csrf=True,**params):
         headers={'Content-Type':'application/json'}
+        if hasattr(self,'portal'):headers['X-Workspace-Portal']=self.portal
         if csrf:headers['X-CSRF-Token']=self.token
         req=urllib.request.Request(self.base+'/api/?'+urllib.parse.urlencode({'action':action,**params}),data=None if data is None else json.dumps(data).encode(),headers=headers)
         try:r=self.opener.open(req,timeout=30)
@@ -20,6 +21,17 @@ class Client:
         return r.code,value
     def ok(self,action,data=None,**params):
         status,value=self.call(action,data,**params);check(status<300,f'{action}: {status} {value}');return value
+    def resource(self,path,**params):
+        request=urllib.request.Request(self.base+'/'+path+'?'+urllib.parse.urlencode(params))
+        try:r=self.opener.open(request,timeout=30)
+        except urllib.error.HTTPError as e:r=e
+        return r.code,r.read()
+    def upload(self,action,fields):
+        boundary='isolated-group-resource-test'
+        payload=b''.join((f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n').encode() for key,value in fields.items())
+        payload+=(f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="fixture.txt"\r\nContent-Type: text/plain\r\n\r\nFixture\r\n--{boundary}--\r\n').encode()
+        r=self.opener.open(urllib.request.Request(self.base+'/api/?action='+action,data=payload,headers={'Content-Type':'multipart/form-data; boundary='+boundary,'X-CSRF-Token':self.token}),timeout=30)
+        check(r.code<300,'Fixture upload');return json.loads(r.read())
 import datetime, zoneinfo
 with tempfile.TemporaryDirectory(prefix='academy-group-periods-') as private:
     with socket.socket() as s:s.bind(('127.0.0.1',0));port=s.getsockname()[1]
@@ -52,6 +64,15 @@ with tempfile.TemporaryDirectory(prefix='academy-group-periods-') as private:
         check(ungrouped.ok('bootstrap')['user']['access']['allowed'],'Legacy personal accounts without groups remain unrestricted')
         project=learner.ok('project.create',{'name':'Gruppenprojekt','template':'web','group':first})['id']
         personal=learner.ok('project.create',{'name':'Persönlich','template':'web'})['id']
+        asset=learner.upload('file.upload',{'project':project,'path':'fixture.pdf'})['file']['id']
+        learner.upload('chat.upload',{'group':first,'body':'Synthetic fixture'})
+        chat_asset=learner.ok('chat',group=first)['messages'][-1]['attachment']['id']
+        private_canvas=learner.ok('canvas.create',{'kind':'business','name':'Privates Geschäftsmodell'})['canvas']['id']
+        shared_canvas=learner.ok('canvas.create',{'kind':'business','name':'Gruppenmodell','group':first})['canvas']['id']
+        dataset={'columns':[{'name':'Wert','type':'number'}],'rows':[{'Wert':12}]}
+        shared_lab=learner.ok('lab.save',{'project':project,'kind':'dataset','name':'Gruppendaten','content':dataset})['object']['id']
+        template=admin.ok('admin.template.save',{'name':'Nur Kurs A','language':'web','active':True,'version':0,'files':[],'labs':{'tools':['graph'],'entry':'graph','groups':[first],'seeds':[]}})['id']
+        check(template in [t['id'] for t in learner.ok('templates')['templates']],'Active group offers its assigned project types')
         teacher.ok('files',project=personal)
         check(group(first)['address_mode']=='formal','Existing groups default to Siezen')
         check(learner.ok('bootstrap')['user']['address']['mode']=='formal','Default frontend address is formal')
@@ -107,12 +128,60 @@ with tempfile.TemporaryDirectory(prefix='academy-group-periods-') as private:
         check(learner.call('project.create',{'name':'Forbidden','template':'web','group':first})[0]==403,'No new projects in expired groups')
         check(learner.call('project.share',{'id':personal,'group':first})[0]==403,'No sharing into expired groups')
         check(learner.call('team',group=first)[0]==403,'Expired team profiles remain inaccessible')
+        active_ids=lambda response:[g['id'] for g in response['groups']]
+        check(active_ids(learner.ok('profile')['user'])==[backup],'Profile does not reintroduce expired groups')
+        check(active_ids(learner.ok('team'))==[backup],'Team picker offers only accessible memberships')
+        profile=learner.ok('profile')['user']['profile']
+        updated=learner.ok('profile.save',{'name':'learner','version':profile['version']})['user']
+        check(active_ids(updated)==[backup],'Saving the profile keeps the filtered membership scope')
+        canvas_list=learner.ok('canvas.list')
+        check(active_ids(canvas_list)==[backup] and [c['id'] for c in canvas_list['canvases']]==[private_canvas],'Private canvases remain; expired shared canvases and groups disappear')
+        learner.ok('canvas.get',id=private_canvas)
+        check(learner.call('canvas.get',id=shared_canvas)[0]==404,'An active backup group cannot reopen a different shared canvas')
+        check(learner.call('canvas.create',{'name':'Forbidden','kind':'business','group':first})[0]==404,'Expired canvas scope cannot be forged')
+        check(learner.call('lab.object',id=shared_lab)[0]==404,'Saved lab objects inherit the exact project group')
+        check(project not in [p['id'] for p in learner.ok('lab.projects')['projects']] and personal in [p['id'] for p in learner.ok('lab.projects')['projects']],'Lab project selectors keep personal work and omit expired shared projects')
+        check(template not in [t['id'] for t in learner.ok('templates')['templates']],'Expired group-specific templates disappear')
+        check(learner.call('project.create',{'name':'Forbidden template','template':template})[0]==403,'Expired group-specific template cannot be used by ID')
+        # Surface context scopes administrator accounts in the learning UI while
+        # retaining complete memberships and artifacts for backend management.
+        admin_uid=admin.ok('bootstrap')['user']['id']
+        admin.ok('admin.user.save',{'id':admin_uid,'name':'Admin','email':'admin@example.test','role':'admin','active':True,'groups':[first,backup]})
+        frontend_admin=Client(base);frontend_admin.opener=admin.opener;frontend_admin.token=admin.token;frontend_admin.portal='frontend'
+        admin_personal=frontend_admin.ok('project.create',{'name':'Admin persönlich','template':'web'})['id']
+        check(active_ids(frontend_admin.ok('bootstrap')['user'])==[backup],'Frontend administrator sees only active memberships')
+        check(active_ids(frontend_admin.ok('profile')['user'])==[backup] and active_ids(frontend_admin.ok('team'))==[backup],'Frontend administrator profile and team use the same scope')
+        check(set(active_ids(admin.ok('bootstrap')['user']))=={first,backup},'Backend administrator retains every assigned group')
+        check({first,backup,staff}.issubset(set(g['id'] for g in admin.ok('admin.groups')['groups'])),'Expired groups remain manageable in backend')
+        managed=next(u for u in admin.ok('admin.users')['users'] if u['id']==uid)
+        check(set(active_ids(managed))=={first,backup},'Backend user editing retains inactive memberships')
+        check([p['id'] for p in frontend_admin.ok('lab.projects')['projects']]==[admin_personal],'Frontend admin project picker omits expired and foreign private projects')
+        for action,params in [('files',{'project':project}),('files',{'project':personal}),('lab.object',{'id':shared_lab}),('canvas.get',{'id':shared_canvas})]:
+            check(frontend_admin.call(action,**params)[0]==404,'Frontend admin cannot reopen foreign or expired artifacts by ID')
+        check(active_ids(frontend_admin.ok('canvas.list'))==[backup],'Frontend canvas picker applies administrator membership scope')
+        check(template not in [t['id'] for t in frontend_admin.ok('templates')['templates']],'Frontend admin cannot see expired assigned project types')
+        check(frontend_admin.call('project.create',{'name':'Forbidden','template':'web','group':first})[0]==403,'Frontend admin cannot create in an expired group')
+        check(frontend_admin.call('project.share',{'id':admin_personal,'group':first})[0]==403,'Frontend admin cannot share into an expired group')
+        check(frontend_admin.call('canvas.create',{'kind':'business','name':'Forbidden','group':first})[0]==404,'Frontend admin cannot create an expired shared canvas')
+        admin.ok('files',project=project)
+        admin.ok('canvas.get',id=shared_canvas)
+        admin.ok('admin.chat',group=first)
+        for endpoint,resource_id,denied in [('workspace-file.php',asset,404),('chat-file.php',chat_asset,403)]:
+            check(frontend_admin.resource(endpoint,id=resource_id,workspace_portal='frontend')[0]==denied,'Native frontend resource links preserve access scope')
+            check(admin.resource(endpoint,id=resource_id,workspace_portal='admin')[0]==200,'Backend resource access remains available')
+            check(learner.resource(endpoint,id=resource_id,workspace_portal='admin')[0]==denied,'A query parameter cannot elevate the user role')
+        check(frontend_admin.call('db.info',participant=uid,group=first)[0]==403,'Frontend admin cannot reuse management participant selectors')
+        learner.portal='admin'
+        check(learner.call('files',project=project)[0]==404,'Forging management context never elevates a user role')
+        del learner.portal
         save(backup,periods={'access_end':day(-1)})
+        check(not frontend_admin.ok('bootstrap')['user']['access']['allowed'],'Frontend administrators follow the closed learning window')
+        check(frontend_admin.call('files',project=admin_personal)[0]==403,'Frontend admin personal work closes when all assigned groups close')
+        check(ungrouped.ok('bootstrap')['user']['access']['allowed'],'Accounts without any memberships still retain personal access')
         learner.ok('logout',{})
         learner.ok('bootstrap')
         status,body=learner.call('login',{'portal':'user','email':'learner@example.test','password':'secure-test-password'})
         check(status==403 and body.get('code')=='access_period',f'New login denied after access expires: {status} {body}')
-        admin_uid=admin.ok('bootstrap')['user']['id']
         admin.ok('admin.user.save',{'id':admin_uid,'name':'Admin','email':'admin@example.test','role':'admin','active':True,'groups':[first]})
         check(admin.ok('bootstrap')['user']['access']['allowed'],'Administrator cannot be locked out by course dates')
         admin.ok('admin.groups')

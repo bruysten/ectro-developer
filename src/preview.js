@@ -2,7 +2,7 @@ import {loadPreviewAssets} from './preview-assets.js';
 import {execute,createPreviewFrame} from './runner.js';
 const params=new URLSearchParams(location.search),project=params.get('project');let path=params.get('path'),files,job,assets=[],csrf;
 const target=document.querySelector('#preview-content'),status=document.querySelector('#preview-status');
-async function rpc(op,args){const response=await fetch('/api/?action=lab.rpc',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify({project,op,args})});const data=await response.json();if(!response.ok)throw Error(data.error);return data;}
+async function rpc(op,args){const response=await fetch('/api/?action=lab.rpc',{method:'POST',headers:{'X-Workspace-Portal':'frontend','Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify({project,op,args})});const data=await response.json();if(!response.ok)throw Error(data.error);return data;}
 async function run(query='') {
   job?.stop();status.textContent='Vorschau wird geladen …';
   try {
@@ -20,7 +20,7 @@ addEventListener('message',e=>{
 });
 document.querySelector('#refresh-preview').onclick=()=>run();
 try {
-  const boot=await fetch('/api/?action=bootstrap').then(r=>r.json());csrf=boot.csrf;if(!boot.user)throw Error('Bitte melden Sie sich zuerst in der Lernumgebung an.');
-  const response=await fetch('/api/?action=project.bundle',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':boot.csrf},body:JSON.stringify({project})});
+  const boot=await fetch('/api/?action=bootstrap',{headers:{'X-Workspace-Portal':'frontend'}}).then(r=>r.json());csrf=boot.csrf;if(!boot.user)throw Error('Bitte melden Sie sich zuerst in der Lernumgebung an.');
+  const response=await fetch('/api/?action=project.bundle',{method:'POST',headers:{'X-Workspace-Portal':'frontend','Content-Type':'application/json','X-CSRF-Token':boot.csrf},body:JSON.stringify({project})});
   const data=await response.json();if(!response.ok)throw Error(data.error);files=data.files;assets=await loadPreviewAssets(data.assets);await run();
 } catch(e){status.textContent=e.message;}
