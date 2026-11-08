@@ -1,8 +1,9 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/lab-personas.php';
+require_once __DIR__.'/lab-landscape.php';
 
-const STUDIO_KINDS = ['conversation','assistant','evaluation','reasoning','visualization','journey'];
+const STUDIO_KINDS = ['conversation','assistant','evaluation','reasoning','visualization','journey','landscape'];
 const STUDIO_VIEWS = ['table','bar','column','stacked','line','area','scatter','histogram','boxplot','heatmap','donut','treemap','kpi','network','strategy'];
 
 function studioText(mixed $v,int $max=4000): string {
@@ -93,6 +94,7 @@ function studioValidate(string $kind,array $c): array {
         $actions=[];foreach(['eliminate','reduce','raise','create'] as $key)$actions[$key]=studioText($c['actions'][$key]??'',2000);
         return ['source'=>$source,'view'=>$view,'actions'=>$actions,'style'=>studioChartStyle($c['style']??null)];
     }
+    if ($kind==='landscape')return landscapeValidate($c);
     if ($kind==='journey') {
         $persona=studioRecord($c['persona']??[]);$p=[];foreach(['name'=>180,'goal'=>2000,'context'=>2000] as $key=>$max)$p[$key]=studioText($persona[$key]??'',$max);
         $stages=[];$ids=[];foreach(labList($c['stages']??[],20) as $s){$s=studioRecord($s);$id=labName($s['id']??null);if(isset($ids[$id]))fail(422,'Phasen-IDs müssen eindeutig sein.');$ids[$id]=true;$stage=['id'=>$id];
@@ -101,7 +103,7 @@ function studioValidate(string $kind,array $c): array {
         }
         $snapshot=isset($c['personaSnapshot'])?studioPersonaContent($c['personaSnapshot']):null;$ref=null;
         if(isset($c['personaRef'])){$v=studioRecord($c['personaRef']);$id=studioText($v['id']??'',32);if(!preg_match('/^[a-f0-9]{32}$/D',$id)||!is_int($v['version']??null)||$v['version']<1||!$snapshot)fail(422,'Ungültiger Persona-Stand.');$ref=['id'=>$id,'version'=>$v['version']];}
-        $source=studioSourceInput($c['source']??null);if(($source['type']??'')==='text')fail(422,'Eine Journey-Quelle benötigt strukturierte Tabellendaten.');return ['persona'=>$p,'stages'=>$stages,'source'=>$source,'personaRef'=>$ref,'personaSnapshot'=>$snapshot];
+        $source=studioSourceInput($c['source']??null);if(($source['type']??'')==='text')fail(422,'Eine Journey-Quelle benötigt strukturierte Tabellendaten.');$result=['persona'=>$p,'stages'=>$stages,'source'=>$source,'personaRef'=>$ref,'personaSnapshot'=>$snapshot];if(isset($c['blueprint']))$result['blueprint']=blueprintValidate($c['blueprint'],$stages);return $result;
     }
     fail(422,'Unbekanntes Labor.');
 }

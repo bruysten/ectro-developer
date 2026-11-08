@@ -1,3 +1,4 @@
+import './landscape-blueprint.mjs';
 import {spawnSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';

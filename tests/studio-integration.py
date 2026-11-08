@@ -56,6 +56,31 @@ with tempfile.TemporaryDirectory(prefix='ectro-studio-http-') as private:
         admin.ok('admin.ai.group.save',{'group':gid,'connection':connection['id'],'version':group_grant['version'],'remove':True})
         check(not alice.ok('lab.info',project=pid)['connections'],'Group revocation immediately removes connection')
         admin.ok('admin.ai.connection.delete',{'id':connection['id'],'version':connection['version']})
+        company=alice.ok('project.create',{'name':'Company landscape','template':'web','group':gid})['id']
+        landscape_content={'organization':'Synthetic company','systems':[{'id':'crm','name':'CRM'},{'id':'shop','name':'Shop'}],'stores':[{'id':'contacts','system':'crm','name':'Contacts'}],'flows':[{'id':'f','name':'Export','from':'crm','to':'shop','stores':['contacts']}]}
+        landscape=alice.ok('lab.save',{'project':company,'kind':'landscape','name':'Landscape','content':landscape_content})['object']
+        check(alice.call('lab.save',{'project':company,'kind':'landscape','name':'Forgery','content':landscape_content},csrf=False)[0]==403,'Landscape writes require CSRF')
+        check(bob.call('lab.object',id=landscape['id'])[0]==404,'Foreign group inventory remains hidden')
+        check(alice.call('lab.save',{**landscape,'project':company,'version':0})[0]==409,'Landscape stale writes conflict')
+        blueprint={'items':[{'id':'activity','stage':'phase','lane':'backstage','text':'Prepare data','systems':'CRM','data':'Customer data'}],'links':[]}
+        journey_content={'persona':{'name':'Alex'},'stages':[{'id':'phase','name':'Choose','emotion':0}],'blueprint':blueprint}
+        journey=alice.ok('lab.save',{'project':company,'kind':'journey','name':'Blueprint','content':journey_content})['object']
+        preserved=journey['content']['blueprint']
+        group=next(g for g in admin.ok('admin.groups')['groups'] if g['id']==gid)
+        admin.ok('admin.group.features.save',{'id':gid,'version':group['version'],'features':{'landscape_lab':False,'blueprint_lab':False}})
+        check(alice.call('lab.object',id=landscape['id'])[0]==403,'Group revocation blocks Landscape')
+        check(all(o['id']!=landscape['id'] for o in alice.ok('lab.info',project=company)['objects']),'Revoked Landscape omitted from object list')
+        redacted=alice.ok('lab.object',id=journey['id'])['object']
+        check('blueprint' not in redacted['content'],'Revoked Blueprint removed from Journey response')
+        check(alice.call('lab.validate',{'project':company,'kind':'journey','content':journey_content})[0]==403,'Validation endpoint enforces Blueprint permission')
+        check(alice.call('lab.save',{**journey,'project':company})[0]==403,'Stale clients cannot write revoked Blueprint')
+        redacted['content']['persona']['name']='Updated perspective'
+        updated=alice.ok('lab.save',{**redacted,'project':company})['object']
+        check('blueprint' not in updated['content'],'Save responses never leak revoked Blueprint')
+        group=next(g for g in admin.ok('admin.groups')['groups'] if g['id']==gid)
+        admin.ok('admin.group.features.save',{'id':gid,'version':group['version'],'features':{}})
+        check(alice.ok('lab.object',id=journey['id'])['object']['content']['blueprint']==preserved,'Hidden Blueprint survives ordinary Journey editing')
+        check(alice.ok('lab.object',id=landscape['id'])['object']['content']['flows'][0]['stores']==['contacts'],'Group reactivation restores saved inventory')
         source={'type':'json','path':'values.json'}
         alice.ok('file.save',{'project':pid,'path':'values.json','content':'[{"category":"A","value":7},{"category":"B","value":3}]','version':0})
         content={'source':source,'view':{'kind':'bar','x':'category','y':'value','aggregate':'sum'},'actions':{}}
