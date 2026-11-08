@@ -130,3 +130,35 @@ Unter Ergebnis → Gestaltung lassen sich Farben, Typografie, Formen, Rundungen,
 Die Übung zeigt den Kundenmix (200 aktive / 800 selten aktive Kunden) und den Antwortmix (80 / 20) direkt als zwei gleich große Anteilsbalken mit absoluten Zahlen. Die Ja-/Nein-Frage, die beobachteten Gruppenquoten (72/80 = 90 % und 8/20 = 40 %) sowie die Annahme gleicher Gruppenquoten beim Hochrechnen sind unmittelbar sichtbar. „Anteile aller Kunden verwenden“ wechselt zwischen 72 + 8 = 80 von 100 Antworten und 180 + 320 = 500 von 1.000 Kunden. Die 50 % werden als Hochrechnung bezeichnet.
 
 Browsergeprüft: beide Zustände bei 320/390/768/1024 Pixeln ohne Seitenüberlauf; Tastaturumschaltung mit erhaltenem Fokus; Auswahl einer Interpretation, Speichern und Neuladen; Wechsel zu den übrigen drei Übungen. Die Antwortzuordnung wird beim Auswählen als JSON-Objekt aufgebaut, damit eine zunächst leere, aus der API als Array gelesene Zuordnung nicht beim Speichern verloren geht. Modelltests prüfen Gruppenanteile, unveränderte Gruppenquoten und beide sichtbaren Rechenwege.
+
+## Kompakte Arbeitsoberflächen (08.11.2026)
+
+Projektlabore verwenden denselben Rahmen: Projekt und gespeicherte Arbeit, Neu und Speicherstatus in einer schmalen Leiste; darunter ein Titel mit Mehr und Speichern. Die linke Objektliste und die zweite Lab-Navigation entfallen. Journey und Persona-Designer behalten beim Wechsel diesen Rahmen. Das Canvas Lab behält seine projektunabhängige private bzw. geteilte Bibliothek. Die Übersicht verwendet über alle Kategorien gleiche Kachelmaße; nur die Spaltenzahl passt sich der Breite an. Der Benutzerbereich bleibt am unteren Navigationsrand, die Navigation selbst scrollt.
+
+Als zusätzliche Startpunkte stehen Datenprojekt (JSON-Beispieldaten und erste Visualisierung) und KI-Projekt (erstes Gespräch) bereit. PHP und Python bleiben unter „Weitere Code-Vorlagen“ erreichbar. Administratorisch festgelegte Werkzeug- und Gruppenfreigaben gelten weiterhin. Die Ergänzung bestehender Installationen erfolgt einmalig, ohne vorhandene Vorlagen zu überschreiben.
+
+### Neuronale Netze
+
+Die Aufgabe bleibt nach Training, Speichern und Neuladen erhalten. Farbenbeispiele zeigen Eingabefarbe, Kanalwerte, Zielklasse und Ausgabeaktivierungen; Aktivierungen werden ausdrücklich nicht als Wahrscheinlichkeiten bezeichnet. Zusätzlich zum RGB-Beispiel gibt es zwei Eingaben (normierter Rot- und Grünanteil), sechs versteckte Neuronen und drei Farbausgaben. Blau ergibt sich aus dem Rest bis 1; Helligkeit wird hierbei bewusst verworfen. Schwarz ist dafür keine gültige Eingabe.
+
+Ein Trainingsschritt entspricht einer Epoche. Die Animation verwendet tatsächliche Zwischenstände der Backpropagation und zeigt erst Signalfluss, dann veränderte Gewichte und Aktivierungen. Testbeispiele aktualisieren keine Gewichte. Große Datensätze und längere Trainingsläufe verwenden begrenzt viele echte Momentaufnahmen; es wird keine vollständige Zeitlupe aller Operationen behauptet. Stop bewahrt den zuletzt gezeigten Stand, auch innerhalb einer noch unvollständigen Epoche. Reduzierte Bewegung wird berücksichtigt.
+
+### Gruppenbezogene KI-Verbindungen
+
+Unter `/admin/#labs` lassen sich OpenAI-, Anthropic- und Daimon-Verbindungen direkt anlegen, bearbeiten und entfernen. Schlüssel bleiben verschlüsselt; leere Schlüssel beim Bearbeiten behalten den vorhandenen Schlüssel. Benutzer können ergänzend persönliche OpenAI-/Anthropic-Zugänge im Profil verwalten. Es wird kein externer Editor oder zusätzlicher Dienst eingebunden.
+
+Eine Gruppenfreigabe enthält ein gemeinsames Aufrufbudget, ein Gesamt-Tokenbudget und eine Ausgabegrenze je Anfrage. In Gruppenprojekten zählt ausschließlich deren aktive Gruppe. In persönlichen Projekten wird eine aktive eigene Gruppe mit Freigabe verwendet: bevorzugt die eindeutig aktuelle Kursgruppe, sonst stabil nach Gruppenname und ID. Die Modellwahl benennt die verwendete Gruppe. Ein ausgeschöpftes Budget wechselt nicht automatisch auf eine andere Gruppe. Eigene Schlüssel bleiben unabhängig. Bestehende explizite Projektfreigaben funktionieren weiter.
+
+Vor dem Anbieteraufruf werden Aufruf und konservativ geschätzte Tokens atomar reserviert, damit parallele Anfragen das noch freie Budget nicht mehrfach verplanen. Gemeldeter Verbrauch ersetzt die Reservierung. Fehlen Verbrauchsdaten oder bleibt ein Abbruch unklar, wird die Reservierung vorsorglich angerechnet. Widerruf und aktive Zeiträume werden bei jedem Zugriff geprüft. Wiederholte Anfragekennungen lösen keinen zweiten Anbieteraufruf aus. Budgets gelten insgesamt, ohne automatischen Reset; Entziehen und erneutes Freigeben setzt den Verbrauch nicht zurück. Die Reservierung ersetzt kein abrechnungsverbindliches Ausgabenlimit beim Anbieter, dessen Tokenisierung und Verbrauchsmeldung maßgeblich bleiben.
+
+### Weitere Datenfunktionen
+
+Der lokale Umwandler ergänzt genau drei Formate: JSON Lines, YAML-Objektlisten und Markdown-Tabellen. YAML unterstützt bewusst eine Tabellen-Untermenge mit einzeiligen skalaren bzw. JSON-Werten; Tags, Aliase und mehrzeilige YAML-Blöcke werden abgewiesen. Markdown-Zellen sind Text. Die frühere vollständige Standardauswahl wird einmalig um die drei neuen Formate erweitert. Eingeschränkte Auswahlen bleiben erhalten; spätere Änderungen werden nicht erneut überschrieben.
+
+Graphkanten unterstützen A → B, A ← B, A ↔ B und A — B beim Anlegen und Bearbeiten. Bestehende Kanten bleiben standardmäßig vorwärts gerichtet. Das Ändern der Pfeile verändert die Ontologie-Endpunkte A/B nicht; Pfadsuche, Nachbarschaftsabfragen, Graphquellen und Visualisierungen berücksichtigen die Richtung.
+
+### Validierung dieser Überarbeitung
+
+Automatisierte Prüfungen umfassen Kartenverschiebung und Konflikte, alle vier Kantenrichtungen, die drei Konverterformate, Farbbeispiele und tatsächliche Trainingszwischenstände sowie Gruppenbudgets einschließlich Parallelreservierung, Wiederholung und Widerruf. HTTP-Tests prüfen zusätzlich Adminrolle, CSRF, Methoden, Versionierung und die Ausgabe ausschließlich sicherer Verbindungsmetadaten.
+
+Browsergeprüft wurden gleiche Kachelmaße auf Desktop und bei 390 px, alle projektbezogenen Lab-Ansichten bei 390 px, Journey/Persona-Wechsel ohne Verschiebung des Arbeitsrahmens, Daten-/KI-Projektstart, Training und Stop, Graphpfeile, Gestaltungsvorschau und alle acht Adminseiten bei 320 px. Mausziehen und Tastaturverschieben von Canvas-Karten wurden im Browser geprüft. Touch-/Stift-Verhalten ist durch Controller-Tests abgedeckt; eine physische Geräteprüfung steht aus. Reale Anbieteraufrufe wurden nicht ausgelöst.

@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS password_resets (token_hash TEXT PRIMARY KEY, user_id
 CREATE INDEX IF NOT EXISTS password_resets_user ON password_resets(user_id);
 CREATE INDEX IF NOT EXISTS password_resets_expiry ON password_resets(expires_at);
 INSERT OR IGNORE INTO settings(key,value) VALUES('features','{"files":true,"editor":true,"html":true,"php":true,"python":true,"database":true,"chat":true}');
-INSERT OR IGNORE INTO settings(key,value) VALUES('converter_formats','["csv","tsv","json","xml"]');
+INSERT OR IGNORE INTO settings(key,value) VALUES('converter_formats','["csv","tsv","json","xml","jsonl","yaml","md"]');
 
 CREATE TABLE IF NOT EXISTS chat_attachments (id TEXT PRIMARY KEY,message_id INTEGER NOT NULL UNIQUE REFERENCES messages(id) ON DELETE CASCADE,name TEXT NOT NULL,extension TEXT NOT NULL,size INTEGER NOT NULL,content BLOB NOT NULL);
 CREATE TABLE IF NOT EXISTS chat_state (group_id TEXT PRIMARY KEY REFERENCES groups(id) ON DELETE CASCADE,revision INTEGER NOT NULL DEFAULT 0);
@@ -81,3 +81,7 @@ CREATE TABLE IF NOT EXISTS canvas_mutations (canvas_id TEXT NOT NULL REFERENCES 
 CREATE TABLE IF NOT EXISTS canvas_removed_cards (canvas_id TEXT NOT NULL REFERENCES canvases(id) ON DELETE CASCADE,card_id TEXT NOT NULL,PRIMARY KEY(canvas_id,card_id));
 
 CREATE TABLE IF NOT EXISTS canvas_trash (canvas_id TEXT PRIMARY KEY REFERENCES canvases(id) ON DELETE CASCADE,deleted_at TEXT NOT NULL,deleted_by TEXT REFERENCES users(id) ON DELETE SET NULL);
+
+CREATE TABLE IF NOT EXISTS ai_group_grants (group_id TEXT NOT NULL REFERENCES groups(id) ON DELETE CASCADE, connection_id TEXT NOT NULL REFERENCES ai_connections(id) ON DELETE CASCADE, max_calls INTEGER NOT NULL, max_tokens INTEGER NOT NULL, max_output_tokens INTEGER NOT NULL DEFAULT 2048, version INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(group_id,connection_id));
+CREATE TABLE IF NOT EXISTS ai_call_groups (call_id TEXT PRIMARY KEY REFERENCES ai_calls(id) ON DELETE CASCADE, group_id TEXT REFERENCES groups(id) ON DELETE SET NULL, reserved_tokens INTEGER NOT NULL, estimated INTEGER NOT NULL DEFAULT 1);
+CREATE INDEX IF NOT EXISTS ai_call_groups_group ON ai_call_groups(group_id);

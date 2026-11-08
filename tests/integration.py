@@ -158,11 +158,23 @@ with tempfile.TemporaryDirectory(prefix='ectro-test-') as private:
         admin.ok('admin.group.delete', {'id':assigned})
         # Editable project types: defaults migrate once; new projects copy a snapshot.
         types=admin.ok('admin.templates')['templates']
-        check([t['id'] for t in types]==['web','php','python'], 'Default project types seeded in original order')
+        check([t['id'] for t in types]==['web','php','python','data','ai'], 'Code defaults retain order and two lab starters are appended')
         original=admin.ok('admin.template',id='web')['template']
         check(original['active'] and original['version']==1 and len(original['files'])==3, 'Editable default includes original start files')
         check(bob.call('admin.template',id='web')[0]==403, 'Learner cannot read admin template editor')
         check(anonymous.call('templates')[0]==401, 'Project type listing requires login')
+        # New lab starters are ordinary backend-managed templates and obey grants.
+        for type_id,entry,kind in [('data','visualization','visualization'),('ai','conversation','conversation')]:
+            starter=bob.ok('project.create',{'name':'Starter '+type_id,'template':type_id})['id']
+            info=bob.ok('lab.info',project=starter)
+            check(info['config']['entry']==entry and len(info['objects'])==1 and info['objects'][0]['kind']==kind,'Lab starter opens the intended saved work')
+            if type_id=='data':
+                source=bob.ok('studio.source',{'project':starter,'kind':'visualization','source':{'type':'json','path':'beispieldaten.json'}})
+                check(len(source['rows'])==3 and source['rows'][0]['umsatz']==4250,'Data starter JSON is immediately readable')
+            bob.ok('project.delete',{'id':starter})
+        prior=len(admin.ok('admin.templates')['templates'])
+        admin.ok('templates');admin.ok('templates')
+        check(len(admin.ok('admin.templates')['templates'])==prior,'Starter initialization is idempotent')
         check(bob.call('admin.template.save',{'name':'Forbidden','files':[]})[0]==403, 'Learner cannot write project types')
         personal=bob.ok('project.create',{'name':'Before template change','template':'web'})['id']
         before=bob.ok('file',project=personal,path='index.html')['file']['content']

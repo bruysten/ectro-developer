@@ -37,6 +37,20 @@ with tempfile.TemporaryDirectory(prefix='ectro-canvas-http-') as private:
   with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:race=list(pool.map(lambda pair:pair[0].call('canvas.mutate',pair[1])[0],[(a,payload('A revision',card['id'],1)),(b,payload('B revision',card['id'],1))]))
   assert sorted(race)==[200,409],race
   p=payload('Lost response');first=a.ok('canvas.mutate',p)['canvas'];retry=a.ok('canvas.mutate',p)['canvas'];assert first['version']==retry['version'];assert len(retry['content']['cards'])==3
+  moving=next(c for c in retry['content']['cards'] if c['id']==card['id'])
+  other=next(c for c in retry['content']['cards'] if c['id']!=moving['id'])
+  b.ok('canvas.mutate',payload('Independent concurrent note',other['id'],other['version']))
+  move={'id':shared['id'],'op':'move','mutation':uuid.uuid4().hex,'card_id':moving['id'],'card_version':moving['version'],'section':'channels'}
+  moved=a.ok('canvas.mutate',move)['canvas'];after=next(c for c in moved['content']['cards'] if c['id']==moving['id'])
+  assert after['section']=='channels' and after['version']==moving['version']+1
+  for key in ['id','text','evidence','color','status','priority','author']:assert after[key]==moving[key],key
+  assert next(c for c in moved['content']['cards'] if c['id']==other['id'])['text']=='Independent concurrent note'
+  assert a.ok('canvas.mutate',move)['canvas']['version']==moved['version'],'Move retries preserve the same mutation identity'
+  assert b.call('canvas.mutate',{**move,'mutation':uuid.uuid4().hex})[0]==409,'Stale moves cannot overwrite card edits'
+  assert a.call('canvas.mutate',{**move,'mutation':uuid.uuid4().hex,'card_version':after['version'],'section':'unknown'})[0]==422
+  assert out.call('canvas.mutate',{**move,'mutation':uuid.uuid4().hex})[0]==404
+  assert a.call('canvas.mutate',{**move,'mutation':uuid.uuid4().hex},csrf=False)[0]==403
+  retry=moved
   trash={'id':shared['id'],'op':'trash','mutation':uuid.uuid4().hex,'version':retry['version']}
   assert b.call('canvas.mutate',trash)[0]==403
   trashed=a.ok('canvas.mutate',trash)['canvas'];assert trashed['deleted_at']

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {graphRelationCatalog,graphRelationUsage,completeGraphModel,addGraphRelation,editGraphRelation,removeGraphRelation,setGraphEdge,graphTypeAppearance,addGraphNodeType,editGraphNodeType,removeGraphNodeType,setGraphNode} from '../src/graph-model.js';
+import {graphRelationCatalog,graphRelationUsage,completeGraphModel,addGraphRelation,editGraphRelation,removeGraphRelation,setGraphEdge,graphTypeAppearance,addGraphNodeType,editGraphNodeType,removeGraphNodeType,setGraphNode,graphDirection,graphDirectionSymbol,graphEdgeConnects} from '../src/graph-model.js';
 
 const legacy={types:[],relations:[],nodes:[{id:'a',type:'Person'},{id:'b',type:'Firma'},{id:'c',type:'Person'}],edges:[{id:'ab',from:'a',to:'b',label:'kennt',properties:{seit:2020}},{id:'ac',from:'a',to:'c',label:'kennt'},{id:'cb',from:'c',to:'b',label:'kennt'}]};
 const original=structuredClone(legacy),catalog=graphRelationCatalog(legacy);
@@ -58,3 +58,5 @@ assert.equal(graphTypeAppearance({color:'#000000'}).ink,'#ffffff');
 assert(/^#[0-9a-f]{6}$/i.test(graphTypeAppearance({color:'bad',icon:'<script>'}).color));
 assert.deepEqual(legacy,original,'Node-type edits also leave the source graph unchanged');
 console.log('Graph ontology verified: reusable node/edge types, icons/colors, endpoint rules, atomic edits, cascading renames and safe removal.');
+
+for(const direction of ['forward','reverse','both','none']){const graph=setGraphEdge(legacy,{...legacy.edges[0],direction},'ab');assert.equal(graph.edges[0].direction,direction);assert.equal(graphDirection(graph.edges[0]),direction);assert.equal(graphEdgeConnects(graph.edges[0],'a','b'),direction!=='reverse');assert.equal(graphEdgeConnects(graph.edges[0],'b','a'),direction!=='forward');assert(graphDirectionSymbol(graph.edges[0]));assert.equal(graph.edges[0].from,'a');assert.equal(graph.edges[0].to,'b');}assert.equal(graphDirection({}),'forward');assert.throws(()=>setGraphEdge(legacy,{...legacy.edges[0],direction:'invalid'},'ab'));

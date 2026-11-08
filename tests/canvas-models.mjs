@@ -1,3 +1,4 @@
+import './canvas-drag.mjs';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {CANVAS_MODELS,canvasExample,canvasOperation,canvasProgress,canvasAcceptsVersion} from '../src/canvas-models.js';

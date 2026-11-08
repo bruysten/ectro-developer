@@ -64,3 +64,9 @@ python3 scripts/preflight.py
 ```
 
 Der Node-Einstieg enthält `tests/studio-visualization.mjs` und die PHP-Vertragsprüfungen. Die reguläre CI führt außerdem die bestehenden MariaDB-, SQL-, Migrations- und Berechtigungstests aus.
+
+## Überarbeitung vom 08.11.2026
+
+Datenquelle und Berechnung liegen im kompakten Bereich „Daten & Darstellung“. Die Datensicht bleibt direkt am Ergebnis wählbar. „Gestaltung“ öffnet einen responsiven Dialog mit Live-Vorschau und den Bereichen Farben, Form & Abstand und Schrift. Erst Übernehmen ändert die Arbeit; Abbrechen verwirft die Vorschau. Das Öffnen verschiebt das Diagramm nicht. Exporte sind in einem gemeinsamen Menü gebündelt.
+
+Der gespeicherte Parameter `elementGap` (0–20) erzeugt Ringsegmentabstände, Abstände bei Balken/Säulen, Trennungen in gestapelten Säulen, Histogrammen, Treemaps und Heatmaps sowie Abstände zwischen Kennzahlen. Kleine Ringsegmente bleiben sichtbar, ein einzelner Vollring bleibt ungeteilt. Datenwerte und Berechnungen ändern sich dadurch nicht. Bei Linien- und Punktdiagrammen werden stattdessen die dazu passenden Linien- und Punktparameter angeboten.

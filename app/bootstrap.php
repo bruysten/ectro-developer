@@ -6,7 +6,7 @@ require_once __DIR__ . '/group-address.php';
 
 const APP_ROOT = __DIR__ . '/..';
 const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter', 'data_lab', 'graph', 'ai', 'rag', 'neural', 'chat_lab', 'assistant_lab', 'evaluation_lab', 'reasoning_lab', 'visualization_lab', 'journey_lab', 'canvas_lab'];
-const CONVERTER_FORMATS = ['csv', 'tsv', 'json', 'xml'];
+const CONVERTER_FORMATS = ['csv', 'tsv', 'json', 'xml', 'jsonl', 'yaml', 'md'];
 const FILE_LIMIT = 524288;
 const SPACE_LIMIT = 20971520;
 
@@ -42,6 +42,16 @@ function db(): PDO {
     $pdo = new PDO('sqlite:' . dataDir() . '/app.sqlite', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
     $pdo->exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL;');
     $pdo->exec(file_get_contents(__DIR__ . '/schema.sql'));
+    // Extend only the old complete catalog once; preserve restricted selections.
+    if(!$pdo->query("SELECT 1 FROM settings WHERE key='converter_formats_v2'")->fetchColumn()){
+        $pdo->exec('BEGIN IMMEDIATE');try{
+            if(!$pdo->query("SELECT 1 FROM settings WHERE key='converter_formats_v2'")->fetchColumn()){
+                $formats=json_decode($pdo->query("SELECT value FROM settings WHERE key='converter_formats'")->fetchColumn()?:'null',true);
+                if(is_array($formats)&&count($formats)===4&&!array_diff(['csv','tsv','json','xml'],$formats))$pdo->prepare("UPDATE settings SET value=? WHERE key='converter_formats'")->execute([json_encode(CONVERTER_FORMATS)]);
+                $pdo->exec("INSERT INTO settings VALUES('converter_formats_v2','true')");
+            }$pdo->exec('COMMIT');
+        }catch(Throwable $e){$pdo->exec('ROLLBACK');throw $e;}
+    }
     // Add canvas models without changing boards, revisions or dependent histories.
     if(!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='canvases'")->fetchColumn(),"'pestel'")){
         $pdo->exec('PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE');

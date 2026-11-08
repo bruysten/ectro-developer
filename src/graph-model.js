@@ -68,6 +68,7 @@ export function removeGraphRelation(graph,index){
   next.relations.splice(index,1);return next;
 }
 export function setGraphEdge(graph,edge){
+  if(edge.direction!==undefined&&!GRAPH_DIRECTIONS.some(([key])=>key===edge.direction))throw Error('Ungültige Pfeilrichtung.');
   const next=completeGraphModel(graph),types=nodeTypes(next);
   if(!types.has(edge.from)||!types.has(edge.to)||!next.relations.some(r=>matches(edge,r,types)))throw Error('Der Beziehungstyp passt nicht zu Start- und Zielknoten.');
   const index=next.edges.findIndex(e=>e.id===edge.id);
@@ -102,3 +103,8 @@ export function setGraphNode(graph,node){
   if(index<0)next.nodes.push(structuredClone(node));else next.nodes[index]=structuredClone(node);
   return next;
 }
+
+export const GRAPH_DIRECTIONS=[['forward','A → B','Gerichtet'],['reverse','A ← B','Umgekehrt'],['both','A ↔ B','Beidseitig'],['none','A — B','Ungerichtet']];
+export const graphDirection=edge=>GRAPH_DIRECTIONS.some(([key])=>key===edge.direction)?edge.direction:'forward';
+export const graphDirectionSymbol=edge=>({forward:'→',reverse:'←',both:'↔',none:'—'})[graphDirection(edge)];
+export function graphEdgeConnects(edge,from,to){const d=graphDirection(edge);return (d!=='reverse'&&edge.from===from&&edge.to===to)||(d!=='forward'&&edge.to===from&&edge.from===to);}
