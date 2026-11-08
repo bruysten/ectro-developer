@@ -19,11 +19,11 @@ function studioRecord(mixed $v): array {
 }
 function studioChartStyle(mixed $input): array {
     $v=studioRecord($input??[]);
-    $out=['palette'=>['#b2026c','#246f88','#72549d','#b16a13','#237653','#985647','#4056aa','#686b24'],'background'=>'#ffffff','text'=>'#222222','grid'=>'#e1e3e5','fontFamily'=>'sans','fontSize'=>12,'fontWeight'=>400,'radius'=>2,'lineWidth'=>2.5,'pointSize'=>5,'pointShape'=>'circle','donutWidth'=>55,'showGrid'=>true,'showLegend'=>true];
+    $out=['palette'=>['#b2026c','#246f88','#72549d','#b16a13','#237653','#985647','#4056aa','#686b24'],'background'=>'#ffffff','text'=>'#222222','grid'=>'#e1e3e5','fontFamily'=>'sans','fontSize'=>12,'fontWeight'=>400,'radius'=>2,'lineWidth'=>2.5,'pointSize'=>5,'pointShape'=>'circle','donutWidth'=>55,'elementGap'=>0,'showGrid'=>true,'showLegend'=>true];
     $color=function($value){if(!is_string($value)||!preg_match('/^#[a-f0-9]{6}$/iD',$value))fail(422,'Bitte eine vollständige HEX-Farbe verwenden.');return strtolower($value);};
     if(array_key_exists('palette',$v)){$colors=labList($v['palette'],8);if(count($colors)!==8)fail(422,'Die Farbpalette benötigt acht Farben.');$out['palette']=array_map($color,$colors);}
     foreach(['background','text','grid'] as $key)if(array_key_exists($key,$v))$out[$key]=$color($v[$key]);
-    foreach(['fontSize'=>[10,18],'radius'=>[0,18],'lineWidth'=>[1,6],'pointSize'=>[3,9],'donutWidth'=>[25,90]] as $key=>[$min,$max])if(array_key_exists($key,$v)){if((!is_int($v[$key])&&!is_float($v[$key]))||!is_finite((float)$v[$key])||$v[$key]<$min||$v[$key]>$max)fail(422,'Gestaltungswert außerhalb des zulässigen Bereichs.');$out[$key]=$v[$key];}
+    foreach(['fontSize'=>[10,18],'radius'=>[0,18],'lineWidth'=>[1,6],'pointSize'=>[3,9],'donutWidth'=>[25,90],'elementGap'=>[0,20]] as $key=>[$min,$max])if(array_key_exists($key,$v)){if((!is_int($v[$key])&&!is_float($v[$key]))||!is_finite((float)$v[$key])||$v[$key]<$min||$v[$key]>$max)fail(422,'Gestaltungswert außerhalb des zulässigen Bereichs.');$out[$key]=$v[$key];}
     if(array_key_exists('fontFamily',$v))$out['fontFamily']=studioEnum($v['fontFamily'],['sans','serif','mono']);
     if(array_key_exists('pointShape',$v))$out['pointShape']=studioEnum($v['pointShape'],['circle','square','diamond']);
     if(array_key_exists('fontWeight',$v)){if(!is_int($v['fontWeight'])||!in_array($v['fontWeight'],[400,500,600,700],true))fail(422,'Ungültige Schriftstärke.');$out['fontWeight']=$v['fontWeight'];}
@@ -130,7 +130,7 @@ function studioReadSource(array $u,string $pid,array $source): array {
         $o=labObject($u,$source['id']);if($o['project_id']!==$pid)fail(404,'Diese Datenquelle gehört nicht zum Projekt.');
         if($type==='dataset'){if($o['kind']!=='dataset')fail(422,'Keine Tabellendaten.');return studioTabular($o['content']['rows'],$o['name'],$limit);}
         if($o['kind']!=='graph')fail(422,'Kein Projektgraph.');$g=$o['content'];$labels=array_column($g['nodes'],'label','id');
-        $rows=$type==='graph_nodes'?array_map(fn($n)=>['id'=>$n['id'],'label'=>$n['label'],'type'=>$n['type'],...array_combine(array_map(fn($k)=>'property_'.$k,array_keys((array)($n['properties']??[]))),array_values((array)($n['properties']??[])))],$g['nodes']):array_map(fn($e)=>['source'=>$e['from'],'target'=>$e['to'],'source_label'=>$labels[$e['from']]??$e['from'],'target_label'=>$labels[$e['to']]??$e['to'],'relation'=>$e['label'],...array_combine(array_map(fn($k)=>'property_'.$k,array_keys((array)($e['properties']??[]))),array_values((array)($e['properties']??[])))],$g['edges']);
+        $rows=$type==='graph_nodes'?array_map(fn($n)=>['id'=>$n['id'],'label'=>$n['label'],'type'=>$n['type'],...array_combine(array_map(fn($k)=>'property_'.$k,array_keys((array)($n['properties']??[]))),array_values((array)($n['properties']??[])))],$g['nodes']):array_map(fn($e)=>['source'=>$e['from'],'target'=>$e['to'],'source_label'=>$labels[$e['from']]??$e['from'],'target_label'=>$labels[$e['to']]??$e['to'],'relation'=>$e['label'],'direction'=>$e['direction']??'forward',...array_combine(array_map(fn($k)=>'property_'.$k,array_keys((array)($e['properties']??[]))),array_values((array)($e['properties']??[])))],$g['edges']);
         return studioTabular($rows,$o['name'].($type==='graph_nodes'?' · Knoten':' · Beziehungen'),$limit);
     }
     if($type==='json'||$type==='text'){

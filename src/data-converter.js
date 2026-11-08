@@ -1,5 +1,6 @@
+import {parseJsonLines,parseMarkdown,markdownTable,parseYaml,yamlRows} from './converter-extra.js';
 import {ui} from './address.js';
-const labels={csv:'CSV',tsv:'TSV',json:'JSON',xml:'XML'};
+const labels={csv:'CSV',tsv:'TSV',json:'JSON',xml:'XML',jsonl:'JSON Lines',yaml:'YAML · Objektliste',md:'Markdown-Tabelle'};
 const csvRows=(text,delimiter)=>{
   const rows=[];let row=[],cell='',quoted=false;
   for(let i=0;i<text.length;i++){
@@ -59,6 +60,9 @@ export function parseData(text,format){
   if(format==='csv'||format==='tsv')return csvRows(text.replace(/^\uFEFF/,''),format==='tsv'?'\t':detectCsvDelimiter(text));
   if(format==='json')return parseJson(text);
   if(format==='xml')return parseXml(text);
+  if(format==='jsonl')return parseJsonLines(text);
+  if(format==='yaml')return parseYaml(text);
+  if(format==='md')return parseMarkdown(text);
   throw Error('Dieses Eingabeformat ist nicht freigegeben.');
 }
 function toCsv(rows,delimiter){
@@ -87,6 +91,9 @@ export function serializeData(rows,to){
   if(to==='json')return JSON.stringify(rows,null,2);
   if(to==='csv'||to==='tsv')return toCsv(rows,to==='tsv'?'\t':',');
   if(to==='xml')return toXml(rows);
+  if(to==='jsonl')return rows.map(row=>JSON.stringify(row)).join('\n');
+  if(to==='yaml')return yamlRows(rows);
+  if(to==='md')return markdownTable(rows);
   throw Error('Dieses Zielformat ist nicht freigegeben.');
 }
 export function formatLabel(format){return labels[format]||format.toUpperCase();}

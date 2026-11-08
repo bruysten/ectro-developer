@@ -1,6 +1,6 @@
 # Kursabgleich nach der Labor-Erweiterung
 
-Stand: 07.11.2026. Grundlage: [Data & AI Professional, Akademie der Deutschen Medien](https://www.medien-akademie.de/seminarangebot/data-manager/) und der lokale Implementierungsstand. Die Matrix bewertet praktische Unterstützung im Produkt. Sie bewertet weder einen vollständigen Lehrplan noch eine produktive Betriebsabnahme. Deshalb gibt es keinen pauschalen Abdeckungsprozentsatz.
+Stand: 08.11.2026. Grundlage: [Data & AI Professional, Akademie der Deutschen Medien](https://www.medien-akademie.de/seminarangebot/data-manager/) und der lokale Implementierungsstand. Die Matrix bewertet praktische Unterstützung im Produkt. Sie bewertet weder einen vollständigen Lehrplan noch eine produktive Betriebsabnahme. Deshalb gibt es keinen pauschalen Abdeckungsprozentsatz.
 
 **Direkt:** ein eigener praktischer Ablauf ist vorhanden. **Teilweise:** wesentliche Bausteine sind nutzbar, eine Methode oder der durchgängige Ablauf fehlt. **Offen:** kein entsprechendes Fachwerkzeug bzw. keine ausgearbeitete Übung.
 
@@ -16,10 +16,10 @@ Stand: 07.11.2026. Grundlage: [Data & AI Professional, Akademie der Deutschen Me
 
 | Kurselement | Unterstützung nach der Erweiterung | Bewertung | Noch sinnvoll |
 |---|---|---|---|
-| Governance und Projektzyklus | Technische Freigaben, Projektvorlagen und Modellbudgets | Teilweise | Verantwortliche, Datenkatalog, Herkunft, fachliche Freigabe, Pilot und Rollout als Arbeitsablauf. |
+| Governance und Projektzyklus | Technische Freigaben, Projektvorlagen und gemeinsame Gruppenbudgets für KI-Aufrufe und Tokens | Teilweise | Verantwortliche, Datenkatalog, Herkunft, fachliche Freigabe, Pilot und Rollout als Arbeitsablauf. |
 | Informationsarchitektur | Typisierte Graphmodelle, Regeln, Datenquellen und kontrollierter Assistentenkontext | Direkt | Vergleichende Architekturvorlagen und Modellierungsaufgaben. |
 | Ökosysteme | Graphen mit Akteuren, Systemen, Beziehungen und Pfaden | Direkt | Vorbereitete Unternehmenslandkarten mit konkreter Aufgabenstellung. |
-| KI-Prinzipien | Prompts, RAG, echte kleine Netze sowie neue Gesprächs- und Prüfabläufe | Direkt | Ein didaktischer Pfad zwischen den einzelnen Experimenten. |
+| KI-Prinzipien | Prompts, RAG, echte kleine Netze sowie neue Gesprächs- und Prüfabläufe | Direkt | Farbklassifikation einschließlich Zwei-Eingaben-Variante, tatsächliche Trainingsanimation und getrennte Testbeispiele sind ergänzt. Ein durchgängiger didaktischer Pfad zwischen den einzelnen Experimenten bleibt sinnvoll. |
 | Chat-Anwendung | Gespeicherter, rollengetrennter Verlauf mit Rückfragen und Quellenkontext | Direkt | Optional Streaming, längere Gespräche mit expliziter Zusammenfassung und komfortable Gesprächssuche. |
 | Eigene Assistenten | Builder mit Regeln, Wissen, Quellen, Gesprächseinstiegen und lesenden Werkzeugen | Direkt im Produkt | Die spezifische Erstellung und Veröffentlichung eines GPT in ChatGPT bleibt eine separate Anbieterübung. Autonome Aktionen sind nicht enthalten. |
 | Halluzinationen | Vier Referenzfälle, Tests mit/ohne Quellen, Versuchsarchiv und Prüfung einzelner Behauptungen | Direkt | Größere fachspezifische Fallkataloge und dokumentierte Bewertung durch mehrere Personen. Der Zitatabgleich prüft keine semantische Wahrheit. |
@@ -41,7 +41,7 @@ Stand: 07.11.2026. Grundlage: [Data & AI Professional, Akademie der Deutschen Me
 | Kurselement | Unterstützung nach der Erweiterung | Bewertung | Noch sinnvoll |
 |---|---|---|---|
 | Verdichten | Anzahl, Summe, Mittelwert, Median, Minimum, Maximum und zusätzliche Gruppendimension | Direkt | Umfangreiche Pivot-Auswertungen, wiederverwendbare Transformationsschritte und anspruchsvollere SQL-Auswertungen. |
-| Datenerhebung | Dateiimport, manuelle Eingabe und ausdrücklich verbundene Projektdatenbank | Teilweise | Formularerhebung sowie geplante CRM-, Shop- und API-Importe. |
+| Datenerhebung | Dateiimport, manuelle Eingabe, lokale Umwandlung einschließlich JSON Lines/YAML-Objektlisten/Markdown und ausdrücklich verbundene Projektdatenbank | Teilweise | Formularerhebung sowie geplante CRM-, Shop- und API-Importe. |
 | Ungenutzte Bestände | Dokumentablage, Textquellen, RAG und gespeicherte Assistentenquellen | Teilweise | Automatische Bestandsaufnahme, Klassifikation sowie PDF-/Office-Texterschließung und OCR. |
 | Rechtmäßige Verarbeitung | Rechteprüfung, private Schlüssel, kontrollierte Quellen und lesende Assistentenwerkzeuge | Teilweise | Datenklassifikation, Anonymisierung, Zweckbindung, Aufbewahrung und fachliche Datenschutzprüfung. |
 | Datenbankrechte | Technische Zugriffsbeschränkung und isolierte Kursdatenbanken | Offen als Fachthema | Eigene Übungen zu Lizenzen, Nutzungsrechten und zulässiger Weiterverarbeitung. |
@@ -65,7 +65,7 @@ Stand: 07.11.2026. Grundlage: [Data & AI Professional, Akademie der Deutschen Me
 |---|---|---|---|
 | Marketing und Produkt | Vertriebsbeispiel, Strategiekurve, Persona-Vergleich und separate persona-bezogene Journeys mit Verbesserungen und Erfolgskriterien | Teilweise | Vollständige Fälle zu empirisch begründeten Segmenten, Experimenten, Kampagnen und Produktentscheidungen. |
 | Datenbasierte Modelle | Strategische Angebotsvergleiche und praktische Demonstratoren | Teilweise | Erlöslogik, Kosten, Nutzenhypothesen, Wirtschaftlichkeit und messbare Validierung. |
-| Fachliches Modelling | Strategie-Handlungsfelder, Journey-Struktur und Canvas Lab mit Business Model Canvas, Value Proposition Canvas, Lean Canvas, Empathy Map, Experiment Canvas, SMART Goals, SWOT und PESTEL; private und gemeinsame Boards mit Kartenrevisionen | Direkt für die Canvas-Methoden, teilweise insgesamt | Service-Blueprint mit Front-/Backstage und Unterstützungsprozessen; fachliche Validierung mit realer Forschung. |
+| Fachliches Modelling | Strategie-Handlungsfelder, Journey-Struktur und Canvas Lab mit Business Model Canvas, Value Proposition Canvas, Lean Canvas, Empathy Map, Experiment Canvas, SMART Goals, SWOT und PESTEL; private und gemeinsame Boards mit Kartenrevisionen und Verschieben per Maus oder Tastatur | Direkt für die Canvas-Methoden, teilweise insgesamt | Service-Blueprint mit Front-/Backstage und Unterstützungsprozessen; fachliche Validierung mit realer Forschung. |
 
 ## Prioritäten für die nächste Ausbaustufe
 

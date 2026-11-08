@@ -8,7 +8,7 @@ function defaultStarterFiles(string $template): array {
     };
 }
 function initializeProjectTypes(): void {
-    if (one("SELECT 1 FROM settings WHERE key='project_types_initialized'")) return;
+    if (one("SELECT 1 FROM settings WHERE key='project_types_initialized'")) {initializeLabStarterTypes();return;}
     transaction(function() {
         if (one("SELECT 1 FROM settings WHERE key='project_types_initialized'")) return;
         foreach([['web','Web-Projekt','HTML, CSS und JavaScript.'],['php','PHP-Website','Dynamische Seiten mit PHP.'],['python','Python-Script','Ideen mit Python ausprobieren.']] as [$type,$name,$description]) {
@@ -16,6 +16,27 @@ function initializeProjectTypes(): void {
             foreach(defaultStarterFiles($type) as $path=>$content)query('INSERT INTO project_type_files VALUES(?,?,?)',[$type,$path,$content]);
         }
         query("INSERT INTO settings VALUES('project_types_initialized','true')");
+    });
+    initializeLabStarterTypes();
+}
+// Add useful lab entry points once, without overwriting administrator edits.
+function initializeLabStarterTypes(): void {
+    if(!function_exists('studioValidate')||one("SELECT 1 FROM settings WHERE key='lab_starters_v1'"))return;
+    transaction(function(){
+        if(one("SELECT 1 FROM settings WHERE key='lab_starters_v1'"))return;
+        $rows=[['produkt'=>'Notizbuch','kategorie'=>'Büro','umsatz'=>4250],['produkt'=>'Lampe','kategorie'=>'Büro','umsatz'=>3100],['produkt'=>'Flasche','kategorie'=>'Alltag','umsatz'=>1800]];
+        $defaults=[
+            ['id'=>'data','name'=>'Datenprojekt','description'=>'Beispieldaten untersuchen und direkt im Visualisation Lab starten.','entry'=>'visualization','files'=>['beispieldaten.json'=>json_encode($rows,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE)],'seed'=>['kind'=>'visualization','name'=>'Erste Datensicht','content'=>['source'=>['type'=>'json','path'=>'beispieldaten.json'],'view'=>['kind'=>'bar','purpose'=>'compare','x'=>'produkt','y'=>'umsatz','aggregate'=>'sum','title'=>'Umsatz nach Produkt']]]],
+            ['id'=>'ai','name'=>'KI-Projekt','description'=>'Mit einem Gespräch im Chatbot Lab starten. Weitere KI-Labs gemeinsam nutzen.','entry'=>'conversation','files'=>[],'seed'=>['kind'=>'conversation','name'=>'Erstes Gespräch','content'=>['messages'=>[]]]],
+        ];
+        foreach($defaults as $type){
+            if(one('SELECT id FROM project_types WHERE id=? OR name=?',[$type['id'],$type['name']]))continue;
+            $config=labConfigInput(['tools'=>LAB_KINDS,'entry'=>$type['entry'],'seeds'=>[$type['seed']],'groups'=>[]]);
+            query('INSERT INTO project_types(id,name,description,language,created_at,updated_at) VALUES(?,?,?,?,?,?)',[$type['id'],$type['name'],$type['description'],'web',now(),now()]);
+            foreach($type['files'] as $path=>$content)query('INSERT INTO project_type_files VALUES(?,?,?)',[$type['id'],$path,$content]);
+            query('INSERT INTO lab_type_config VALUES(?,?)',[$type['id'],labJson($config)]);
+        }
+        query("INSERT INTO settings VALUES('lab_starters_v1','true')");
     });
 }
 function projectType(string $id): array {

@@ -37,6 +37,25 @@ with tempfile.TemporaryDirectory(prefix='ectro-studio-http-') as private:
             admin.ok('admin.user.save',{'name':name,'email':name+'@example.test','role':'user','password':'secure-test-password','must_change_password':False,'groups':[gid] if name=='alice' else []})
             client=Client(admin.base);client.ok('bootstrap');client.ok('login',{'portal':'user','email':name+'@example.test','password':'secure-test-password'});learners.append(client)
         alice,bob=learners;pid=alice.ok('project.create',{'name':'Studio','template':'web'})['id']
+        conn_data={'name':'Synthetic group model','provider':'openai','model':'synthetic','capability':'chat','key':'synthetic-not-a-real-key','shared':True}
+        check(alice.call('admin.ai.connection.save',conn_data)[0]==403,'Learners cannot manage provided connections')
+        check(admin.call('admin.ai.connection.save',conn_data,csrf=False)[0]==403,'Admin connection mutation requires CSRF')
+        check(admin.call('admin.ai.connection.save')[0]==405,'Admin connection mutation rejects GET')
+        connection=admin.ok('admin.ai.connection.save',conn_data)['connection']
+        check('secret' not in connection and 'key' not in connection,'Saved connection never returns credentials')
+        grant={'group':gid,'connection':connection['id'],'version':0,'max_calls':30,'max_tokens':10000,'max_output_tokens':128}
+        check(alice.call('admin.ai.group.save',grant)[0]==403,'Learners cannot grant shared group keys')
+        check(admin.call('admin.ai.group.save',grant,csrf=False)[0]==403,'Group grants require CSRF')
+        group_grant=admin.ok('admin.ai.group.save',grant)['grant']
+        check(admin.call('admin.ai.group.save',grant)[0]==409,'Stale group grant edits conflict')
+        provided=alice.ok('lab.info',project=pid)['connections']
+        check(len(provided)==1 and provided[0]['group_name']=='Studio group' and not set(['secret','base_url','user_id','key']).intersection(provided[0]),'Learners receive safe group usage metadata')
+        personal=bob.ok('project.create',{'name':'Ungrouped','template':'web'})['id']
+        check(not bob.ok('lab.info',project=personal)['connections'],'Ungrouped account never receives another group connection')
+        check(any(g['group_id']==gid for g in admin.ok('admin.labs')['group_grants']),'Admin overview exposes editable group budget')
+        admin.ok('admin.ai.group.save',{'group':gid,'connection':connection['id'],'version':group_grant['version'],'remove':True})
+        check(not alice.ok('lab.info',project=pid)['connections'],'Group revocation immediately removes connection')
+        admin.ok('admin.ai.connection.delete',{'id':connection['id'],'version':connection['version']})
         source={'type':'json','path':'values.json'}
         alice.ok('file.save',{'project':pid,'path':'values.json','content':'[{"category":"A","value":7},{"category":"B","value":3}]','version':0})
         content={'source':source,'view':{'kind':'bar','x':'category','y':'value','aggregate':'sum'},'actions':{}}

@@ -64,3 +64,18 @@ assert.throws(()=>renderChart({rows:[{source:null,target:null}]},{kind:'network'
 assert.throws(()=>renderChart({rows:Array.from({length:13},(_,i)=>({x:String(i),s:'one',v:i}))},{kind:'heatmap',x:'x',y:'v',series:'s',aggregate:'sum'}),/13 Kategorien/);
 const sparse=renderChart({rows:[{x:'1',s:'A',v:1},{x:'2',s:'A',v:null},{x:'3',s:'A',v:3}]},{kind:'line',x:'x',y:'v',series:'s',aggregate:'sum'});
 assert.equal((sparse.html.match(/<polyline /g)||[]).length,2,'Missing values break a line instead of inventing interpolation');
+
+// Spacing changes marks, never values, totals, bin limits or source order.
+const gapSvgs=[];
+for(const kind of ['donut','bar','column','stacked','histogram','heatmap','treemap','kpi']){
+ const view={...base.view,kind,...(['stacked','heatmap'].includes(kind)?{x:'monat',series:'kanal'}:{})};
+ const original=renderChart(base.source,view,{elementGap:0});
+ for(const elementGap of [8,20]){const spaced=renderChart(base.source,view,{elementGap});assert.deepEqual(spaced.rows,original.rows);assert.deepEqual(spaced.detailRows,original.detailRows);assert.notEqual(spaced.html,original.html,kind+' implements spacing');assert(!/NaN|Infinity/.test(spaced.html));const svg=spaced.html.match(/<svg\b[\s\S]*?<\/svg>/)?.[0];if(svg)gapSvgs.push(svg);}
+}
+const parseGaps=spawnSync('python3',['-c','import json,sys,xml.etree.ElementTree as E;[E.fromstring(s) for s in json.load(sys.stdin)]'],{input:JSON.stringify(gapSvgs),encoding:'utf8'});assert.equal(parseGaps.status,0,parseGaps.stderr);
+const tiny={rows:[{g:'Groß',v:1000000},{g:'Klein',v:.001}]};
+const ring=renderChart(tiny,{kind:'donut',x:'g',y:'v',aggregate:'sum'},{elementGap:20});
+for(const match of ring.html.matchAll(/stroke-dasharray="([^"]+)"/g))assert(Number(match[1].split(' ')[0])>0,'Tiny positive segments stay visible');
+const singleRing=renderChart({rows:[{g:'Einzeln',v:5}]},{kind:'donut',x:'g',y:'v',aggregate:'sum'},{elementGap:20});assert.match(singleRing.html,/stroke-dashoffset="0"/,'A single segment has no artificial split');
+assert.equal(normalizeChartStyle({elementGap:999}).elementGap,20);assert.equal(normalizeChartStyle({elementGap:-1}).elementGap,0);assert.equal(normalizeChartStyle({elementGap:'8'}).elementGap,0);
+console.log('Spacing verified for eight views, signed bars, tiny shares, a full single ring and unchanged source/aggregate values.');

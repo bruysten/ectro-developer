@@ -1,3 +1,4 @@
+import './converter-extra.mjs';
 import assert from 'node:assert/strict';
 import {dataLabAccess,dataLabView,dataLabHref,legacyConverterHash,dataLabNavigation} from '../src/data-lab-navigation.js';
 import {datasetRows,datasetFromRows} from '../src/converter-data.js';

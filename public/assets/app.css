@@ -777,3 +777,13 @@ html[data-workspace-resizing] iframe { pointer-events:none!important; }
 
 .group-address-preview { margin:0;padding:12px 16px;background:var(--surface-sunken);border-left:2px solid var(--accent);font-size:13px;line-height:1.6; }
 .group-address-label { font:11px var(--font-body);color:var(--text-muted);margin:12px 0; }
+
+/* Keep account controls in view; only navigation links scroll. */
+.shell .sidebar { height:100dvh;overflow:hidden; }
+.shell .sidebar>.nav { flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;align-content:start;padding-block:4px; }
+.shell .sidebar-bottom { flex:0 0 auto;margin-top:0;padding-top:14px;background:var(--white); }
+.sidebar .account { min-height:58px; }
+@media(max-height:740px){.sidebar .workspace-note { display:none; }}
+@media(max-width:850px){.sidebar .workspace-note { display:none; }.sidebar .sidebar-close { position:absolute;top:16px;right:14px;margin:0; }}
+
+.shell:not(.is-collapsed) .sidebar,.shell.is-collapsed .sidebar { overflow:hidden; }

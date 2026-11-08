@@ -2,7 +2,7 @@ import {ui} from './address.js';
 import {checkQuote,studioExample} from './studio-models.js';
 import {escapeHtml as e} from './studio-charts.js';
 import {mountSourcePicker,sourceKey} from './studio-source-picker.js';
-const modelSelect=(connections,value='',key='model')=>`<label class="field"><span>Modellzugang</span><select data-${key}><option value="">Modell auswählen …</option>${connections.filter(c=>c.capability==='chat').map(c=>`<option value="${e(c.id)}" ${c.id===value?'selected':''}>${e(c.name)} · ${e(c.model)}</option>`).join('')}</select></label>`;
+const modelSelect=(connections,value='',key='model')=>`<label class="field"><span>Modellzugang</span><select data-${key}><option value="">Modell auswählen …</option>${connections.filter(c=>c.capability==='chat').map(c=>`<option value="${e(c.id)}" ${c.id===value?'selected':''}>${e(c.name)} · ${e(c.model)}${c.group_name?' · '+e(c.group_name):''}</option>`).join('')}</select></label>`;
 const tools={knowledge:'Wissen durchsuchen',data:'Tabellen auswerten',graph:'Graphbeziehungen lesen'};
 const btn=(label,key,primary=false)=>`<button type="button" class="es-btn es-btn--sm es-btn--${primary?'primary':'secondary'}" data-${key}>${label}</button>`;
 export async function mountConversation(root,ctx){
