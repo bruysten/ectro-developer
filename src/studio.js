@@ -7,8 +7,8 @@ import {mountJourney} from './studio-journey.js';
 import {mountConversation,mountAssistant,mountEvaluation} from './studio-ai.js';
 import {mountReasoning} from './studio-reasoning.js';
 export function studioNavigation(flags,current,project=''){
- const ai=['conversation','assistant','evaluation'];const active=ai.includes(current)||current==='ai-lab';const items=active?[...ai.filter(k=>flags[STUDIO_LABS[k].feature]).map(k=>[STUDIO_LABS[k].route,STUDIO_LABS[k].title,k]),...((flags.ai||flags.rag||flags.neural)?[['ai-lab','Prompts, RAG & Netze','ai-lab']]:[])]:Object.entries(STUDIO_LABS).filter(([k,v])=>!ai.includes(k)&&flags[v.feature]).map(([k,v])=>[v.route,v.title,k]);
- return `<nav class="studio-section-nav" aria-label="Labore"><a href="#labs${project?'?project='+encodeURIComponent(project):''}">Alle Labore</a>${items.map(([route,title,key])=>`<a href="#${route}${project?'?project='+encodeURIComponent(project):''}" ${key===current?'aria-current="page"':''}>${e(title)}</a>`).join('')}</nav>`;
+ const ai=['conversation','assistant','evaluation'];const active=ai.includes(current)||current==='ai-lab';const items=active?[...ai.filter(k=>flags[STUDIO_LABS[k].feature]).map(k=>[STUDIO_LABS[k].route,STUDIO_LABS[k].navTitle||STUDIO_LABS[k].title,k]),...((flags.ai||flags.rag||flags.neural)?[['ai-lab','Prompts, RAG & Netze','ai-lab']]:[])]:Object.entries(STUDIO_LABS).filter(([k,v])=>!ai.includes(k)&&flags[v.feature]).map(([k,v])=>[v.route,v.navTitle||v.title,k]);
+ return `<nav class="studio-section-nav" aria-label="Labore"><a href="#labs${project?'?project='+encodeURIComponent(project):''}">Alle Labs</a>${items.map(([route,title,key])=>`<a href="#${route}${project?'?project='+encodeURIComponent(project):''}" ${key===current?'aria-current="page"':''}>${e(title)}</a>`).join('')}</nav>`;
 }
 export function labsHubHtml(flags,icon,project=''){
  const labs=Object.entries(STUDIO_LABS).filter(([,v])=>flags[v.feature]&&flags.files);
