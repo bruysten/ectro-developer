@@ -1,11 +1,11 @@
 export const STUDIO_LABS={
   canvas:{standalone:true,title:'Canvas Lab',route:'canvas-lab',feature:'canvas_lab',icon:'dashboard_customize',group:'Kunden & Erlebnisse',description:'Geschäftsmodelle, Nutzenversprechen und Kundenverständnis privat oder gemeinsam entwickeln.'},
-  conversation:{title:'Chatbot-Labor',route:'chat-lab',feature:'chat_lab',icon:'forum',group:'KI & Vertrauen',description:'Ein Gespräch führen, Rückfragen stellen und den Kontext weiterentwickeln.'},
-  assistant:{title:'Assistenten-Builder',route:'assistant-lab',feature:'assistant_lab',icon:'smart_toy',group:'KI & Vertrauen',description:'Aufgabe, Regeln, Wissen und lesende Werkzeuge zu einem Assistenten verbinden.'},
-  evaluation:{title:'Quellenprüfungs-Labor',route:'evaluation-lab',feature:'evaluation_lab',icon:'fact_check',group:'KI & Vertrauen',description:'Antworten prüfen, Aussagen belegen und fehlendes Wissen erkennen.'},
-  reasoning:{title:'Analysefehler-Labor',route:'reasoning-lab',feature:'reasoning_lab',icon:'psychology',group:'Daten & Erkenntnisse',description:'Kausalität, Stichproben, Mittelwerte und das Simpson-Paradox verstehen.'},
+  conversation:{title:'Chatbot Lab',route:'chat-lab',feature:'chat_lab',icon:'forum',group:'KI & Vertrauen',description:'Ein Gespräch führen, Rückfragen stellen und den Kontext weiterentwickeln.'},
+  assistant:{title:'Assistenten Lab',route:'assistant-lab',feature:'assistant_lab',icon:'smart_toy',group:'KI & Vertrauen',description:'Aufgabe, Regeln, Wissen und lesende Werkzeuge zu einem Assistenten verbinden.'},
+  evaluation:{title:'Quellencheck Lab',route:'evaluation-lab',feature:'evaluation_lab',icon:'fact_check',group:'KI & Vertrauen',description:'Antworten prüfen, Aussagen belegen und fehlendes Wissen erkennen.'},
+  reasoning:{title:'Analysefehler Lab',route:'reasoning-lab',feature:'reasoning_lab',icon:'psychology',group:'Daten & Erkenntnisse',description:'Kausalität, Stichproben, Mittelwerte und das Simpson-Paradox verstehen.'},
   visualization:{title:'Visualisation Lab',route:'visualization-lab',feature:'visualization_lab',icon:'monitoring',group:'Daten & Erkenntnisse',description:'Die passende Datensicht finden – von der Verteilung bis zur Strategiekurve.'},
-  journey:{title:'Customer Journey Lab',route:'journey-lab',feature:'journey_lab',icon:'route',group:'Kunden & Erlebnisse',description:'Kundenwege, Touchpoints und Verbesserungen mit Belegen verbinden.'},
+  journey:{title:'Customer Journey Lab',navTitle:'Journey Lab',route:'journey-lab',feature:'journey_lab',icon:'route',group:'Kunden & Erlebnisse',description:'Kundenwege, Touchpoints und Verbesserungen mit Belegen verbinden.'},
 };
 export const STUDIO_LABELS=Object.fromEntries(Object.entries(STUDIO_LABS).filter(([,v])=>!v.standalone).map(([k,v])=>[k,v.title]));
 export const VISUAL_VIEWS={
