@@ -5,6 +5,7 @@ export function mountCanvasDrag(root,{canDrag,onStart,onEnd,onMove,onError}){
  const hit=()=>{const node=doc.elementFromPoint(drag.x,drag.y),target=node?.closest('[data-canvas-drop]');return target&&root.contains(target)?target:null;};
  function paint(){if(!drag?.active||disposed)return;drag.ghost.style.transform=`translate3d(${drag.x-drag.offsetX}px,${drag.y-drag.offsetY}px,0) rotate(1deg)`;const target=hit();if(target!==drag.target){drag.target?.classList.remove('is-drop-target');drag.target=target;target?.classList.add('is-drop-target');}
   const node=doc.elementFromPoint(drag.x,drag.y),scroll=node?.closest('.canvas-notes'),edge=50;
+  const paper=node?.closest('.canvas-map-scroll');if(paper){const r=paper.getBoundingClientRect();paper.scrollBy(drag.x<r.left+edge?-12:drag.x>r.right-edge?12:0,drag.y<r.top+edge?-10:drag.y>r.bottom-edge?10:0);}
   if(scroll&&scroll.scrollHeight>scroll.clientHeight){const r=scroll.getBoundingClientRect();if(drag.y<r.top+edge)scroll.scrollBy(0,-10);else if(drag.y>r.bottom-edge)scroll.scrollBy(0,10);}
   if(drag.y<edge)win.scrollBy(0,-12);else if(drag.y>win.innerHeight-edge)win.scrollBy(0,12);
   // The sidebar and any nested scrolling notes keep their own scroll behavior.

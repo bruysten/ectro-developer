@@ -1,3 +1,4 @@
+import './graph-properties.mjs';
 import assert from 'node:assert/strict';
 import {graphRelationCatalog,graphRelationUsage,completeGraphModel,addGraphRelation,editGraphRelation,removeGraphRelation,setGraphEdge,graphTypeAppearance,addGraphNodeType,editGraphNodeType,removeGraphNodeType,setGraphNode,graphDirection,graphDirectionSymbol,graphEdgeConnects} from '../src/graph-model.js';
 

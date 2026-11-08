@@ -70,6 +70,19 @@ with tempfile.TemporaryDirectory(prefix='ectro-canvas-http-') as private:
   assert a.call('canvas.get',id=probe['id'],trash='1')[0]==404
   for kind in ['smart','swot','pestel']:
    assert a.ok('canvas.create',{'kind':kind,'name':kind})['canvas']['kind']==kind
+  # Creating a new board must leave every previously deleted board in trash.
+  deleted=[]
+  for kind in ['business','empathy','experiment','lean','value']:
+   prior=a.ok('canvas.create',{'kind':kind,'name':'Delete all · '+kind})['canvas']
+   prior=a.ok('canvas.mutate',{'id':prior['id'],'op':'trash','mutation':uuid.uuid4().hex,'version':prior['version']})['canvas'];deleted.append(prior)
+  single=a.ok('canvas.create',{'kind':'business','name':'Exactly one new board'})['canvas']
+  for _ in range(3):
+   catalog={c['id']:c for c in a.ok('canvas.list')['canvases']}
+   assert not catalog[single['id']]['deleted_at']
+   for prior in deleted:
+    assert catalog[prior['id']]['deleted_at'] and catalog[prior['id']]['version']==prior['version']
+    assert a.call('canvas.get',id=prior['id'])[0]==404
+  print('Delete-all/create-one regression: old board IDs, trash markers and revisions survive subsequent lists and creation unchanged.')
   group=next(g for g in admin.ok('admin.groups')['groups'] if g['id']==gid);admin.ok('admin.group.features.save',{'id':gid,'version':group['version'],'features':{'canvas_lab':False}});assert a.call('canvas.get',id=shared['id'])[0]==403;assert b.call('canvas.mutate',payload('Revoked'))[0]==403
   print('Canvas HTTP verified: private isolation, group access, method/CSRF guards, independent-session merging, same-card race, idempotent retry and live revocation.')
  finally:os.killpg(server.pid,signal.SIGTERM);server.wait(timeout=10)

@@ -1,3 +1,4 @@
+import './canvas-library.mjs';
 import './canvas-drag.mjs';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';

@@ -60,6 +60,14 @@ for(const offset of [-90,-30,30,90]){
   assert(Math.abs(Math.hypot(points[0]-a.x,points[1]-a.y)-35)<1e-9);
   assert(Math.abs(Math.hypot(points[4]-b.x,points[5]-b.y)-35)<1e-9);
 }
+// Fitted/panned viewports can contain visible space above and left of world zero.
+const negativeBefore={...graph.nodes[0]};
+nodes[0].onpointerdown(event(graph.nodes[0].x,graph.nodes[0].y));
+nodes[0].onpointermove(event(-180,-240));
+assert.equal(graph.nodes[0].x,-180);assert.equal(graph.nodes[0].y,-240,'Visible negative canvas coordinates remain draggable');
+assert(edges.slice(0,3).every(e=>!e.path.attrs.d.includes('NaN')));
+nodes[0].onpointerup(event(-180,-240));
+Object.assign(graph.nodes[0],negativeBefore);
 console.log('Graph attachment verified: live incoming/outgoing edges, labels, loops, scaled coordinates, imports and drag cancellation.');
 
 // Imported graphs remain legible without rewriting supplied coordinates.
@@ -105,7 +113,7 @@ try{
   assert.equal(state.autoFit,true);
   rect={...rect,width:288,height:360};resized();
   assert.deepEqual(state.view,graphFitView(graph,288,360),'Resize recomputes fit instead of clipping nodes at a desktop scale');
-  viewport.zoom(1.2);assert.equal(state.autoFit,false);
+  const fittedBefore={...state.view};viewport.freeze();assert.equal(state.autoFit,false);assert.deepEqual(state.view,fittedBefore,'Starting a node drag freezes the viewport instead of refitting and moving the apparent drop position');viewport.zoom(1.2);assert.equal(state.autoFit,false);
   const scale=rect.width/state.view.width;
   rect={...rect,width:700,height:400};resized();
   assert(Math.abs(rect.width/state.view.width-scale)<1e-8,'Manual zoom survives resizing');
