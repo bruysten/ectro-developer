@@ -2,6 +2,9 @@
 declare(strict_types=1);
 const GROUP_PERIOD_ZONE='Europe/Berlin';
 const GROUP_PERIOD_FIELDS=['access_start','access_end','course_start','course_end'];
+// The learning UI explicitly opts into group-scoped access, including for admins.
+// Header-less administrative API clients retain their existing management access.
+function workspaceManagement(array $u): bool {return $u['role']==='admin'&&($_SERVER['HTTP_X_WORKSPACE_PORTAL']??$_GET['workspace_portal']??'admin')==='admin';}
 function groupPeriods(string $gid): array {
     return one('SELECT access_start,access_end,course_start,course_end,access_start_at,access_end_before FROM group_periods WHERE group_id=?',[$gid])??array_fill_keys([...GROUP_PERIOD_FIELDS,'access_start_at','access_end_before'],null);
 }
@@ -36,13 +39,13 @@ function groupOpenSql(string $column): string {
     $at=time();return "NOT EXISTS(SELECT 1 FROM group_periods period WHERE period.group_id=$column AND ((period.access_start_at IS NOT NULL AND period.access_start_at>$at) OR (period.access_end_before IS NOT NULL AND period.access_end_before<=$at)))";
 }
 function requireGroupPeriod(array $u,string $gid): void {
-    if($u['role']==='admin')return;$p=groupPeriods($gid);$state=groupPeriodState($p);
+    if(workspaceManagement($u))return;$p=groupPeriods($gid);$state=groupPeriodState($p);
     if($state==='scheduled')throw new ApiError(403,'Der Zugriff auf diese Gruppe beginnt am '.groupDateLabel($p['access_start']).'.','group_period');
     if($state==='expired')throw new ApiError(403,'Der Zugriff auf diese Gruppe endete am '.groupDateLabel($p['access_end']).'.','group_period');
 }
 function groupDateLabel(string $date): string {return substr($date,8,2).'.'.substr($date,5,2).'.'.substr($date,0,4);}
 function learningAccess(array $u,?int $at=null): array {
-    $at??=time();$base=['allowed'=>true,'message'=>'','next_transition'=>null,'checked_at'=>$at,'timezone'=>GROUP_PERIOD_ZONE];if($u['role']==='admin')return $base;
+    $at??=time();$base=['allowed'=>true,'message'=>'','next_transition'=>null,'checked_at'=>$at,'timezone'=>GROUP_PERIOD_ZONE];if(workspaceManagement($u))return $base;
     $rows=all('SELECT p.* FROM group_members m LEFT JOIN group_periods p ON p.group_id=m.group_id WHERE m.user_id=?',[$u['id']]);if(!$rows)return $base;
     $open=false;$next=null;$firstStart=null;
     foreach($rows as $p){$state=groupPeriodState($p,$at);if(in_array($state,['active','unlimited'],true))$open=true;foreach(['access_start_at','access_end_before'] as $key)if($p[$key]!==null&&(int)$p[$key]>$at)$next=$next===null?(int)$p[$key]:min($next,(int)$p[$key]);if($state==='scheduled'&&($firstStart===null||$p['access_start']<$firstStart))$firstStart=$p['access_start'];}

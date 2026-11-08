@@ -72,7 +72,7 @@ try {
         $_SESSION['auth_version'] = (int)$u['auth_version']+1; session_regenerate_id(true); audit($u['id'],'password.change'); jsonOut(['ok'=>true]);
     }
     if ($u['must_change_password']) fail(403,'Bitte ändern Sie zuerst Ihr vorläufiges Passwort.');
-    if((str_starts_with($action,'db.')||str_starts_with($action,'training.'))&&!empty($data['participant'])){$target=textField($data,'participant',32);$gid=textField($data,'group',32);if($u['role']!=='admin')teacherTarget($u,$target,$gid);$student=one('SELECT * FROM users WHERE id=? AND active=1',[$target]);if(!$student)fail(404,'Teilnehmer nicht gefunden.');$GLOBALS['academyDbUser']=$student;if(in_array($action,['db.connect','db.disconnect'],true)&&$target!==$u['id'])fail(403,'Persönliche Verbindungen verwaltet der Teilnehmer selbst.');}
+    if((str_starts_with($action,'db.')||str_starts_with($action,'training.'))&&!empty($data['participant'])){$target=textField($data,'participant',32);$gid=textField($data,'group',32);if(!workspaceManagement($u))teacherTarget($u,$target,$gid);$student=one('SELECT * FROM users WHERE id=? AND active=1',[$target]);if(!$student)fail(404,'Teilnehmer nicht gefunden.');$GLOBALS['academyDbUser']=$student;if(in_array($action,['db.connect','db.disconnect'],true)&&$target!==$u['id'])fail(403,'Persönliche Verbindungen verwaltet der Teilnehmer selbst.');}
     if((str_starts_with($action,'db.')||str_starts_with($action,'training.'))&&!empty($data['project'])){$GLOBALS['academyDbProject']=textField($data,'project',32);project($u,$GLOBALS['academyDbProject']);}
     if ($action === 'php.mode') jsonOut(['mode'=>phpExecutionMode()]);
     if(str_starts_with($action,'canvas.'))canvasDispatch($u,$action,$data);
@@ -80,9 +80,9 @@ try {
     if(str_starts_with($action,'lab.')||str_starts_with($action,'ai.')||str_starts_with($action,'presence.')||$action==='admin.labs'||str_starts_with($action,'admin.ai.'))labDispatch($u,$action,$data);
     switch ($action) {
         case 'converter.config': needFeature($u,'converter');jsonOut(['formats'=>converterFormats()]);
-        case 'team': needFeature($u,'team');$groups=safeUser($u)['groups'];$gid=textField($data,'group',32,false);jsonOut(['groups'=>$groups,'members'=>$gid?teamMembers($u,$gid):[]]);
+        case 'team': needFeature($u,'team');$groups=safeUser($u,true)['groups'];$gid=textField($data,'group',32,false);jsonOut(['groups'=>$groups,'members'=>$gid?teamMembers($u,$gid):[]]);
         case 'team.profile': jsonOut(['profile'=>teamProfile($u,textField($data,'group',32),textField($data,'id',32))]);
-        case 'profile': jsonOut(['user'=>safeUser($u)]);
+        case 'profile': jsonOut(['user'=>safeUser($u,true)]);
         case 'profile.save': jsonOut(['ok'=>true,'user'=>saveProfile($u,$data)]);
         case 'dashboard':
             jsonOut(['projects'=>visibleProjects($u),

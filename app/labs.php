@@ -73,7 +73,7 @@ function labConfigInput(mixed $c): array {
 }
 function labTypeAvailable(array $u,array $type): bool {
     $c=labTypeConfig($type['id']);$f=features($u);$entry=$c['entry']??'editor';if($entry!=='editor'&&!$f[LAB_FEATURES[$entry]])return false;
-    $groups=$c['groups']??[];return !$groups||$u['role']==='admin'||(bool)array_intersect($groups,array_column(all('SELECT m.group_id FROM group_members m WHERE user_id=? AND '.groupOpenSql('m.group_id'),[$u['id']]),'group_id'));
+    $groups=$c['groups']??[];return !$groups||workspaceManagement($u)||(bool)array_intersect($groups,array_column(all('SELECT m.group_id FROM group_members m WHERE user_id=? AND '.groupOpenSql('m.group_id'),[$u['id']]),'group_id'));
 }
 function labAccess(array $u,string $pid,?string $kind=null): array {
     needFeature($u,'files');$p=project($u,$pid);if($kind!==null){if(!isset(LAB_FEATURES[$kind]))fail(422,'Unbekanntes Labor.');needFeature($u,LAB_FEATURES[$kind]);$c=json_decode(one('SELECT config FROM lab_project_config WHERE project_id=?',[$pid])['config']??'{}',true);if(isset($c['tools'])&&!in_array($kind,$c['tools'],true))fail(403,'Dieses Labor ist im Projekt nicht aktiviert.');}return $p;
@@ -134,6 +134,6 @@ function learningContext(array $u,array $data): void {
     query('INSERT INTO learning_presence VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET context=excluded.context,touched=excluded.touched',[$u['id'],labJson($context),time()]);
 }
 function learningLocation(array $viewer,string $uid,string $gid): ?array {
-    if(!in_array($viewer['role'],['teacher','admin'],true)||$viewer['id']===$uid)return null;if($viewer['role']==='teacher')teacherTarget($viewer,$uid,$gid);$row=one('SELECT * FROM learning_presence WHERE user_id=? AND touched>?',[$uid,time()-60]);if(!$row)return null;$c=json_decode($row['context'],true);
+    if(!in_array($viewer['role'],['teacher','admin'],true)||$viewer['id']===$uid)return null;if(!workspaceManagement($viewer))teacherTarget($viewer,$uid,$gid);$row=one('SELECT * FROM learning_presence WHERE user_id=? AND touched>?',[$uid,time()-60]);if(!$row)return null;$c=json_decode($row['context'],true);
     if(isset($c['project'])){try{$p=labAccess($viewer,$c['project']);}catch(ApiError){return null;}$c['project_name']=$p['name'];}return $c;
 }

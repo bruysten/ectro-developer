@@ -37,7 +37,7 @@ function saveProfile(array $u,array $data):array {
             }elseif($previous){query('DELETE FROM profile_sharing WHERE user_id=?',[$u['id']]);audit($u['id'],'profile.consent.withdraw',['version'=>$previous['consent_version']]);}
         }
         query('UPDATE users SET name=? WHERE id=?',[$name,$u['id']]);audit($u['id'],'profile.save');
-    });return safeUser(one('SELECT * FROM users WHERE id=?',[$u['id']]));
+    });return safeUser(one('SELECT * FROM users WHERE id=?',[$u['id']]),true);
 }
 
 function teamGroup(array $u,string $gid):void {

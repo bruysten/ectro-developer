@@ -4,7 +4,7 @@ export function previewAttachment(file,root,sourceURL='/chat-file.php?'+new URLS
   const cleanup=()=>{controller.abort();clearTimeout(timeout);worker?.terminate();pdfCleanup?.();if(url)URL.revokeObjectURL(url);};
   const run=async()=>{
   try {
-    const response=await fetch(sourceURL,{credentials:'same-origin',signal:controller.signal});
+    const response=await fetch(sourceURL,{credentials:'same-origin',headers:{'X-Workspace-Portal':globalThis.location?.pathname.startsWith('/admin')?'admin':'frontend'},signal:controller.signal});
     if(!response.ok){const data=await response.json();throw Error(data.error||'Die Datei ist nicht verfügbar.');}
     const blob=await response.blob();if(controller.signal.aborted)return cleanup;
     const ext=file.extension;
