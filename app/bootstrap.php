@@ -42,6 +42,18 @@ function db(): PDO {
     $pdo = new PDO('sqlite:' . dataDir() . '/app.sqlite', null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]);
     $pdo->exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000; PRAGMA journal_mode=WAL;');
     $pdo->exec(file_get_contents(__DIR__ . '/schema.sql'));
+    // Add canvas models without changing boards, revisions or dependent histories.
+    if(!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='canvases'")->fetchColumn(),"'pestel'")){
+        $pdo->exec('PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE');
+        try{
+            if(!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='canvases'")->fetchColumn(),"'pestel'")){
+                preg_match('/CREATE TABLE IF NOT EXISTS canvases \([^;]+;/s',file_get_contents(__DIR__.'/schema.sql'),$definition);
+                $pdo->exec(str_replace('CREATE TABLE IF NOT EXISTS canvases','CREATE TABLE canvases_upgrade',$definition[0]));
+                $pdo->exec('INSERT INTO canvases_upgrade SELECT * FROM canvases; DROP TABLE canvases; ALTER TABLE canvases_upgrade RENAME TO canvases; CREATE INDEX canvases_owner ON canvases(owner_id,updated_at); CREATE INDEX canvases_group ON canvases(group_id,updated_at)');
+                if($pdo->query('PRAGMA foreign_key_check')->fetch())throw new RuntimeException('Canvas migration foreign key validation failed.');
+            }$pdo->exec('COMMIT');
+        }catch(Throwable $e){$pdo->exec('ROLLBACK');throw $e;}finally{$pdo->exec('PRAGMA foreign_keys=ON');}
+    }
     // Extend the object constraint atomically, retaining IDs, revisions and foreign keys.
     if (!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_objects'")->fetchColumn(), "'journey'")) {
         $pdo->exec('BEGIN IMMEDIATE');
