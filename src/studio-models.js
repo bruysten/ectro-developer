@@ -1,3 +1,4 @@
+import {pipelineExample} from './pipeline-models.js';
 import {isHierarchy} from './hierarchy-models.js';
 import {archiveExample} from './archive-models.js';
 import {agentExample} from './agent-models.js';
@@ -6,6 +7,7 @@ import {basketExample} from './statistics-models.js';
 import {emptyReadiness} from './readiness-models.js';
 import {emptyLandscape} from './landscape-models.js';
 export const STUDIO_LABS={
+  pipeline:{title:'Datenfluss Lab',route:'dataflow-lab',feature:'pipeline_lab',icon:'account_tree',group:'Daten & Erkenntnisse',description:'Quellen verbinden, Daten schrittweise verarbeiten und jede Veränderung sichtbar nachvollziehen.'},
   archive:{title:'Archiv Lab',route:'archive-lab',feature:'archive_lab',icon:'inventory_2',group:'Daten & Erkenntnisse',description:'Dokumente erschließen, gezielt wiederfinden und Dubletten oder fehlende Angaben sichtbar prüfen.'},
   agent:{title:'Agent Lab',route:'agent-lab',feature:'agent_lab',icon:'smart_toy',group:'KI & Vertrauen',description:'Agenten schrittweise erproben, AGENTS.md gestalten und Datenbankwerkzeuge per MCP freigeben.'},
   geo:{title:'SEO & GEO Lab',navTitle:'GEO Lab',route:'geo-lab',feature:'geo_lab',icon:'travel_explore',group:'KI & Vertrauen',description:'Inhalte für KI-Suche prüfen, mit Belegen verbessern und die Wirkung nachvollziehbar testen.'},
@@ -47,6 +49,7 @@ export const PURPOSES={compare:'Werte vergleichen',time:'Entwicklung zeigen',dis
 const inline=(name,rows)=>({type:'inline',name,columns:inferColumns(rows),rows});
 export function inferColumns(rows){const names=[...new Set(rows.flatMap(r=>Object.keys(r)))];return names.map(name=>{const values=rows.map(r=>r[name]).filter(v=>v!==null&&v!==undefined&&v!=='');return {name,type:values.length&&values.every(v=>typeof v==='number'&&Number.isFinite(v))?'number':values.length&&values.every(v=>typeof v==='boolean')?'boolean':'text'};});}
 export function studioExample(kind){
+  if(kind==='pipeline')return pipelineExample();
   if(kind==='archive')return archiveExample();
   if(kind==='agent')return agentExample();
   if(kind==='conversation')return {assistant:'',assistantVersion:0,connection:'',messages:[]};

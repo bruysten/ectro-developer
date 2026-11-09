@@ -6,13 +6,13 @@ require __DIR__.'/../app/bootstrap.php';require __DIR__.'/../app/templates.php';
 $n=0;function archeck(bool $ok,string $why):void{global $n;if(!$ok)throw new RuntimeException($why);$n++;}function arreject(int $status,callable $fn):void{try{$fn();throw new RuntimeException('Expected '.$status);}catch(ApiError $e){archeck($e->status===$status,$e->status.' '.$e->getMessage());}}
 $c=json_decode(stream_get_contents(STDIN),true,64,JSON_THROW_ON_ERROR);
 // Upgrade the previous complete catalog, retaining history and deliberately restricted projects.
-$pdo=new PDO('sqlite:'.$private.'/app.sqlite');$pdo->exec(str_replace(",'archive'",'',file_get_contents(__DIR__.'/../app/schema.sql')));
+$pdo=new PDO('sqlite:'.$private.'/app.sqlite');$pdo->exec(str_replace([",'archive'",",'pipeline'"],'',file_get_contents(__DIR__.'/../app/schema.sql')));
 $uid=id();$pid=id();$limited=id();$other=id();$ready=id();
 $pdo->prepare('INSERT INTO users(id,name,email,password,role,created_at) VALUES(?,?,?,?,?,?)')->execute([$uid,'Archive learner','archive@example.test','unused','user',now()]);
 foreach([$pid,$limited] as $p)$pdo->prepare('INSERT INTO projects(id,user_id,name,created_at,updated_at) VALUES(?,?,?,?,?)')->execute([$p,$uid,'Archive',now(),now()]);
 $pdo->prepare('INSERT INTO lab_objects(id,project_id,kind,name,content,version,updated_at) VALUES(?,?,?,?,?,?,?)')->execute([$ready,$pid,'readiness','Keep','{}',4,now()]);
 $pdo->prepare('INSERT INTO readiness_revisions VALUES(?,?,?,?,?)')->execute([$ready,4,$uid,'{}',now()]);
-$pdo->prepare('INSERT INTO lab_project_config VALUES(?,?)')->execute([$pid,json_encode(['tools'=>array_values(array_diff(LAB_KINDS,['archive'])),'entry'=>'dataset'])]);
+$pdo->prepare('INSERT INTO lab_project_config VALUES(?,?)')->execute([$pid,json_encode(['tools'=>array_values(array_diff(LAB_KINDS,['archive','pipeline'])),'entry'=>'dataset'])]);
 $restricted='{"tools":["dataset"],"entry":"dataset"}';$pdo->prepare('INSERT INTO lab_project_config VALUES(?,?)')->execute([$limited,$restricted]);$pdo=null;db();
 archeck(json_decode(one('SELECT config FROM lab_project_config WHERE project_id=?',[$pid])['config'],true)['tools']===LAB_KINDS,'Complete catalog extended');
 archeck(one('SELECT config FROM lab_project_config WHERE project_id=?',[$limited])['config']===$restricted,'Restricted catalog unchanged');

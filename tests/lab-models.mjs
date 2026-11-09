@@ -1,3 +1,4 @@
+import './pipeline.mjs';
 import './materials.mjs';
 import './archive-ocr.mjs';
 import './archive.mjs';

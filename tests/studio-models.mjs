@@ -55,7 +55,7 @@ assert.deepEqual(sample.rows,reasoningMetrics('sampling').rows,'The experiment n
 
 const means=reasoningMetrics('averages');assert.equal(means.mean,1092);assert.equal(means.median,120);
 assert.match(csvText([{name:'A;B',quote:'"x"'}]),/"A;B"/);assert.ok(csvText([{formula:'=1+1'}]).includes("'=1+1"));
-const examples=Object.fromEntries(['conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics','geo','agent','archive'].map(k=>[k,studioExample(k)]));
+const examples=Object.fromEntries(['conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics','geo','agent','archive','pipeline'].map(k=>[k,studioExample(k)]));
 const contract=spawnSync('php',['tests/studio.php'],{input:JSON.stringify(examples),encoding:'utf8'});assert.equal(contract.status,0,contract.stdout+contract.stderr);process.stdout.write(contract.stdout);
 console.log('Studio models verified: all 20 views, full aggregates, nulls, negatives, safe text, quote checks and four interpretation lessons.');
 
