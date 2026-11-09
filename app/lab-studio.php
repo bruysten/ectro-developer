@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/lab-personas.php';
 require_once __DIR__.'/lab-landscape.php';
+require_once __DIR__.'/journey-landscape.php';
 require_once __DIR__.'/lab-readiness.php';
 require_once __DIR__.'/lab-statistics.php';
 require_once __DIR__.'/lab-geo.php';
@@ -13,7 +14,7 @@ require_once __DIR__.'/agent-mcp.php';
 require_once __DIR__.'/lab-source-tables.php';
 
 const STUDIO_KINDS = ['conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics','geo','agent','archive'];
-const STUDIO_VIEWS = ['table','bar','column','stacked','line','area','scatter','histogram','boxplot','heatmap','donut','treemap','kpi','network','strategy'];
+const STUDIO_VIEWS = ['table','bar','column','stacked','line','area','scatter','histogram','boxplot','heatmap','donut','treemap','kpi','network','strategy','hyperbolic','star','columns','sunburst','icicle'];
 
 function studioText(mixed $v,int $max=4000): string {
     if (!is_string($v) || mb_strlen($v)>$max || str_contains($v,"\0")) fail(422,'Text fehlt oder ist zu lang (max. '.$max.' Zeichen).');
@@ -29,15 +30,18 @@ function studioRecord(mixed $v): array {
 }
 function studioChartStyle(mixed $input): array {
     $v=studioRecord($input??[]);
-    $out=['palette'=>['#b2026c','#246f88','#72549d','#b16a13','#237653','#985647','#4056aa','#686b24'],'background'=>'#ffffff','text'=>'#222222','grid'=>'#e1e3e5','fontFamily'=>'sans','fontSize'=>12,'fontWeight'=>400,'radius'=>2,'lineWidth'=>2.5,'pointSize'=>5,'pointShape'=>'circle','donutWidth'=>55,'elementGap'=>0,'showGrid'=>true,'showLegend'=>true];
+    $out=['palette'=>['#b2026c','#246f88','#72549d','#b16a13','#237653','#985647','#4056aa','#686b24'],'background'=>'#ffffff','text'=>'#222222','grid'=>'#e1e3e5','fontFamily'=>'sans','fontSize'=>12,'fontWeight'=>400,'radius'=>2,'lineWidth'=>2.5,'pointSize'=>5,'pointShape'=>'circle','donutWidth'=>55,'elementGap'=>0,'showGrid'=>true,'showLegend'=>true,'hierarchyDepth'=>4,'hierarchyLabels'=>true,'treeSpacing'=>1,'treeLinks'=>'curved','treeOrder'=>'source'];
     $color=function($value){if(!is_string($value)||!preg_match('/^#[a-f0-9]{6}$/iD',$value))fail(422,'Bitte eine vollständige HEX-Farbe verwenden.');return strtolower($value);};
     if(array_key_exists('palette',$v)){$colors=labList($v['palette'],8);if(count($colors)!==8)fail(422,'Die Farbpalette benötigt acht Farben.');$out['palette']=array_map($color,$colors);}
     foreach(['background','text','grid'] as $key)if(array_key_exists($key,$v))$out[$key]=$color($v[$key]);
-    foreach(['fontSize'=>[10,18],'radius'=>[0,18],'lineWidth'=>[1,6],'pointSize'=>[3,9],'donutWidth'=>[25,90],'elementGap'=>[0,20]] as $key=>[$min,$max])if(array_key_exists($key,$v)){if((!is_int($v[$key])&&!is_float($v[$key]))||!is_finite((float)$v[$key])||$v[$key]<$min||$v[$key]>$max)fail(422,'Gestaltungswert außerhalb des zulässigen Bereichs.');$out[$key]=$v[$key];}
+    foreach(['fontSize'=>[10,18],'radius'=>[0,18],'lineWidth'=>[1,6],'pointSize'=>[3,9],'donutWidth'=>[25,90],'elementGap'=>[0,20],'hierarchyDepth'=>[1,8],'treeSpacing'=>[.5,1.5]] as $key=>[$min,$max])if(array_key_exists($key,$v)){if((!is_int($v[$key])&&!is_float($v[$key]))||!is_finite((float)$v[$key])||$v[$key]<$min||$v[$key]>$max)fail(422,'Gestaltungswert außerhalb des zulässigen Bereichs.');$out[$key]=$v[$key];}
+    if(!is_int($out['hierarchyDepth']))fail(422,'Die sichtbare Ebenenzahl muss ganzzahlig sein.');
+    if(array_key_exists('treeLinks',$v))$out['treeLinks']=studioEnum($v['treeLinks'],['curved','straight']);
+    if(array_key_exists('treeOrder',$v))$out['treeOrder']=studioEnum($v['treeOrder'],['source','name','value']);
     if(array_key_exists('fontFamily',$v))$out['fontFamily']=studioEnum($v['fontFamily'],['sans','serif','mono']);
     if(array_key_exists('pointShape',$v))$out['pointShape']=studioEnum($v['pointShape'],['circle','square','diamond']);
     if(array_key_exists('fontWeight',$v)){if(!is_int($v['fontWeight'])||!in_array($v['fontWeight'],[400,500,600,700],true))fail(422,'Ungültige Schriftstärke.');$out['fontWeight']=$v['fontWeight'];}
-    foreach(['showGrid','showLegend'] as $key)if(array_key_exists($key,$v)){if(!is_bool($v[$key]))fail(422,'Eine Ja-/Nein-Auswahl wird benötigt.');$out[$key]=$v[$key];}
+    foreach(['showGrid','showLegend','hierarchyLabels'] as $key)if(array_key_exists($key,$v)){if(!is_bool($v[$key]))fail(422,'Eine Ja-/Nein-Auswahl wird benötigt.');$out[$key]=$v[$key];}
     return $out;
 }
 function studioSourceInput(mixed $v): ?array {
@@ -98,8 +102,9 @@ function studioValidate(string $kind,array $c): array {
         return ['lesson'=>$lesson,'responses'=>(object)$out,'notes'=>studioText($c['notes']??'',4000)];
     }
     if ($kind==='visualization') {
-        $source=studioSourceInput($c['source']??null);if(($source['type']??'')==='text')fail(422,'Diese Datensicht benötigt strukturierte Tabellendaten.');$v=studioRecord($c['view']??[]);$view=['kind'=>studioEnum($v['kind']??'bar',STUDIO_VIEWS),'aggregate'=>studioEnum($v['aggregate']??'sum',['count','sum','average','median','min','max','none']),'purpose'=>studioEnum($v['purpose']??'compare',['compare','time','distribution','relationship','composition','matrix','network','strategy'])];
+        $source=studioSourceInput($c['source']??null);if(($source['type']??'')==='text')fail(422,'Diese Datensicht benötigt strukturierte Tabellendaten.');$v=studioRecord($c['view']??[]);$view=['kind'=>studioEnum($v['kind']??'bar',STUDIO_VIEWS),'aggregate'=>studioEnum($v['aggregate']??'sum',['count','sum','average','median','min','max','none']),'purpose'=>studioEnum($v['purpose']??'compare',['compare','time','distribution','relationship','composition','matrix','network','strategy','hierarchy'])];
         foreach(['x','y','series','target','filterColumn'] as $key)$view[$key]=studioText($v[$key]??'',80);
+        $view['hierarchyMode']=studioEnum($v['hierarchyMode']??'levels',['levels','edges']);$view['levels']=[];foreach(labList($v['levels']??[],6) as $level)$view['levels'][]=studioText($level,80);if(count(array_unique($view['levels']))!==count($view['levels'])||in_array('',$view['levels'],true))fail(422,'Hierarchieebenen müssen unterschiedliche Spalten sein.');
         $view['filter']=studioText($v['filter']??'',500);$view['title']=studioText($v['title']??'',180);
         $actions=[];foreach(['eliminate','reduce','raise','create'] as $key)$actions[$key]=studioText($c['actions'][$key]??'',2000);
         return ['source'=>$source,'view'=>$view,'actions'=>$actions,'style'=>studioChartStyle($c['style']??null)];
@@ -118,7 +123,7 @@ function studioValidate(string $kind,array $c): array {
         }
         $snapshot=isset($c['personaSnapshot'])?studioPersonaContent($c['personaSnapshot']):null;$ref=null;
         if(isset($c['personaRef'])){$v=studioRecord($c['personaRef']);$id=studioText($v['id']??'',32);if(!preg_match('/^[a-f0-9]{32}$/D',$id)||!is_int($v['version']??null)||$v['version']<1||!$snapshot)fail(422,'Ungültiger Persona-Stand.');$ref=['id'=>$id,'version'=>$v['version']];}
-        $source=studioSourceInput($c['source']??null);if(($source['type']??'')==='text')fail(422,'Eine Journey-Quelle benötigt strukturierte Tabellendaten.');$result=['persona'=>$p,'stages'=>$stages,'source'=>$source,'personaRef'=>$ref,'personaSnapshot'=>$snapshot];if(isset($c['blueprint']))$result['blueprint']=blueprintValidate($c['blueprint'],$stages);return $result;
+        $source=studioSourceInput($c['source']??null);if(($source['type']??'')==='text')fail(422,'Eine Journey-Quelle benötigt strukturierte Tabellendaten.');$result=['persona'=>$p,'stages'=>$stages,'source'=>$source,'personaRef'=>$ref,'personaSnapshot'=>$snapshot];if(isset($c['blueprint']))$result['blueprint']=blueprintValidate($c['blueprint'],$stages);if(array_key_exists('infrastructure',$c))$result['infrastructure']=journeyInfrastructureValidate($c['infrastructure'],$stages,$result['blueprint']??null);return $result;
     }
     fail(422,'Unbekanntes Labor.');
 }

@@ -29,3 +29,7 @@ for(const direction of ['forward','reverse','both'])for(const access of ['unknow
 assert.equal(flowDescription({from:'ERP',to:'CRM',access:'read'}),'CRM liest aus ERP');assert.equal(flowDescription({from:'ERP',to:'CRM',direction:'reverse',access:'write'}),'CRM schreibt nach ERP');assert.equal(flowDescription({from:'ERP',to:'CRM',direction:'both',access:'read'}),'ERP und CRM lesen voneinander');
 assert.equal(landscapeFilter({...l,flows:[{...base,access:'write'}]},{query:'schreibend'}).size,2);
 console.log('Landscape: all 12 direction/access combinations, legacy defaults, data-source eligibility, reachability, counts, descriptions and CSV semantics verified.');
+
+const hosting=structuredClone(l);hosting.systems[0].deployment='on_premises';assert.deepEqual([...landscapeFilter(hosting,{query:'On-Premises'})],['system-0']);assert.equal(landscapeRows(hosting,'systems')[0].betriebsmodell,'On-Premises');assert.equal(newSystem().deployment,'unknown');
+
+const regulatory=structuredClone(l);regulatory.systems[0].regulatory={ai_act:'relevant',dsa:'not_relevant',dma:'not_assessed',gdpr:'relevant'};const exported=landscapeRows(regulatory,'systems')[0];assert.equal(exported['AI Act relevance'],'Relevant');assert.equal(exported['DSA relevance'],'Not relevant');assert.equal(exported['DMA relevance'],'Not assessed');assert(!Object.hasOwn(exported,'regulatory'));const firstSystem=newSystem(),secondSystem=newSystem();firstSystem.regulatory.gdpr='relevant';assert.equal(secondSystem.regulatory.gdpr,'not_assessed');

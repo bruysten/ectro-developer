@@ -107,6 +107,19 @@ with tempfile.TemporaryDirectory(prefix='ectro-studio-http-') as private:
         check(alice.call('lab.save',{**landscape,'project':company,'version':0})[0]==409,'Landscape stale writes conflict')
         blueprint={'items':[{'id':'activity','stage':'phase','lane':'backstage','text':'Prepare data','systems':'CRM','data':'Customer data'}],'links':[]}
         journey_content={'persona':{'name':'Alex'},'stages':[{'id':'phase','name':'Choose','emotion':0}],'blueprint':blueprint}
+        journey_content['infrastructure']={'landscape':landscape['id'],'bindings':[{'stage':'phase','element':'touchpoint','systems':['shop'],'stores':['contacts']},{'stage':'phase','element':'blueprint','blueprint':'activity','systems':['crm'],'stores':['contacts']}]}
+        pair_input={'project':company,'name':'Example pair','landscape':landscape_content,'journey':journey_content}
+        check(alice.call('lab.industry.create',pair_input,csrf=False)[0]==403,'Example pairs require CSRF')
+        check(alice.call('lab.industry.create',project=company)[0]==405,'Example pair endpoint is POST only')
+        check(bob.call('lab.industry.create',pair_input)[0]==404,'Another user cannot create pairs in foreign projects')
+        pair=alice.ok('lab.industry.create',pair_input)
+        check(pair['journey']['content']['infrastructure']['landscape']==pair['landscape']['id'],'Example pair binds to newly created source')
+        check(alice.call('lab.save',{'project':pid,'kind':'journey','name':'Cross project','content':journey_content})[0]==422,'Cross-project landscape links rejected')
+        bad_journey=json.loads(json.dumps(journey_content));bad_journey['infrastructure']['bindings'][0]['stores']=['invented']
+        check(alice.call('lab.validate',{'project':company,'kind':'journey','content':bad_journey})[0]==422,'Validation endpoint enforces source membership')
+        before=len(alice.ok('lab.info',project=company)['objects'])
+        check(alice.call('lab.industry.create',{**pair_input,'journey':bad_journey})[0]==422,'Malformed pair rejected')
+        check(len(alice.ok('lab.info',project=company)['objects'])==before,'Failed pair leaves no partial Landscape')
         journey=alice.ok('lab.save',{'project':company,'kind':'journey','name':'Blueprint','content':journey_content})['object']
         preserved=journey['content']['blueprint']
         group=next(g for g in admin.ok('admin.groups')['groups'] if g['id']==gid)
@@ -115,6 +128,7 @@ with tempfile.TemporaryDirectory(prefix='ectro-studio-http-') as private:
         check(all(o['id']!=landscape['id'] for o in alice.ok('lab.info',project=company)['objects']),'Revoked Landscape omitted from object list')
         redacted=alice.ok('lab.object',id=journey['id'])['object']
         check('blueprint' not in redacted['content'],'Revoked Blueprint removed from Journey response')
+        check('infrastructure' not in redacted['content'],'Revoked Landscape removes infrastructure references')
         check(alice.call('lab.validate',{'project':company,'kind':'journey','content':journey_content})[0]==403,'Validation endpoint enforces Blueprint permission')
         check(alice.call('lab.save',{**journey,'project':company})[0]==403,'Stale clients cannot write revoked Blueprint')
         redacted['content']['persona']['name']='Updated perspective'

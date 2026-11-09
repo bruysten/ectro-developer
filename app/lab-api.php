@@ -14,7 +14,8 @@ function labDispatch(array $u,string $action,array $data): never {
         case 'lab.dataset.tables': jsonOut(datasetDatabaseTables($u,$data));
         case 'lab.dataset.read': jsonOut(datasetDatabaseRead($u,$data));
         case 'lab.object': jsonOut(['object'=>labObject($u,textField($data,'id',32))]);
-        case 'lab.validate': if(($data['kind']??'')==='conversation'&&(is_array($data['content']??null)&&array_key_exists('loop',$data['content'])))needFeature($u,'loop_lab');if(($data['kind']??'')==='journey'&&isset($data['content']['blueprint']))needFeature($u,'blueprint_lab');labAccess($u,textField($data,'project',32),textField($data,'kind',20));jsonOut(['content'=>labValidate($data['kind'],$data['content']??null)]);
+        case 'lab.validate': if(($data['kind']??'')==='conversation'&&(is_array($data['content']??null)&&array_key_exists('loop',$data['content'])))needFeature($u,'loop_lab');if(($data['kind']??'')==='journey'&&isset($data['content']['blueprint']))needFeature($u,'blueprint_lab');labAccess($u,textField($data,'project',32),textField($data,'kind',20));$checked=labValidate($data['kind'],$data['content']??null);if($data['kind']==='journey'&&isset($checked['infrastructure'])){needFeature($u,'landscape_lab');journeyInfrastructureAccess($u,$data['project'],$checked['infrastructure']);}jsonOut(['content'=>$checked]);
+        case 'lab.industry.create': jsonOut(labIndustryCreate($u,$data));
         case 'lab.save': jsonOut(['object'=>labSave($u,$data)]);
         case 'lab.delete': transaction(function()use($u,$data){$o=labObject($u,textField($data,'id',32));if(($data['version']??null)!==$o['version'])fail(409,'Inzwischen geändert. Bitte neu laden.');query('DELETE FROM lab_objects WHERE id=?',[$o['id']]);audit($u['id'],'lab.delete',['project'=>$o['project_id']]);});jsonOut(['ok'=>true]);
         case 'lab.rpc': rateLimit('lab.rpc.'.$u['id'],300,60);jsonOut(labRpc($u,$data));

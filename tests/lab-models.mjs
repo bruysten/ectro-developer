@@ -12,6 +12,7 @@ import './disclosure-menus.mjs';
 import './readiness.mjs';
 import './journey-navigation.mjs';
 import './landscape-blueprint.mjs';
+import './journey-landscape.mjs';
 import {spawnSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';

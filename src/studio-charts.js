@@ -1,3 +1,5 @@
+import {isHierarchy} from './hierarchy-models.js';
+import {renderHierarchy} from './studio-hierarchy.js';
 import {graphDirection} from './graph-model.js';
 import {normalizeChartStyle,CHART_FONTS,chartStyleCss,inkFor,blendColor} from './studio-style.js';
 import {viewData,histogram,boxSummary,VISUAL_VIEWS} from './studio-models.js';
@@ -13,16 +15,17 @@ const finite=v=>typeof v==='number'&&Number.isFinite(v);
 function chartFrame(content,title,width=800,height=420,style){const theme=style;return `<svg xmlns="http://www.w3.org/2000/svg" class="studio-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="${e(title)}" style="font:${theme.fontWeight} ${theme.fontSize}px ${CHART_FONTS[theme.fontFamily].css};color:${theme.text};max-width:100%;height:auto;background:${theme.background}"><title>${e(title)}</title><rect width="${width}" height="${height}" fill="${theme.background}"/><g fill="currentColor">${content}</g></svg>`;}
 function chartGuard(n,max=60){if(n>max)throw Error(`Diese Ansicht hätte ${n} Kategorien. Bitte filtern, gruppieren oder eine Tabelle bzw. ein Histogramm wählen (max. ${max} Kategorien).`);}
 function chartAxes({min=0,max=1,left=75,right=750,top=35,bottom=325,steps=4}={},style){if(!Number.isFinite(max-min))throw Error('Der Wertebereich ist zu groß. Bitte die Einheit oder den Filter anpassen.');if(min===max){min=Math.min(0,min);max=Math.max(1,max);}const scale=v=>bottom-(v-min)/(max-min)*(bottom-top),ticks=Array.from({length:steps+1},(_,i)=>min+(max-min)*i/steps);return {scale,html:ticks.map(v=>`<line x1="${left}" x2="${right}" y1="${scale(v)}" y2="${scale(v)}" stroke="${style.showGrid?style.grid:'none'}"/>${text(left-10,scale(v)+4,num(v),'text-anchor="end"')}`).join('')+`<line x1="${left}" x2="${right}" y1="${scale(Math.max(min,Math.min(max,0)))}" y2="${scale(Math.max(min,Math.min(max,0)))}" stroke="${style.text}"/>`};}
-export function renderChart(data,view,style){
- const theme=normalizeChartStyle(style),result=renderStyledChart(data,view,theme);
+export function renderChart(data,view,style,state={}){
+ const theme=normalizeChartStyle(style),result=renderStyledChart(data,view,theme,state);
  return {...result,html:`<div class="studio-visual" style="${chartStyleCss(theme)}">${result.html}</div>`};
 }
-function renderStyledChart(data,view,theme){
+function renderStyledChart(data,view,theme,state){
  const palette=theme.palette,frame=(content,title,width,height)=>chartFrame(content,title,width,height,theme),axes=options=>chartAxes(options,theme);
  const legend=series=>theme.showLegend?`<div class="studio-legend">${series.map((value,i)=>`<span><i style="background:${palette[i%palette.length]}"></i>${e(label(value))}</span>`).join('')}</div>`:'';
  const point=(x,y,color,title,r=theme.pointSize)=>{const attrs=`tabindex="0" fill="${color}" stroke="${theme.background}" stroke-width="1"`;return theme.pointShape==='circle'?`<circle cx="${x}" cy="${y}" r="${r}" ${attrs}>${markTitle(title)}</circle>`:`<rect x="${x-r}" y="${y-r}" width="${r*2}" height="${r*2}" ${theme.pointShape==='diamond'?`transform="rotate(45 ${x} ${y})"`:''} ${attrs}>${markTitle(title)}</rect>`;};
  const calculated=viewData(data,view),rows=calculated.rows,kind=view.kind,y=view.aggregate==='count'&&!['table','scatter','histogram','boxplot','network'].includes(kind)?'Anzahl':view.y||'Anzahl',x=view.x,title=view.title||VISUAL_VIEWS[kind]?.label||'Datensicht';let html='';
  if(!rows.length)return {...calculated,html:'<div class="notice">Keine passenden Daten. Filter oder Quelle ändern.</div>'};
+ if(isHierarchy(kind))return renderHierarchy(calculated,view,theme,state);
  if(kind==='table')return {...calculated,html:'<p class="studio-note">Alle gefilterten Einzelwerte stehen in der geöffneten Tabelle darunter.</p>'};
  if(kind==='network'){
   if(!x||!view.target)throw Error('Für das Beziehungsnetz eine Quell- und eine Zielspalte wählen.');

@@ -1,7 +1,7 @@
 import './regression.mjs';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {basketExample,basketMetrics,basketPairRules,basketsFromTable} from '../src/statistics-models.js';
+import {basketExample,basketMetrics,basketPairRules,basketsFromTable,BASKET_PRACTICE,BASKET_EXAMPLES} from '../src/statistics-models.js';
 const c=basketExample(),m=basketMetrics(c),near=(a,b)=>assert(Math.abs(a-b)<1e-12);
 assert.deepEqual([m.n,m.na,m.nb,m.both],[19,10,12,8]);near(m.support,8/19);near(m.confidence,.8);near(m.lift,19/15);
 const reverse=basketMetrics({...c,rule:{antecedent:['Schuhe'],consequent:['Hemd']}});near(reverse.support,m.support);near(reverse.lift,m.lift);near(reverse.confidence,8/12);
@@ -22,3 +22,15 @@ assert.throws(()=>basketsFromTable({...matrix,rows:[matrix.rows[0],matrix.rows[0
 assert.throws(()=>basketsFromTable({...table,rows:[{order:1,product:'__proto__'}]},map),/IDs/);
 const contract=spawnSync('php',['tests/statistics.php'],{input:JSON.stringify(c),encoding:'utf8'});assert.equal(contract.status,0,contract.stdout+contract.stderr);process.stdout.write(contract.stdout);
 console.log('Basket analysis verified: counts, direction, itemsets, zero denominators, independent/negative associations, every playback prefix, pair ranking, strict imports and deduplication.');
+const expected={bookshop:[24,10,9,6,1.6],maintenance:[24,12,13,9,18/13],campaigns:[20,10,9,6,4/3]};
+for(const [key,spec] of Object.entries(BASKET_PRACTICE)){
+ const sample=basketExample(key),m=basketMetrics(sample),[n,a,b,both,lift]=expected[key];assert.equal(sample.basketExample,key);assert(BASKET_EXAMPLES[key].includes(spec.title));assert.match(sample.sourceLabel,/synthetische/);
+ assert.deepEqual([m.n,m.na,m.nb,m.both],[n,a,b,both]);near(m.support,both/n);near(m.confidence,both/a);near(m.lift,lift);
+ const reverse=basketMetrics({...sample,rule:{antecedent:sample.rule.consequent,consequent:sample.rule.antecedent}});near(reverse.support,m.support);near(reverse.lift,m.lift);near(reverse.confidence,both/b);assert.notEqual(reverse.confidence,m.confidence);
+ assert.equal(new Set(sample.baskets.map(row=>row.id)).size,n);assert(sample.baskets.every(row=>row.items.length&&new Set(row.items).size===row.items.length&&row.items.every(item=>sample.products.includes(item))));
+ for(let i=0;i<=n;i++){const prefix=basketMetrics(sample,i);assert.equal(prefix.n,i);assert.equal(prefix.both,spec.values.slice(0,i).filter(items=>items.includes(spec.a)&&items.includes(spec.b)).length);}
+ const before=structuredClone(spec);sample.products[0]='Modified';sample.baskets[0].items.length=0;assert.deepEqual(spec,before,'Example templates remain unchanged by participant edits');assert.notDeepEqual(basketExample(key).baskets[0].items,sample.baskets[0].items);
+ const persisted=spawnSync('php',['tests/statistics.php'],{input:JSON.stringify(basketExample(key)),encoding:'utf8'});assert.equal(persisted.status,0,persisted.stdout+persisted.stderr);
+ console.log(`${key}: ${n} baskets, exact initial counts, reversal, every counting prefix, independent copies and persisted context verified.`);
+}
+const campaigns=basketExample('campaigns'),display=basketMetrics({...campaigns,rule:{antecedent:['Newsletterplatzierung'],consequent:['Display-Banner']}});near(display.confidence,.5);near(display.baseline,.65);assert(display.lift<1,'A common booked format need not be positively associated with the starting format');

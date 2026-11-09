@@ -1,6 +1,6 @@
 // Only local fonts, finite numeric ranges and opaque HEX colors enter the renderer.
 export const CHART_FONTS={sans:{label:'Sans Serif',css:'system-ui, sans-serif'},serif:{label:'Serif',css:'Georgia, serif'},mono:{label:'Monospace',css:'ui-monospace, monospace'}};
-export const CHART_STYLE={palette:['#b2026c','#246f88','#72549d','#b16a13','#237653','#985647','#4056aa','#686b24'],background:'#ffffff',text:'#222222',grid:'#e1e3e5',fontFamily:'sans',fontSize:12,fontWeight:400,radius:2,lineWidth:2.5,pointSize:5,pointShape:'circle',donutWidth:55,elementGap:0,showGrid:true,showLegend:true};
+export const CHART_STYLE={palette:['#b2026c','#246f88','#72549d','#b16a13','#237653','#985647','#4056aa','#686b24'],background:'#ffffff',text:'#222222',grid:'#e1e3e5',fontFamily:'sans',fontSize:12,fontWeight:400,radius:2,lineWidth:2.5,pointSize:5,pointShape:'circle',donutWidth:55,elementGap:0,showGrid:true,showLegend:true,hierarchyDepth:4,hierarchyLabels:true,treeSpacing:1,treeLinks:'curved',treeOrder:'source'};
 export const CHART_PRESETS={
  clear:{label:'Klar',style:{}},
  soft:{label:'Sanft',style:{background:'#faf8f4',text:'#302e35',grid:'#ddd8d1',palette:['#786297','#367c83','#a35c74','#846b33','#517d52','#a6523e','#526ca6','#767429'],radius:8}},
@@ -11,11 +11,14 @@ const color=(value,fallback)=>typeof value==='string'&&/^#[\da-f]{6}$/i.test(val
 export function normalizeChartStyle(input={}){
  const s=input&&typeof input==='object'?input:{},out={...CHART_STYLE,palette:CHART_STYLE.palette.map((v,i)=>color(s.palette?.[i],v))};
  for(const key of ['background','text','grid'])out[key]=color(s[key],out[key]);
- for(const [key,min,max] of [['fontSize',10,18],['radius',0,18],['lineWidth',1,6],['pointSize',3,9],['donutWidth',25,90],['elementGap',0,20]])if(typeof s[key]==='number'&&Number.isFinite(s[key]))out[key]=Math.min(max,Math.max(min,s[key]));
+ for(const [key,min,max] of [['fontSize',10,18],['radius',0,18],['lineWidth',1,6],['pointSize',3,9],['donutWidth',25,90],['elementGap',0,20],['hierarchyDepth',1,8],['treeSpacing',.5,1.5]])if(typeof s[key]==='number'&&Number.isFinite(s[key]))out[key]=Math.min(max,Math.max(min,s[key]));
  if(Object.hasOwn(CHART_FONTS,s.fontFamily))out.fontFamily=s.fontFamily;
  if([400,500,600,700].includes(s.fontWeight))out.fontWeight=s.fontWeight;
  if(['circle','square','diamond'].includes(s.pointShape))out.pointShape=s.pointShape;
- for(const key of ['showGrid','showLegend'])if(typeof s[key]==='boolean')out[key]=s[key];
+ if(['curved','straight'].includes(s.treeLinks))out.treeLinks=s.treeLinks;
+ if(['source','name','value'].includes(s.treeOrder))out.treeOrder=s.treeOrder;
+ out.hierarchyDepth=Math.round(out.hierarchyDepth);
+ for(const key of ['showGrid','showLegend','hierarchyLabels'])if(typeof s[key]==='boolean')out[key]=s[key];
  return out;
 }
 export function chartStylePreset(key){return normalizeChartStyle(CHART_PRESETS[key]?.style);}
