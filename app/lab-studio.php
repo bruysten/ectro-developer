@@ -10,6 +10,7 @@ require_once __DIR__.'/lab-agent.php';
 require_once __DIR__.'/lab-archive.php';
 require_once __DIR__.'/lab-loop.php';
 require_once __DIR__.'/agent-mcp.php';
+require_once __DIR__.'/lab-source-tables.php';
 
 const STUDIO_KINDS = ['conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics','geo','agent','archive'];
 const STUDIO_VIEWS = ['table','bar','column','stacked','line','area','scatter','histogram','boxplot','heatmap','donut','treemap','kpi','network','strategy'];
@@ -41,16 +42,17 @@ function studioChartStyle(mixed $input): array {
 }
 function studioSourceInput(mixed $v): ?array {
     if ($v===null) return null;
-    $v=studioRecord($v);$type=studioEnum($v['type']??null,['inline','dataset','json','graph_nodes','graph_edges','mysql','text']);
+    $v=studioRecord($v);$type=studioEnum($v['type']??null,['inline','dataset','json','graph_nodes','graph_edges','mysql','text','combined']);
+    if($type==='combined')return studioCombinedInput($v);
     $out=['type'=>$type];
     if ($type==='inline') {
         $out['name']=studioText($v['name']??'Eigene Daten',180);
         $data=labValidate('dataset',['columns'=>$v['columns']??[],'rows'=>$v['rows']??[]]);
-        $out+=$data;
+        $out+=$data;if(isset($v['sourceColumn'])){$key=labName($v['sourceColumn']);if(!in_array($key,array_column($data['columns'],'name'),true))fail(422,'Die Herkunftsspalte ist nicht vorhanden.');$out['sourceColumn']=$key;}
     } elseif (in_array($type,['dataset','graph_nodes','graph_edges'],true)) {
         $out['id']=studioText($v['id']??'',32);if(!preg_match('/^[a-f0-9]{32}$/D',$out['id']))fail(422,'Ungültige Datenquelle.');
     } elseif ($type==='mysql') {
-        $out['table']=studioText($v['table']??'',64);identifier($out['table']);
+        $out['table']=studioText($v['table']??'',64);identifier($out['table']);$out['scope']=studioEnum($v['scope']??'project',['project','personal']);
     } else {
         $out['path']=studioText($v['path']??'',240);if($out['path']==='')fail(422,'Dateipfad fehlt.');
     }
@@ -129,7 +131,8 @@ function studioSources(array $u,string $pid): array {
         foreach($o['kind']==='graph'?['graph_nodes'=>'Knoten','graph_edges'=>'Beziehungen']:['dataset'=>'Tabelle'] as $type=>$label)$sources[]=['source'=>['type'=>$type,'id'=>$o['id']],'name'=>$o['name'].' · '.$label];
     }
     foreach(all('SELECT path FROM files WHERE project_id=? AND kind="file" ORDER BY path',[$pid]) as $f){$ext=strtolower(pathinfo($f['path'],PATHINFO_EXTENSION));if(in_array($ext,['json','txt','md','csv'],true))$sources[]=['source'=>['type'=>$ext==='json'?'json':'text','path'=>$f['path']],'name'=>$f['path']];}
-    return ['sources'=>$sources,'database'=>features($u)['database'],'mysql'=>features($u)['database']&&(bool)mysqlSavedConnection($u,$pid)];
+    $databases=[];if(features($u)['database']){if(mysqlSavedConnection($u,$pid))$databases[]=['scope'=>'project','name'=>'Projekt-Datenbank'];if(one('SELECT user_id FROM connections WHERE user_id=?',[$u['id']]))$databases[]=['scope'=>'personal','name'=>'Persönliche Datenbank'];}
+    return ['sources'=>$sources,'database'=>features($u)['database'],'mysql'=>(bool)$databases,'databases'=>$databases];
 }
 function studioTabular(array $rows,string $name,int $limit=1000): array {
     $total=count($rows);$rows=array_slice($rows,0,$limit);$names=[];$out=[];
@@ -140,7 +143,8 @@ function studioTabular(array $rows,string $name,int $limit=1000): array {
 }
 function studioReadSource(array $u,string $pid,array $source): array {
     labAccess($u,$pid);$source=studioSourceInput($source);$type=$source['type'];$limit=min(1000,labLimits()['rows']);
-    if($type==='inline')return studioTabular($source['rows'],$source['name'],$limit);
+    if($type==='combined'){$inputs=[];foreach($source['tables'] as $t)$inputs[]=studioReadSource($u,$pid,['type'=>'mysql','table'=>$t['table'],'scope'=>$t['scope']]);return studioCombineTables($inputs,$source,$limit);}
+    if($type==='inline'){$result=studioTabular($source['rows'],$source['name'],$limit);$result['columns']=$source['columns'];if(isset($source['sourceColumn']))$result['sourceColumn']=$source['sourceColumn'];return $result;}
     if(in_array($type,['dataset','graph_nodes','graph_edges'],true)){
         $o=labObject($u,$source['id']);if($o['project_id']!==$pid)fail(404,'Diese Datenquelle gehört nicht zum Projekt.');
         if($type==='dataset'){if($o['kind']!=='dataset')fail(422,'Keine Tabellendaten.');return studioTabular($o['content']['rows'],$o['name'],$limit);}
@@ -154,12 +158,15 @@ function studioReadSource(array $u,string $pid,array $source): array {
         if($ext!=='json')fail(422,'Bitte eine JSON-Datei wählen.');try{$value=json_decode($f['content'],true,64,JSON_THROW_ON_ERROR);}catch(JsonException){fail(422,'Die Projektdatei enthält kein gültiges JSON.');}
         if(isset($value['rows'])&&is_array($value['rows']))$value=$value['rows'];elseif(is_array($value)&&!array_is_list($value))$value=[$value];if(!is_array($value)||!array_is_list($value))fail(422,'JSON muss eine Objektliste oder ein Objekt mit rows enthalten.');return studioTabular($value,$source['path'],$limit);
     }
-    needFeature($u,'database');rateLimit('studio.mysql.'.$u['id'],30,60);$pdo=mysqlConnection($u,null,$pid);
+    needFeature($u,'database');rateLimit('studio.mysql.'.$u['id'],60,60);$pdo=studioMysqlConnection($u,$pid,$source['scope']);
     try{$tables=$pdo->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN);if(!in_array($source['table'],$tables,true))fail(404,'Projekttabelle nicht gefunden.');$columns=tableColumns($pdo,$source['table']);if(count($columns)>50)fail(422,'Bitte eine Tabelle mit höchstens 50 Spalten verwenden.');
         $names=array_map(fn($c)=>identifier($c['Field']),$columns);$rows=$pdo->query('SELECT '.implode(',',$names).' FROM '.identifier($source['table']).' LIMIT '.($limit+1))->fetchAll();$truncated=count($rows)>$limit;$rows=array_slice($rows,0,$limit);
-        // PDO returns DECIMAL as strings. Convert only numeric SQL types, preserving identifiers and text.
-        foreach($rows as &$row)foreach($columns as $column)if(preg_match('/^(tinyint|smallint|mediumint|int|bigint|decimal|numeric|float|double|real)\b/i',$column['Type'])&&isset($row[$column['Field']])&&is_numeric($row[$column['Field']])){$n=(float)$row[$column['Field']];if(is_finite($n)&&abs($n)<=9007199254740991)$row[$column['Field']]=$n;}unset($row);
-        $result=studioTabular($rows,$source['table'],$limit);$result['truncated']=$truncated;$result['total']=$truncated?null:count($rows);return $result;
+        $typed=[];
+        foreach($columns as $column){$key=$column['Field'];labName($key);$numeric=(bool)preg_match('/^(tinyint|smallint|mediumint|int|bigint|decimal|numeric|float|double|real)\b/i',$column['Type']);$safe=$numeric;
+            foreach($rows as $row){$value=$row[$key]??null;if($value===null)continue;if(is_string($value)&&!mb_check_encoding($value,'UTF-8'))fail(422,'Die Tabelle enthält Binärdaten.');if($numeric&&(!is_numeric($value)||!is_finite((float)$value)||abs((float)$value)>9007199254740991||strlen(ltrim(preg_replace('/[^0-9]/','',(string)$value),'0'))>15))$safe=false;}
+            foreach($rows as &$row){$value=$row[$key]??null;$row[$key]=$value===null?null:($safe?(float)$value:($numeric?(string)$value:$value));}unset($row);$typed[]=['name'=>$key,'type'=>$safe?'number':'text'];
+        }
+        $result=studioTabular($rows,$source['table'],$limit);$result['columns']=$typed;$result['truncated']=$truncated;$result['total']=$truncated?null:count($rows);return $result;
     }catch(PDOException $e){mysqlError($e);}
 }
 function studioEvidence(array $u,string $pid,array $assistant,string $question): array {
@@ -215,6 +222,6 @@ function studioDispatch(array $u,string $action,array $data): never {
     if(str_starts_with($action,'studio.geo.')){if($kind!=='geo')fail(422,'Bitte das GEO Lab verwenden.');jsonOut(geoDispatch($u,$pid,$action,$data));}
     if($action==='studio.sources')jsonOut(studioSources($u,$pid));
     if($action==='studio.source'){$source=studioSourceInput($data['source']??null);if(!$source)fail(422,'Bitte eine Datenquelle wählen.');$result=studioReadSource($u,$pid,$source);labJson($result);jsonOut($result);}
-    if($action==='studio.tables'){needFeature($u,'database');rateLimit('studio.mysql.'.$u['id'],30,60);$pdo=mysqlConnection($u,null,$pid);try{$stmt=$pdo->query('SHOW TABLES');$tables=[];while(count($tables)<100&&($name=$stmt->fetchColumn())!==false)if(preg_match('/^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/D',$name))$tables[]=$name;jsonOut(['tables'=>$tables]);}catch(PDOException $e){mysqlError($e);}}
+    if($action==='studio.tables'){needFeature($u,'database');rateLimit('studio.mysql.'.$u['id'],60,60);$pdo=studioMysqlConnection($u,$pid,studioEnum($data['scope']??'project',['project','personal']));try{$stmt=$pdo->query('SHOW TABLES');$tables=[];while(count($tables)<100&&($name=$stmt->fetchColumn())!==false)if(preg_match('/^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/D',$name))$tables[]=$name;jsonOut(['tables'=>$tables]);}catch(PDOException $e){mysqlError($e);}}
     fail(404,'Unbekannte Laboraktion.');
 }

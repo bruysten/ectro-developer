@@ -18,5 +18,20 @@ try {
     if($read['rows'][0]['code']!=='00123'||$read['rows'][0]['value']!==8.5||$read['rows'][1]['value']!==null)throw new RuntimeException('MariaDB source must preserve text identifiers, numeric decimals and NULL.');
     try {studioReadSource($u,$other,['type'=>'mysql','table'=>'studio_source_read']);throw new RuntimeException('Source borrowed another project connection.');}catch(ApiError $e){if($e->status!==422)throw $e;}
     if((int)$mysql->query('SELECT COUNT(*) FROM studio_source_read')->fetchColumn()!==2)throw new RuntimeException('Source read changed data.');
-    echo "3 MariaDB studio source checks passed: typed values, project connection isolation and read-only access.\n";
-} finally {$mysql->exec('DROP TABLE IF EXISTS studio_source_read');}
+    $mysql->exec('CREATE TABLE studio_source_labels (code VARCHAR(10),label VARCHAR(20),missing INT NULL)');
+    $mysql->exec("INSERT INTO studio_source_labels VALUES('00123','Sensor',NULL),('00456','Motor',NULL)");
+    query('INSERT INTO connections VALUES(?,?,?,?,?)',[$uid,'127.0.0.1','ectro_schema_test','schema_test',encryptSecret('disposable-schema-test-password')]);
+    $personal=studioReadSource($u,$other,['type'=>'mysql','scope'=>'personal','table'=>'studio_source_read']);
+    if($personal['rows'][0]['code']!=='00123')throw new RuntimeException('Explicit personal source failed.');
+    $spec=['type'=>'combined','mode'=>'join','tables'=>[['table'=>'studio_source_read','scope'=>'project','alias'=>'sales'],['table'=>'studio_source_labels','scope'=>'project','alias'=>'labels']],'joins'=>[['left'=>'sales.code','right'=>'code','how'=>'left']]];
+    $joined=studioReadSource($u,$pid,$spec);
+    if(count($joined['rows'])!==2||$joined['rows'][0]['labels.label']!=='Sensor'||$joined['columns'][5]['type']!=='number')throw new RuntimeException('Live database join or NULL numeric schema failed.');
+    $mysql->exec("UPDATE studio_source_labels SET label='Updated' WHERE code='00123'");
+    if(studioReadSource($u,$pid,$spec)['rows'][0]['labels.label']!=='Updated')throw new RuntimeException('Refreshing relationships must re-read live tables.');
+    $appended=studioReadSource($u,$pid,[...$spec,'mode'=>'append','joins'=>[]]);
+    if(count($appended['rows'])!==4||$appended['sourceColumn']!=='quelle')throw new RuntimeException('Live table comparison failed.');
+    $mysql->exec('DELETE FROM studio_source_labels');
+    $empty=studioReadSource($u,$pid,$spec);
+    if(count($empty['rows'])!==2||$empty['rows'][0]['labels.label']!==null||$empty['columns'][5]['type']!=='number')throw new RuntimeException('Empty joined table must preserve numeric schema and base rows.');
+    echo "9 MariaDB studio source checks passed: typed values, project connection isolation and read-only access.\n";
+} finally {$mysql->exec('DROP TABLE IF EXISTS studio_source_labels');$mysql->exec('DROP TABLE IF EXISTS studio_source_read');}

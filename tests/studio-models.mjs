@@ -1,5 +1,6 @@
 import './persona-models.mjs';
 import './studio-visualization.mjs';
+import './studio-source-tables.mjs';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {aggregateValues,studioExample,strategyExample,VISUAL_VIEWS,inferColumns,viewData,quantile,histogram,boxSummary,checkQuote,reasoningMetrics} from '../src/studio-models.js';
