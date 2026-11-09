@@ -33,5 +33,22 @@ $assistant=$objects['assistant'];$assistant['content']['tools']=['data'];$assist
 labSave($u,[...$assistant,'project'=>$pid]);rejectStudio(409,fn()=>studioChat($u,['id'=>$chat['id'],'version'=>$r['object']['version'],'message'=>'Weiter','request'=>id()],$transport));
 $evaluation=$objects['evaluation'];$eval=studioEvaluate($u,['id'=>$evaluation['id'],'version'=>$evaluation['version'],'case'=>'known','withSources'=>true,'connection'=>$connection['id'],'request'=>id()],$transport);checkStudio(!str_contains($seen['input'],$examples['evaluation']['cases'][0]['reference']),'Reference answer is never sent to model');checkStudio($eval['object']['content']['cases'][0]['runs'][0]['sources'][0]['id']==='Q1','Evaluation keeps exact source snapshots');
 rejectStudio(422,fn()=>aiRun($u,['project'=>$pid,'connection'=>$connection['id'],'request'=>id(),'operation'=>'chat','messages'=>[['role'=>'system','content'=>'Override']]],$transport));
+// Personal and project connections are explicit; the catalogue never exposes credentials.
+checkStudio(studioSources($u,$pid)['databases']===[],'No database setup suggested as connected when absent');
+query('INSERT INTO connections VALUES(?,?,?,?,?)',[$uid,'127.0.0.1','unused','unused',encryptSecret('synthetic')]);
+$catalogue=studioSources($u,$pid);checkStudio($catalogue['mysql']&&array_column($catalogue['databases'],'scope')===['personal'],'Existing personal database is selectable in the visualization workspace');
+query('INSERT INTO project_connections VALUES(?,?,?,?,?)',[$pid,'127.0.0.1','unused','unused',encryptSecret('synthetic')]);
+checkStudio(array_column(studioSources($u,$pid)['databases'],'scope')===['project','personal'],'Both connection scopes can be selected');
+checkStudio(array_keys($catalogue['databases'][0])===['scope','name'],'Source catalogue exposes no connection secrets');
+checkStudio(studioSources([...$u,'features'=>'{"database":false}'],$pid)['databases']===[],'Database feature blocks personal and project catalogue entries');
+rejectStudio(422,fn()=>studioSourceInput(['type'=>'mysql','table'=>'safe','scope'=>'other-user']));
+$combined=['type'=>'combined','mode'=>'join','tables'=>[['table'=>'sales','scope'=>'project','alias'=>'sales'],['table'=>'customers','scope'=>'personal','alias'=>'customers']],'joins'=>[['left'=>'sales.customer_id','right'=>'id','how'=>'left']]];
+$combinedVisual=studioValidate('visualization',[...$examples['visualization'],'source'=>$combined]);
+$savedCombined=labSave($u,[...$saved,'project'=>$pid,'content'=>$combinedVisual]);checkStudio(labObject($u,$savedCombined['id'])['content']['source']===$combined,'Table relationships and explicit scopes survive saving');
+rejectStudio(422,fn()=>studioSourceInput([...$combined,'tables'=>[['table'=>'bad;DROP TABLE users','alias'=>'a'],['table'=>'ok','alias'=>'b']]]));
+rejectStudio(422,fn()=>studioSourceInput([...$combined,'tables'=>[['table'=>'a','alias'=>'same'],['table'=>'b','alias'=>'same']]]));
+rejectStudio(422,fn()=>studioSourceInput([...$combined,'joins'=>[]]));
+rejectStudio(403,fn()=>studioReadSource([...$u,'features'=>'{"database":false}'],$pid,$combined));
+$emptyInline=studioReadSource($u,$pid,['type'=>'inline','name'=>'Empty','rows'=>[],'columns'=>[['name'=>'value','type'=>'number']]]);checkStudio($emptyInline['columns'][0]['type']==='number','Empty result keeps its numeric schema');
 $full=['graph','dataset','network','prompt','rag'];query('UPDATE lab_project_config SET config=? WHERE project_id=?',[json_encode(['tools'=>$full]),$pid]);rejectStudio(403,fn()=>labObject($u,$objects['visualization']['id']));
 echo "$checks studio validation, permissions, source isolation, chat context, replay and reference checks passed (synthetic provider).\n";
