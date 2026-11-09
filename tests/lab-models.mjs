@@ -1,3 +1,4 @@
+import './database-table-delete.mjs';
 import './readiness-admin.mjs';
 import './dataset-import.mjs';
 import './disclosure-menus.mjs';

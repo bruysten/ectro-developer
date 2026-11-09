@@ -810,3 +810,8 @@ html[data-workspace-resizing] iframe { pointer-events:none!important; }
 .dataset-database-dialog { width:min(880px,calc(100vw - 32px)); }
 .dataset-database-dialog .table-wrap { max-height:260px;overflow:auto; }
 .dataset-database-dialog td { max-width:240px;overflow-wrap:anywhere; }
+.database-delete-target{display:grid;gap:12px;margin:20px 0}.database-delete-target>div{display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px}.database-delete-target dt{color:var(--text-muted)}.database-delete-target dd{margin:0;overflow-wrap:anywhere}.database-delete-target+.field code{display:block;overflow-wrap:anywhere;white-space:pre-wrap;padding:10px;background:var(--surface-accent-soft);margin:8px 0}
+@media(max-width:500px){.database-delete-target>div{grid-template-columns:minmax(0,1fr);gap:4px}}
+.database-table-delete-dialog .dialog-foot{flex-wrap:wrap;gap:10px}
+@media(max-width:500px){.database-table-delete-dialog .dialog-foot{display:grid;grid-template-columns:minmax(0,1fr)}.database-table-delete-dialog .dialog-foot button{width:100%;min-width:0;white-space:normal}}
+.database-table-delete-dialog{overflow:hidden}.database-table-delete-dialog form{display:flex;flex-direction:column;max-height:calc(100dvh - 48px)}.database-table-delete-dialog .dialog-body{overflow:auto;min-height:0}.database-table-delete-dialog .dialog-head,.database-table-delete-dialog .dialog-foot{flex:none}

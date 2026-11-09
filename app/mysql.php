@@ -59,7 +59,7 @@ function identifier(string $value): string {
 }
 function mysqlError(PDOException $e): never {
     $code = (int)($e->errorInfo[1] ?? 0);
-    $message = match ($code) { 1071 => 'Der gemeinsame Schlüssel ist zu lang. Bitte kürzere VARCHAR-Längen wählen.', 1118,1074 => 'Die Tabellenzeile ist zu groß. Bitte kürzere VARCHAR-Längen oder TEXT verwenden.', 1064 => 'Die SQL-Syntax ist nicht gültig.', 1062 => 'Dieser eindeutige Wert existiert bereits.', 1146 => 'Die Tabelle existiert nicht.', 1054 => 'Die Spalte existiert nicht.', 1044,1142,1227 => 'Der Datenbankbenutzer hat dafür keine Berechtigung.', 1451,1452 => 'Eine Fremdschlüssel-Beziehung verhindert diese Änderung.', 1205,1317,1969,3024 => 'Die Abfrage wurde wegen Zeitüberschreitung beendet.', default => 'Die Datenbank konnte diese Anfrage nicht ausführen.' };
+    $message = match ($code) { 1071 => 'Der gemeinsame Schlüssel ist zu lang. Bitte kürzere VARCHAR-Längen wählen.', 1118,1074 => 'Die Tabellenzeile ist zu groß. Bitte kürzere VARCHAR-Längen oder TEXT verwenden.', 1064 => 'Die SQL-Syntax ist nicht gültig.', 1062 => 'Dieser eindeutige Wert existiert bereits.', 1146 => 'Die Tabelle existiert nicht.', 1054 => 'Die Spalte existiert nicht.', 1044,1142,1227 => 'Der Datenbankbenutzer hat dafür keine Berechtigung.', 1217,1451,1452,3730 => 'Eine Fremdschlüssel-Beziehung verhindert diese Änderung.', 1205,1317,1969,3024 => 'Die Abfrage wurde wegen Zeitüberschreitung beendet.', default => 'Die Datenbank konnte diese Anfrage nicht ausführen.' };
     fail(422, $message . ' (MySQL ' . $code . ')');
 }
 function columnSqlType(array $field): string {
