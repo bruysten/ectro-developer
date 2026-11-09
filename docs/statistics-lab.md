@@ -40,3 +40,31 @@ Methodische Referenz: [IBM: Lift in an association rule](https://www.ibm.com/doc
 `node tests/statistics.mjs` prüft Zählungen, jede Zählungspräfixmenge, Richtungsumkehr, Mehrartikel-Regeln, unabhängige und negative Zusammenhänge, Nullnenner, Regeln-Ranking und Importvalidierung. Der PHP-Vertrag prüft Persistenz, ungültige Inhalte und Gruppen-/Projektfreigaben sowie die Migration einer bestehenden Datenbank einschließlich Readiness-Historie. Die Tests sind in `node tests/lab-models.mjs` eingebunden.
 
 `python3 tests/labs-integration.py` prüft zusätzlich HTTP-Persistenz, Versionskonflikte, Isolation und wirksames Entziehen/Wiedererteilen der Gruppenfreigabe. Browserprüfung: Datenübernahme mit doppelten Positionen, Speichern/Neuladen, manueller Start, Regelumkehr, Einzelzählung, Wiedergabe und responsive Ansichten.
+
+## Zweites Verfahren: einfache lineare Regression
+
+Die Verfahrensleiste bietet Warenkorbanalyse und lineare Regression. Jede gespeicherte Statistik-Arbeit kann beide Experimente unabhängig enthalten. Bestehende Warenkorbinhalte ohne Verfahrenskennung bleiben unverändert les- und speicherbar. Beim Anlegen einer neuen Arbeit lässt sich das Verfahren auswählen. Beide Verfahren verwenden dieselbe Gruppenfreigabe `statistics_lab`.
+
+Die Regression arbeitet mit einem X-Wert und einem Y-Wert je Beobachtung:
+
+- Direkt verschiebbare Punkte; Pfeiltasten und explizite Wertefelder als Alternative. Ziehen verwendet Pointer Capture, gebündelte Bildaktualisierung und korrekte SVG-Koordinaten; Abbruch stellt den Ausgangspunkt wieder her.
+- Steigung und Achsenabschnitt manuell verändern. Die angezeigte Gleichung, senkrechten Residuen und ihre Quadrate beziehen sich immer auf die angezeigte Gerade. Die numerische Berechnung bleibt ungerundet, obwohl Eingabefelder und Anzeigen kompakt formatiert sind.
+- „Beste Gerade finden“ berechnet die OLS-Lösung und zeigt eine kurze Annäherung. Jeder Zwischenstand zeigt den tatsächlich berechneten Fehler dieser interpolierten Geraden; die Animation behauptet kein iteratives Optimierungsverfahren. Reduzierte Bewegung überspringt die Animation.
+- Einen Ausreißer ergänzen und über „Für Berechnung verwenden“ ausschließen. Ausgeschlossene Punkte bleiben sichtbar und beeinflussen weder Mittelwerte noch Anpassung, Fehler oder R².
+- Die aufklappbaren Schritte zeigen Mittelwertkreuz, Abweichungen eines ausgewählten Punktes, die Summen aller eingeschlossenen Punkte, Steigung und Achsenabschnitt. Die Detailtabelle ist paginiert. Eine gestrichelte Referenz unterscheidet die beste von der manuell eingestellten Geraden.
+- Für einen frei gewählten X-Wert mit der angezeigten Geraden schätzen. X-Werte außerhalb des eingeschlossenen Datenbereichs sind ausdrücklich als Extrapolation gekennzeichnet.
+- Projekttabellen/JSON/MySQL über den bestehenden Quellenwähler als Kopie übernehmen. X, Y und optional eine Punktbezeichnung zuordnen. Fehlende Werte, Zeichenketten anstelle von Zahlen und unvollständige Quellausschnitte werden abgewiesen. Bis zu 1.000 Punkte bzw. die niedrigere konfigurierte Zeilengrenze; bestehendes 1-MB-Objektlimit. CSV exportiert Punkte, Einschlussstatus und Werte der angezeigten Geraden.
+
+Mit ΔX = X − ØX und ΔY = Y − ØY gilt für die beste Gerade mit Achsenabschnitt:
+
+- m = Σ(ΔX × ΔY) / Σ(ΔX²)
+- b = ØY − m × ØX
+- Ŷ = b + m × X
+- Residuum e = Y − Ŷ; Fehler = Σe²
+- R² = 1 − Σe² / Σ(Y − ØY)², bezogen auf die beste Gerade und die eingeschlossenen Daten.
+
+Zentrierte Summen vermeiden die Subtraktion großer, fast gleicher Rohsummen. Zur Vorhersage im angepassten Modell wird die zentrierte Form verwendet. Gleiche X-Werte ergeben keine eindeutige Steigung; konstante Y-Werte ergeben R² „–“. Numerisch zu kleine Unterschiede oder unvertretbare Koeffizientengrößen liefern einen Hinweis auf passendere Einheiten. Das Lab führt keine Signifikanztests aus und liefert keine Konfidenz-/Vorhersageintervalle. Ein gutes R² belegt keine Kausalität und keine Prognosequalität auf neuen Daten.
+
+Methodik: [NIST: Least Squares](https://www.itl.nist.gov/div898/handbook/pmd/section4/pmd431.htm), [Penn State: Simple Linear Regression](https://online.stat.psu.edu/stat501/Lesson01).
+
+`node tests/regression.mjs` prüft bekannte Ergebnisse, das Minimum der Fehlerquadratsumme, Vorzeichen, Mittelwert-/Konstantfälle, große Offsets, Ausschluss von Punkten, Importvalidierung und reale Fehler in der Animation. PHP-Vertragstests prüfen Validierung, Speicherung beider Verfahren, Legacy-Kompatibilität und Berechtigungen. In den Lab-HTTP-Tests werden auch Regressionsinhalte und fehlende Koordinaten über die API geprüft.
