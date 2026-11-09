@@ -12,6 +12,14 @@ Ein persönliches Projekt bleibt Eigentum seines Users. Es erhält **keinen** ei
 
 Lehrkräfte sehen private Teilnehmerprojekte nur über eine gemeinsam zugängliche Gruppe. Gruppenspezifische Projektvorlagen sind nur über eine aktive zugeordnete Mitgliedschaft verfügbar. Individuelle Freigaben und die Freigaben aktiver Gruppen bestimmen weiterhin die verfügbaren Funktionen; abgelaufene Gruppen schränken einen anderen aktiven Kurs nicht ein.
 
+## Mehrere aktive Gruppen
+
+Werkzeugrechte werden **vereinigt**: Eine Freigabe in mindestens einer aktiven Mitgliedsgruppe genügt. Eine Sperre in Gruppe A nimmt keine Freigabe aus Gruppe B zurück. Systemweite und persönliche Kontosperren bleiben als zusätzliche Grenzen wirksam. Die Auswahl des aktuellen Kurses für die Ansprache beeinflusst diese Vereinigung nicht.
+
+Beispiel: Gruppe A gibt Graph Lab frei, Gruppe B Daten Lab. Ein Mitglied beider aktiven Gruppen erhält beide Labs. Läuft Gruppe B ab, entfällt ihre Daten-Lab-Freigabe, sofern keine andere aktive Gruppe sie ebenfalls erteilt. Änderungen gelten sofort für API-Anfragen; bereits geöffnete Frontends übernehmen sie mit dem vorhandenen automatischen Rechteabgleich.
+
+Fehlende Einträge in älteren Gruppenprofilen gelten wie bisher als aktiviert. Ohne Gruppenzuordnung gelten weiterhin die persönlichen Standardrechte mit System-/Kontogrenzen. Die Vereinigung betrifft Werkzeuge: Sie gewährt weder fremde Projekte noch Daten anderer Gruppen. Ein Projekt einer abgelaufenen Gruppe bleibt auch bei einer weiteren aktiven Mitgliedschaft verborgen.
+
 ## Zeiträume und Administration
 
 Für Sichtbarkeit und Berechtigungen zählen **Zugriff ab/bis**, einschließlich des Endtags in `Europe/Berlin`. Sommerzeitwechsel werden über Kalendergrenzen berechnet. Leere Grenzen sind unbeschränkt. **Kursbeginn/Kursende** bestimmen die Auswahl der Ansprache, nicht die Zugriffsfreigabe. Siehe [Ansprache nach Lerngruppe](group-address.md).
@@ -31,3 +39,5 @@ Bei einer offenen Eingabe bleibt der Entwurf erhalten. Ungültige Gruppen-/Proje
 `node tests/group-periods.mjs` prüft Kalendergrenzen, Ansprache, Änderungen der Sichtbarkeit ohne Ansprachewechsel, ungültig gewordene Auswahlen und die Weitergabe von HTTP-Fehlerstatus und Oberflächenkontext.
 
 `python3 tests/group-periods-integration.py` verwendet eine isolierte Datenbank und prüft aktive, zukünftige und abgelaufene Gruppen, Konten ohne Gruppe, mehrere Mitgliedschaften, private und geteilte Projekte/Canvases, Laborobjekte, Projektvorlagen, Team/Profile, Dateilinks und getrennte Frontend-/Backend-Rechte für Administratoren. Die bestehenden API-, Labor- und Kollaborationstests sichern die übrigen Berechtigungen ab.
+
+Der Regressionsfall mit zwei aktiven Gruppen prüft ergänzende Werkzeugfreigaben, identische Frontend-/API-Rechte, Entzug der letzten Freigabe, Ablauf/Wiederöffnung einer Gruppe, nicht aktive Mitgliedschaften, historische Standardwerte sowie System- und Kontogrenzen. Die Team-Profiltests unterscheiden Werkzeugfreigabe von Gruppenmitgliedschaft und persönlicher Profilfreigabe.

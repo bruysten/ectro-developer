@@ -7,7 +7,7 @@
 - Sichtbare Frontend-Sitzungen lesen ihre eigenen Berechtigungen alle zehn Sekunden erneut vom Server. Im Hintergrund gilt ein längeres Intervall von 60 Sekunden. Serverseitige Zugriffs-/Kurszeitgrenzen können einen früheren Abgleich auslösen.
 - Beim Zurückkehren zum Tab, beim Fensterfokus und nach Wiederherstellung der Verbindung erfolgt ein unmittelbarer Abgleich.
 - Erfolgreiche administrative Änderungen an Benutzern, Gruppen und Systemeinstellungen senden an andere Tabs desselben Ursprungs zusätzlich einen Hinweis über `BroadcastChannel`. Wenn diese API nicht verfügbar ist, dient ein Storage-Ereignis als Alternative. Andere Browser und Geräte verwenden den regelmäßigen Abgleich.
-- Der Hinweis enthält keine Rechte, Konto-IDs oder Schlüssel. Jeder Empfänger fragt seine eigenen wirksamen Rechte serverseitig ab. Die vorhandene Verknüpfung von System-, Gruppen-, Konto- und Projektgrenzen wird nicht verändert. Eine Freigabe hebt andere weiterhin geltende Sperren nicht auf.
+- Der Hinweis enthält keine Rechte, Konto-IDs oder Schlüssel. Jeder Empfänger fragt seine eigenen wirksamen Rechte serverseitig ab. Die wirksamen Werkzeugrechte sind die Vereinigung der Freigaben aller aktiven Mitgliedsgruppen, begrenzt durch System- und Kontosperren. Projekt- und Datenzugriffe werden weiterhin gesondert geprüft. Ein Entzug in einer Gruppe blendet ein Werkzeug erst aus, wenn keine andere aktive Gruppe es mehr freigibt.
 - Während einer laufenden Abfrage eingehende Hinweise werden zusammengefasst und anschließend erneut geprüft. Veraltete Antworten einer vorherigen Anmeldung werden nicht auf ein neues Konto angewendet. Der Abgleich besitzt nur einen Wiederholungstimer.
 
 ## Offene Arbeit erhalten

@@ -73,6 +73,27 @@ with tempfile.TemporaryDirectory(prefix='academy-group-periods-') as private:
         shared_lab=learner.ok('lab.save',{'project':project,'kind':'dataset','name':'Gruppendaten','content':dataset})['object']['id']
         template=admin.ok('admin.template.save',{'name':'Nur Kurs A','language':'web','active':True,'version':0,'files':[],'labs':{'tools':['graph'],'entry':'graph','groups':[first],'seeds':[]}})['id']
         check(template in [t['id'] for t in learner.ok('templates')['templates']],'Active group offers its assigned project types')
+        # Regression: complementary grants in two active groups are additive, not mutual vetoes.
+        off=dict.fromkeys(learner.ok('bootstrap')['features'],False)
+        save(first,features={**off,'files':True,'graph':True})
+        save(backup,features={**off,'files':True,'data_lab':True})
+        before_union=learner.ok('bootstrap')['features']
+        check(before_union['graph'] and not before_union['data_lab'],'Future group cannot contribute a grant')
+        check(learner.call('lab.object',id=shared_lab)[0]==403,'Unreleased dataset API is blocked')
+        save(backup,periods={'access_start':None})
+        united=learner.ok('bootstrap')['features']
+        check(united['files'] and united['graph'] and united['data_lab'],'Two active groups supply the union to the existing frontend session')
+        check(not united['ai'] and not united['geo_lab'],'Features denied by both groups stay disabled')
+        check(learner.ok('lab.object',id=shared_lab)['object']['kind']=='dataset','Union is enforced consistently by the data API')
+        save(first,features={**off,'files':True})
+        after_revoke=learner.ok('bootstrap')['features']
+        check(not after_revoke['graph'] and after_revoke['data_lab'],'Revoking last grant hides only the affected tool')
+        save(backup,periods={'access_end':day(-1)})
+        after_expiry=learner.ok('bootstrap')['features']
+        check(not after_expiry['data_lab'] and after_expiry['files'],'Expired second group no longer contributes permissions')
+        check(learner.call('lab.object',id=shared_lab)[0]==403,'Expired grant cannot authorize a dataset API request')
+        save(first,features={})
+        save(backup,features={},periods={'access_start':day(7),'access_end':None})
         teacher.ok('files',project=personal)
         check(group(first)['address_mode']=='formal','Existing groups default to Siezen')
         check(learner.ok('bootstrap')['user']['address']['mode']=='formal','Default frontend address is formal')
