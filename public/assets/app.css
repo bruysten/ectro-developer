@@ -230,7 +230,7 @@ button.link { border:0;background:none;color:var(--accent);padding:0; }
 .brand img { height:30px;width:auto;max-width:180px; }
 .sidebar-heading { display:flex;align-items:center;gap:8px;padding-bottom:28px;border-bottom:1px solid var(--border-subtle); }
 .sidebar-heading .brand { padding:0;border:0;flex:1;min-width:0; }
-.sidebar-heading .brand img { width:150px;height:auto;max-width:100%; }
+.sidebar-heading .brand img { width:150px;height:34px;max-width:100%;object-fit:contain;object-position:left center; }
 .sidebar-heading .brand-mark,.avatar-icon,.nav-tooltip { display:none; }
 .template-options { max-height:320px;overflow-y:auto;overscroll-behavior:contain; }
 .template-settings { display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr);gap:20px; }
@@ -780,7 +780,10 @@ html[data-workspace-resizing] iframe { pointer-events:none!important; }
 
 /* Keep account controls in view; only navigation links scroll. */
 .shell .sidebar { height:100dvh;overflow:hidden; }
-.shell .sidebar>.nav { flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;align-content:start;padding-block:4px; }
+/* Fill the scroll region without redistributing space between menu rows,
+   including while the sidebar changes width. */
+.shell .sidebar>.nav { display:flex;flex-direction:column;flex:1 1 0px;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-block:4px; }
+.shell .sidebar>.nav>* { flex:0 0 auto; }
 .shell .sidebar-bottom { flex:0 0 auto;margin-top:0;padding-top:14px;background:var(--white); }
 .sidebar .account { min-height:58px; }
 @media(max-height:740px){.sidebar .workspace-note { display:none; }}
