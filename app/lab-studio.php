@@ -4,8 +4,10 @@ require_once __DIR__.'/lab-personas.php';
 require_once __DIR__.'/lab-landscape.php';
 require_once __DIR__.'/lab-readiness.php';
 require_once __DIR__.'/lab-statistics.php';
+require_once __DIR__.'/lab-geo.php';
+require_once __DIR__.'/geo-fetch.php';
 
-const STUDIO_KINDS = ['conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics'];
+const STUDIO_KINDS = ['conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics','geo'];
 const STUDIO_VIEWS = ['table','bar','column','stacked','line','area','scatter','histogram','boxplot','heatmap','donut','treemap','kpi','network','strategy'];
 
 function studioText(mixed $v,int $max=4000): string {
@@ -96,6 +98,7 @@ function studioValidate(string $kind,array $c): array {
         $actions=[];foreach(['eliminate','reduce','raise','create'] as $key)$actions[$key]=studioText($c['actions'][$key]??'',2000);
         return ['source'=>$source,'view'=>$view,'actions'=>$actions,'style'=>studioChartStyle($c['style']??null)];
     }
+    if ($kind==='geo')return geoValidate($c);
     if ($kind==='statistics')return statisticsValidate($c);
     if ($kind==='readiness')return readinessValidate($c);
     if ($kind==='landscape')return landscapeValidate($c);
@@ -198,7 +201,9 @@ function studioDispatch(array $u,string $action,array $data): never {
     if($action==='studio.persona.archive')jsonOut(['persona'=>studioPersonaArchive($u,$data)]);
     if($action==='studio.chat')jsonOut(studioChat($u,$data));
     if($action==='studio.evaluate')jsonOut(studioEvaluate($u,$data));
+    if($action==='studio.geo.compare')jsonOut(geoCompare($u,$data));
     [$pid,$kind]=studioAccess($u,$data);
+    if(str_starts_with($action,'studio.geo.')){if($kind!=='geo')fail(422,'Bitte das GEO Lab verwenden.');jsonOut(geoDispatch($u,$pid,$action,$data));}
     if($action==='studio.sources')jsonOut(studioSources($u,$pid));
     if($action==='studio.source'){$source=studioSourceInput($data['source']??null);if(!$source)fail(422,'Bitte eine Datenquelle wählen.');$result=studioReadSource($u,$pid,$source);labJson($result);jsonOut($result);}
     if($action==='studio.tables'){needFeature($u,'database');rateLimit('studio.mysql.'.$u['id'],30,60);$pdo=mysqlConnection($u,null,$pid);try{$stmt=$pdo->query('SHOW TABLES');$tables=[];while(count($tables)<100&&($name=$stmt->fetchColumn())!==false)if(preg_match('/^[a-zA-Z_][a-zA-Z0-9_]{0,63}$/D',$name))$tables[]=$name;jsonOut(['tables'=>$tables]);}catch(PDOException $e){mysqlError($e);}}

@@ -1,3 +1,4 @@
+import './geo.mjs';
 import './statistics.mjs';
 import './database-table-delete.mjs';
 import './readiness-admin.mjs';
