@@ -11,6 +11,13 @@ function archiveValidate(array $c):array {
         $out['tags']=[];foreach(labList($d['tags']??[],12) as $tag){$tag=trim(studioText($tag,50));if($tag===''||in_array(mb_strtolower($tag),array_map('mb_strtolower',$out['tags']),true))fail(422,'Schlagwörter müssen ausgefüllt und eindeutig sein.');$out['tags'][]=$tag;}
         $out['status']=studioEnum($d['status']??'draft',['current','draft','superseded']);
         $out['classification']=studioEnum($d['classification']??'unknown',['unknown','public','internal','confidential']);
+        if(isset($d['extraction'])){
+            $x=studioRecord($d['extraction']);$mode=studioEnum($x['mode']??null,['text','ocr','mixed']);$language=studioEnum($x['language']??null,['deu','eng','deu+eng']);$pages=$x['pages']??0;if(!is_int($pages)||$pages<1||$pages>30)fail(422,'Ungültige Seitenzahl der Texterkennung.');$scanned=[];
+            foreach(labList($x['ocrPages']??[],30) as $page){if(!is_int($page)||$page<1||$page>$pages||in_array($page,$scanned,true))fail(422,'Ungültige OCR-Seiten.');$scanned[]=$page;}sort($scanned);
+            if(($mode==='text'&&$scanned)||($mode==='ocr'&&count($scanned)!==$pages)||($mode==='mixed'&&(!$scanned||count($scanned)===$pages)))fail(422,'Die Erkennungsart passt nicht zu den Seiten.');
+            $confidence=$x['confidence']??null;if($confidence!==null&&(!is_int($confidence)||$confidence<0||$confidence>100))fail(422,'Ungültige OCR-Erkennungsqualität.');if(!$scanned&&$confidence!==null)fail(422,'Eine Textebene hat keine OCR-Erkennungsqualität.');
+            $out['extraction']=['mode'=>$mode,'language'=>$language,'pages'=>$pages,'ocrPages'=>$scanned,'confidence'=>$confidence];
+        }
         $total+=mb_strlen($out['text']);if($total>200000)fail(422,'Ein Archiv darf insgesamt höchstens 200.000 Textzeichen enthalten.');$documents[]=$out;
     }
     return ['documents'=>$documents];

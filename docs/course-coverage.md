@@ -42,7 +42,7 @@ Stand: 08.11.2026. Grundlage: [Data & AI Professional, Akademie der Deutschen Me
 |---|---|---|---|
 | Verdichten | Anzahl, Summe, Mittelwert, Median, Minimum, Maximum und zusätzliche Gruppendimension | Direkt | Umfangreiche Pivot-Auswertungen, wiederverwendbare Transformationsschritte und anspruchsvollere SQL-Auswertungen. |
 | Datenerhebung | Dateiimport, manuelle Eingabe, lokale Umwandlung einschließlich JSON Lines/YAML-Objektlisten/Markdown und ausdrücklich verbundene Projektdatenbank | Teilweise | Formularerhebung sowie geplante CRM-, Shop- und API-Importe. |
-| Ungenutzte Bestände | Dokumentablage, Textquellen, RAG und gespeicherte Assistentenquellen | Teilweise | Automatische Bestandsaufnahme, Klassifikation sowie PDF-/Office-Texterschließung und OCR. |
+| Ungenutzte Bestände | Archiv Lab mit Metadaten, Suchvergleich, Dublettenprüfung, lokaler PDF-/Bild-OCR und RAG-Übergabe mit Herkunft/Stand | Teilweise | Automatische Bestandsaufnahme, inhaltliche Klassifikation und Office-Texterschließung. |
 | Rechtmäßige Verarbeitung | Rechteprüfung, private Schlüssel, kontrollierte Quellen und lesende Assistentenwerkzeuge | Teilweise | Datenklassifikation, Anonymisierung, Zweckbindung, Aufbewahrung und fachliche Datenschutzprüfung. |
 | Datenbankrechte | Technische Zugriffsbeschränkung und isolierte Kursdatenbanken | Offen als Fachthema | Eigene Übungen zu Lizenzen, Nutzungsrechten und zulässiger Weiterverarbeitung. |
 | KI-Datenbezug | Gespräch, nachvollziehbarer Quellenkontext und deterministisch berechnete Tabellenübersichten | Direkt | Fachlich geprüfte Auswertungsrezepte für konkrete Geschäftsfragen. |
@@ -72,7 +72,7 @@ Stand: 08.11.2026. Grundlage: [Data & AI Professional, Akademie der Deutschen Me
 1. **Geschäftsfrage bis belastbare Entscheidung:** Ein kuratierter Ablauf verbindet Datenimport, Qualitätsprüfung, nachprüfbare Berechnung, Visualisierung, Quellenprüfung und einen Ergebnisbericht. So wird aus der Werkzeugsammlung ein zusammenhängender Kursfall.
 2. **Governance und Datenschutz als Fachpraxis:** Datenrollen, Katalog, Klassifikation, zulässige Nutzung, Anonymisierung und fachliche Freigaben ergänzen die vorhandene technische Zugriffskontrolle.
 3. **Wiederholbarkeit:** Quellenstände, Transformationshistorie, vollständige Datenbankabfragen und versionierte Analyseergebnisse nachvollziehbar miteinander verbinden. Live-Quellen sind derzeit ausdrücklich keine unveränderlichen Snapshots.
-4. **Dokumente und Tabellen erschließen:** Direkter XLSX-Import, PDF-/Office-Texterschließung und bei Bedarf OCR schließen die verbleibenden Medienbrüche.
+4. **Dokumente und Tabellen erschließen:** Das Archiv Lab erschließt PDFs und Scans jetzt lokal per OCR. Direkter XLSX-Import und vollständige Office-Texterschließung bleiben sinnvolle nächste Schritte.
 5. **Empirische Methoden:** Weitere Statistikfälle, Nutzertests und bewertbare Geschäftsmodelle ergänzen die neuen Interpretations- und Journey-Werkzeuge.
 6. **Fachvorlagen:** Projektplan und eine kleine Blockchain-Demonstration ergänzen die bisher offenen Kursmethoden. Der Service-Blueprint ist jetzt im Journey Lab vorhanden.
 

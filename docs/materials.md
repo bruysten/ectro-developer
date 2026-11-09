@@ -1,0 +1,19 @@
+# Zentrale Materialien
+
+**Frontend `/#materials`**, als eigener Navigationspunkt direkt nach „Labore“. **Verwaltung `/admin/#materials`**. Materialien sind bewusst kein Labor und gehören nicht zu einem Projekt.
+
+Die zentrale Bibliothek verwaltet Dokumente und Weblinks mit Titel, Kurzbeschreibung und Themenbereich. Dateien werden einmal geschützt abgelegt und unabhängig davon für eine oder mehrere Gruppen aktiviert. Die Ansicht **Gruppenfreigaben** wählt eine Gruppe und stellt die einzelnen Materialien mit sofort speichernden Schaltern bereit. Alternativ lassen sich die Gruppen direkt beim Material auswählen. Neue Materialien haben keine voreingestellten Gruppen.
+
+Teilnehmende erhalten eine deduplizierte Übersicht der Materialien ihrer aktiven Gruppen. Suchfeld, Thema und Dokument-/Linkfilter helfen beim Wiederfinden. Dokumente bieten „Herunterladen“, Links „Öffnen“. Eine offene Materialseite aktualisiert sich regelmäßig, ohne eine unveränderte Ansicht ständig neu aufzubauen. Globale Bereitstellung und Gruppenfreigabe müssen beide aktiv sein. Kursleitung/Administratoren können Materialien zur Betreuung einsehen; zentrale Änderungen sind Administratoren vorbehalten. Konten ohne Gruppe sehen einen verständlichen leeren Zustand. Materialien benötigen kein Dateilabor- oder KI-Recht.
+
+Ein Link muss HTTP(S) verwenden und darf keine eingebetteten Zugangsdaten enthalten. Er wird ausschließlich verlinkt und nie serverseitig abgerufen. Frontend und Backend verwerfen ausführbare URL-Schemata. Externe Links öffnen mit `noopener noreferrer` in einem neuen Tab.
+
+Dokumente liegen als BLOB außerhalb des öffentlichen Dateisystems in `material_files`; Listen liefern ausschließlich Metadaten. `/material-file.php` prüft bei jedem Abruf die Anmeldung, globale Bereitstellung, aktuelle Mitgliedschaft und den aktiven Gruppenzugriff erneut. Entzug und Ablauf wirken damit auch auf alte Downloadlinks. Die Antwort nutzt `attachment`, `application/octet-stream`, `nosniff`, eine Sandbox-CSP und `private, no-store`. Originaldateinamen werden sicher kodiert. Eine externe Website kann unabhängig von der Academy öffentlich sein; das Entfernen ihres Links entzieht keinen Zugang beim externen Anbieter.
+
+Alle Änderungen und Gruppenschalter nutzen Objektversionen. Ein veralteter Editor kann entzogene Freigaben nicht wiederherstellen. Ein Dokument kann ersetzt werden, ohne seine Gruppen erneut zuordnen zu müssen. Zentral ausgeblendete Materialien behalten ihre Zuordnungen für eine spätere Wiederbereitstellung. Löschen verlangt eine Bestätigung und entfernt Dokument und Gruppenfreigaben gemeinsam.
+
+Die Ablage hat eine Grenze von 100 MB, höchstens 300 Einträge und 10 MB je Dokument, gegebenenfalls weniger durch `upload_max_filesize`/`post_max_size`; die Oberfläche zeigt die tatsächlich wirksame Grenze. Dokumente, gängige Office-Formate, Text-/Tabellenformate, PNG/JPEG/WebP und ZIP sind erlaubt. Keine Ausführung, Entpackung oder automatische Weitergabe hochgeladener Dateien.
+
+Die drei Tabellen `materials`, `material_files` und `material_groups` werden auch in bestehenden Installationen automatisch angelegt. Keine bestehenden Projekt-, Gruppen- oder Labordaten werden migriert oder überschrieben.
+
+`tests/materials.php` prüft 35 Fälle für Validierung, aktive Gruppenunion, deduplizierte Listen, fremde Zugriffe, Abbruch durch Entzug, abgelaufene Gruppen, URL-/Dateinamenprüfung, Quoten, Versionskonflikte und kaskadierendes Löschen. `tests/materials-http.py` prüft echte Sitzungen, CSRF und Methoden, Multipart-Uploads, geschützte Downloadheader, unangemeldete/fremde Abrufe, sofortigen Entzug, abgelaufene Gruppen und veraltete Schreibversuche. Die Darstellung wird bei 320, 768 und 1280 Pixeln im Browser geprüft.
