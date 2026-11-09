@@ -7,10 +7,11 @@ require_once __DIR__.'/lab-statistics.php';
 require_once __DIR__.'/lab-geo.php';
 require_once __DIR__.'/geo-fetch.php';
 require_once __DIR__.'/lab-agent.php';
+require_once __DIR__.'/lab-archive.php';
 require_once __DIR__.'/lab-loop.php';
 require_once __DIR__.'/agent-mcp.php';
 
-const STUDIO_KINDS = ['conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics','geo','agent'];
+const STUDIO_KINDS = ['conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics','geo','agent','archive'];
 const STUDIO_VIEWS = ['table','bar','column','stacked','line','area','scatter','histogram','boxplot','heatmap','donut','treemap','kpi','network','strategy'];
 
 function studioText(mixed $v,int $max=4000): string {
@@ -101,6 +102,7 @@ function studioValidate(string $kind,array $c): array {
         $actions=[];foreach(['eliminate','reduce','raise','create'] as $key)$actions[$key]=studioText($c['actions'][$key]??'',2000);
         return ['source'=>$source,'view'=>$view,'actions'=>$actions,'style'=>studioChartStyle($c['style']??null)];
     }
+    if ($kind==='archive')return archiveValidate($c);
     if ($kind==='agent')return agentValidate($c);
     if ($kind==='geo')return geoValidate($c);
     if ($kind==='statistics')return statisticsValidate($c);

@@ -174,3 +174,7 @@ Browsergeprüft wurden gleiche Kachelmaße auf Desktop und bei 390 px, alle proj
 ## Service-Blueprint und Unternehmenslandschaft
 
 Das Journey Lab enthält nun einen separat pro Gruppe freigebbaren Service-Blueprint. Das neue Digital Landscape Lab erfasst mehrere Systemprofile, eigene Datenbestände und gerichtete Datenflüsse pro Projekt. Beide verwenden den kompakten Laborrahmen, die bestehenden privaten bzw. gemeinsamen Projekte und serverseitige Rechte-/Versionsprüfungen. Details, Grenzen, Quellen und Prüfungen stehen in [Service-Blueprint und Digital Landscape Lab](landscape-blueprint.md).
+
+## Archiv Lab
+
+Bestände erschließen, Suchwirkung beobachten und Dubletten bzw. fehlende Angaben prüfen. Textimporte, lokale PDF-Texterschließung und Übergabe mit Herkunft/Stand/Status an die vorhandene RAG-Werkstatt sind in [Archiv Lab](archive-lab.md) beschrieben. Pro Gruppe über `archive_lab` aktivierbar.
