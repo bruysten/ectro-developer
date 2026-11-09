@@ -17,3 +17,21 @@ export function workspaceRouteAllowed(route,flags,studios={}){
  if(route==='ai-lab')return !!flags.files&&!!(flags.ai||flags.rag||flags.neural);
  if(['chat','team'].includes(route))return !!flags[route];return true;
 }
+
+// Keep references held by open labs alive, rather than replacing their flags object.
+export function replaceWorkspaceFlags(current,next={}){
+ for(const key of Object.keys(current))if(!Object.hasOwn(next,key))delete current[key];
+ Object.assign(current,next);return current;
+}
+export function refreshWorkspaceNavigation(nav,html,route){
+ if(!nav)return;
+ const previous=nav.querySelector('.nav-lab-group'),opened=previous?.open,top=nav.scrollTop,active=nav.ownerDocument.activeElement;
+ const focused=nav.contains(active)?active.closest('[data-route]')?.dataset.route:null,summaryFocused=active===previous?.querySelector('summary');
+ nav.innerHTML=html;
+ for(const link of nav.querySelectorAll('[data-route]'))link.setAttribute('aria-current',link.dataset.route===route?'page':'false');
+ const group=nav.querySelector('.nav-lab-group'),selected=!!group?.querySelector('[aria-current="page"]');
+ if(group){group.open=!!opened||selected;group.classList.toggle('has-active',selected);}
+ if(focused){const target=[...nav.querySelectorAll('[data-route]')].find(link=>link.dataset.route===focused);(target||group?.querySelector('summary'))?.focus({preventScroll:true});}
+ else if(summaryFocused)group?.querySelector('summary')?.focus({preventScroll:true});
+ nav.scrollTop=top;
+}

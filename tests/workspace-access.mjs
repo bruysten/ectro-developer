@@ -47,9 +47,9 @@ assert(workspaceRouteAllowed('dashboard',{}));
 const source=readFileSync(new URL('../src/app.js',import.meta.url),'utf8');
 const helpers=source.slice(source.indexOf('async function api('),source.indexOf('function bind('));
 for(const admin of [false,true]){
- const calls=[];let response={ok:true,status:200,headers:{get:()=>null},json:async()=>({ok:true})};
- const {get,api}=new Function('fetch','admin',`let user={id:'fixture'},csrf='fixture',dbProject=null;const databaseContext=()=>({}),uiError=x=>x,boot=async()=>{};${helpers};return {get,api};`)(async(url,init)=>{calls.push({url,init});return response;},admin);
- await get('lab.projects');await api('templates');await api('project.create',{name:'Fixture'});
+ const calls=[];let notifications=0;let response={ok:true,status:200,headers:{get:()=>null},json:async()=>({ok:true})};
+ const {get,api}=new Function('fetch','admin','workspaceSignals',`let user={id:'fixture'},csrf='fixture',dbProject=null;const databaseContext=()=>({}),uiError=x=>x,boot=async()=>{};${helpers};return {get,api};`)(async(url,init)=>{calls.push({url,init});return response;},admin,{notify(){notifications++;}});
+ await get('lab.projects');await api('templates');await api('project.create',{name:'Fixture'});assert.equal(notifications,0);await api('admin.group.features.save',{});await api('admin.user.save',{});await api('admin.settings',{});assert.equal(notifications,3);
  for(const call of calls)assert.equal(call.init.headers['X-Workspace-Portal'],admin?'admin':'frontend');
  for(const status of [403,404]){
   response={ok:false,status,headers:{get:()=>null},json:async()=>({error:'Nicht verfügbar',code:'fixture'})};
