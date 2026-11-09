@@ -37,3 +37,11 @@ const root={innerHTML:'',querySelectorAll:q=>q==='[data-edit]'?[openButton]:[],q
 const dispose=mountArchive(root,{content:{documents:[hostile]},state:{},flags:{},info:{config:{}},icon:()=>'',alive:()=>true,modal:async(title,body)=>{modalTitle=title;modalBody=body;},fail:error=>{throw error;}});
 assert.ok(!root.innerHTML.includes(hostile.title));assert.match(root.innerHTML,/&lt;script&gt;/);await openButton.onclick();assert.match(modalTitle,/&lt;img/);assert.match(modalBody,/&lt;script&gt;/);assert.ok(!modalBody.includes('<script>'));dispose();
 console.log('Archive rendering: imported titles, body text, filenames and dialog titles stay inert.');
+
+let editOptions;const guardedRoot={innerHTML:'',querySelectorAll:q=>q==='[data-edit]'?[openButton]:[],querySelector:()=>null};
+mountArchive(guardedRoot,{content:{documents:[hostile]},state:{},flags:{},info:{config:{}},icon:()=>'',alive:()=>true,modal:async(title,body,onSubmit,label,options)=>{if(label==='Bearbeiten')await onSubmit();else editOptions=options;},fail:error=>{throw error;}});
+await openButton.onclick();assert.equal(editOptions.freezeOnSubmit,true);assert.equal(await editOptions.beforeClose(),true,'Escape is routed through the modal close guard while a save is pending');
+let projectOptions;const projectButton={dataset:{archive:'project'},closest:()=>null};const projectRoot={innerHTML:'',querySelectorAll:q=>q==='[data-archive]'?[projectButton]:[],querySelector:()=>null};
+mountArchive(projectRoot,{content:{documents:[]},state:{},flags:{},info:{config:{}},icon:()=>'',alive:()=>true,get:async()=>({files:[{kind:'file',path:'example.txt'}]}),modal:async(title,body,onSubmit,label,options)=>{projectOptions=options;},fail:error=>{throw error;}});
+await projectButton.onclick();await new Promise(resolve=>setImmediate(resolve));assert.equal(projectOptions.freezeOnSubmit,true);assert.equal(typeof projectOptions.beforeClose,'function');
+console.log('Archive dialogs: save/import submissions block late cancellation until the in-flight operation settles.');
