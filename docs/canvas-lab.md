@@ -22,6 +22,22 @@ Ein Beleg erfordert einen Quellen-/Beobachtungstext. Die Markierung allein ist k
 inhaltliche Validierung. Ein bearbeitbares synthetisches Beispiel ist optional.
 Die Feldzählung zeigt nur die Befüllung, keine fachliche Qualitätsbewertung.
 
+Jede bearbeitbare Karte hat im Kopf eine dezente **Löschen**-Aktion neben dem
+Verschiebegriff. Sie ist auch ohne Hover sichtbar und per Tastatur erreichbar.
+Vor dem Löschen erscheint der Kartentext zur Bestätigung; bei gemeinsamen
+Canvases wird auf die Wirkung für die ganze Gruppe hingewiesen. Dieselbe
+Bestätigung ist im Karteneditor verfügbar. Auf Touch-Geräten erhalten beide
+Aktionen 44-Pixel-Ziele. Archivierte Canvases und Druckansichten enthalten keine
+Löschaktion. Die kompakte Kopfzeile lässt in geometrischen Vorlagen Platz für
+den eigentlichen Kartentext.
+
+Die Entfernung prüft die angezeigte Kartenrevision. Nach einer parallelen
+Änderung wird der aktuelle Stand geladen und eine erneute bewusste Auswahl
+verlangt. Wiederholen nach einem Verbindungsfehler verwendet dieselbe
+Änderungskennung. Entwürfe anderer Karten bleiben erhalten. Nach erfolgreichem
+direktem Löschen liegt der Tastaturfokus beim Hinzufügen im zugehörigen Feld.
+
+
 ## Visuelle Logik der Vorlagen
 
 Die Struktur der Methoden bleibt erhalten; Farben, Typografie und Bedienelemente
@@ -176,3 +192,10 @@ Messdaten, versionierte Rückblicke und Kommentare sind mögliche spätere Erwei
 Karten direkt auf Empathy Map und VPC, robuste Bibliotheksaktualisierung und die
 Lösch-/Neuanlageregression sind in [Canvas-, Graph- und Formular-Korrekturen](canvas-graph-interactions.md) dokumentiert. Nach Löschen oder Archivieren bleibt
 der bisherige Bereich erhalten; der Papierkorb wird ausdrücklich ausgewählt.
+
+Karten-Löschen geprüft: direkte Aktion und verschachtelter Editor, Abbrechen,
+Neuladen nach bestätigtem Entfernen und Erhalt der übrigen Karten. Die
+Felderansicht und Bestätigung sind bei 320, 768 und 1440 Pixeln ohne
+Seitenüberlauf geprüft. `tests/canvas-delete.mjs` prüft außerdem Revisionskonflikte,
+identische Wiederholungen nach verlorener Antwort und fremde Kartenentwürfe;
+die Boardtests decken alle acht Modelle, Archiv und Druck ab.

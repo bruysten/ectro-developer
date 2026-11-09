@@ -1,3 +1,4 @@
+import './canvas-delete.mjs';
 import './canvas-library.mjs';
 import './canvas-drag.mjs';
 import assert from 'node:assert/strict';
