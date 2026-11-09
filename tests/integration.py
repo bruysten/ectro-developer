@@ -594,7 +594,11 @@ with tempfile.TemporaryDirectory(prefix='ectro-test-') as private:
         check(outsider.call('team',group=team_group)[0]==403 and team_photo(outsider,team_group)==403,'Feature disable blocks API and shared pictures')
         admin.ok('admin.settings',{'features':{},'hosts':['localhost']})
         admin.ok('admin.group.save',{'id':team_group,'name':'Profile team','features':{'team':False},'users':[profile_owner_id,outsider_id]})
-        check(outsider.call('team.profile',group=team_group,id=profile_owner_id)[0]==403,'Group feature restriction blocks profile access')
+        check(outsider.call('team.profile',group=team_group,id=profile_owner_id)[0]==200,'Another active group retains the Team tool grant')
+        class_b_rights=next(g for g in admin.ok('admin.groups')['groups'] if g['id']==class_b)
+        class_b_blocked=admin.ok('admin.group.features.save',{'id':class_b,'version':class_b_rights['version'],'features':{**json.loads(class_b_rights['features']),'team':False}})['group']
+        check(outsider.call('team.profile',group=team_group,id=profile_owner_id)[0]==403,'Denial in every active group blocks profile access')
+        admin.ok('admin.group.features.save',{'id':class_b,'version':class_b_blocked['version'],'features':json.loads(class_b_rights['features'])})
         admin.ok('admin.group.save',{'id':team_group,'name':'Profile team','features':{},'users':[profile_owner_id]})
         check(outsider.call('team',group=team_group)[0]==404 and team_photo(outsider,team_group)==404,'Removed membership revokes directory and picture access')
         admin.ok('admin.group.save',{'id':team_group,'name':'Profile team','features':{},'users':[profile_owner_id,outsider_id]})

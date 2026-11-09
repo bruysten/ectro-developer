@@ -251,8 +251,14 @@ function phpExecutionMode(): string {
 function features(array $u): array {
     $s = settings(); $flags = array_fill_keys(FEATURES, true);if(!learningAccess($u)['allowed'])return array_fill_keys(FEATURES,false);
     foreach (($s['features'] ?? []) as $f => $v) if (array_key_exists($f, $flags)) $flags[$f] = (bool)$v;
-    foreach (all('SELECT g.features FROM groups g JOIN group_members m ON g.id=m.group_id WHERE m.user_id=? AND '.groupOpenSql('g.id'), [$u['id']]) as $g)
-        foreach (json_decode($g['features'], true) as $f => $v) if (isset($flags[$f]) && !$v) $flags[$f] = false;
+    // Active groups contribute grants additively; one group's denial is not a veto on another's grant.
+    // Omitted keys retain the existing default (enabled). No groups retains personal workspace defaults.
+    $groups=all('SELECT g.features FROM groups g JOIN group_members m ON g.id=m.group_id WHERE m.user_id=? AND '.groupOpenSql('g.id'), [$u['id']]);
+    if($groups){
+        $grants=array_fill_keys(FEATURES,false);
+        foreach($groups as $g){$groupFlags=json_decode($g['features'],true);foreach(FEATURES as $f)if($groupFlags[$f]??true)$grants[$f]=true;}
+        foreach(FEATURES as $f)$flags[$f]=$flags[$f]&&$grants[$f];
+    }
     foreach (json_decode($u['features'], true) as $f => $v) if (isset($flags[$f]) && !$v) $flags[$f] = false;
     // Teachers always retain project supervision; other laboratory flags remain configurable.
     if($u['role']==='teacher')$flags['files']=true;
