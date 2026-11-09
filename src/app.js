@@ -1,4 +1,5 @@
-import {workspaceAccessKey,pruneWorkspaceSelect,workspaceRouteAllowed} from './workspace-access.js';
+import {mountWorkspaceAccessSignals,WORKSPACE_ACCESS_POLL_MS} from './workspace-access-sync.js';
+import {workspaceAccessKey,pruneWorkspaceSelect,workspaceRouteAllowed,replaceWorkspaceFlags,refreshWorkspaceNavigation} from './workspace-access.js';
 import {ui,uiError,setAddressMode,getAddressMode,addressPreview} from './address.js';
 import {mountStudio,labsHubHtml,studioNavigation,equalizeLabCards} from './studio.js';
 import {STUDIO_LABS,studioExample} from './studio-models.js';
@@ -98,12 +99,13 @@ async function openSqlBuilder(){
 let disposeTraining=null,disposeTeam=null,disposeLabs=null,presenceTimer=null,labObjectId=null,labView={},adminTableObservers=[],adminTableSequence=0;
 let collaboration=null,disposeLayout=null,dbTimer=null,dbListSequence=0,dbRowSequence=0,dbTables=[];
 let dbProject=null;
-let accessTimer=null,accessScreen=false,accessRefreshPending=false,accessChecking=false;
+let accessTimer=null,accessScreen=false,accessRefreshPending=false,accessChecking=false,accessCheckQueued=false;
 let user,csrf,flags={},phpExecutionMode='browser',routeVersion=0,runVersion=0,openVersion=0,editor=null,activeFile=null,activeProject=null,dirty=false,chatTimer=null,runJob=null,files=[],projects=[],dbInfo=null,selectedTable=null,dbOffset=0,chatGroup=null;
 const admin=location.pathname.startsWith('/admin');
 document.body.classList.toggle('admin-surface',admin);
 let recoveryToken=takeRecoveryToken(location,history);
 const app=$('#app');
+const workspaceSignals=mountWorkspaceAccessSignals({check:()=>checkAccessWindow(),enabled:()=>!!user&&!admin});
 function toast(message,error=false){message=uiError(message);const item=document.createElement('div');item.className='toast'+(error?' error-toast':'');item.textContent=message;$('#notifications').append(item);setTimeout(()=>item.remove(),error?7000:3500);}
 function databaseContext(){const p=new URLSearchParams(location.hash.split('?')[1]||'');return p.get('participant')&&p.get('group')?{participant:p.get('participant'),group:p.get('group')}:{};}
 async function api(action,data=null){
@@ -114,6 +116,7 @@ async function api(action,data=null){
   const address=response.headers.get('X-Address-Mode');if(user&&!admin&&!action.startsWith('admin.')&&['formal','informal'].includes(address))user.address={...user.address,mode:address};
   let result;try{result=await response.json();}catch{throw Error('Der Server hat keine gültige Antwort geliefert.');}
   if(!response.ok){if(response.status===401 && action!=='login'){user=null;await boot();}if(result.code==='access_period'&&action!=='login')await boot();throw Object.assign(Error(uiError(result.error||'Die Anfrage ist fehlgeschlagen.')),{status:response.status,code:result.code});}
+  if(!read&&(action==='admin.settings'||action.startsWith('admin.group.')||action.startsWith('admin.user.')))workspaceSignals.notify();
   return result;
 }
 async function get(action,params={}) {
@@ -138,31 +141,33 @@ async function confirm(title,copy,label='Löschen'){return modal(title,`<p>${esc
 async function leaveDirty(){if(dirty&&collaboration)try{await collaboration.flush();}catch{}return !dirty||await confirm('Ungespeicherte Änderungen',ui('Ihre letzten Änderungen sind noch nicht gespeichert. Möchten Sie diesen Bereich trotzdem verlassen?'),'Verlassen');}
 function resetWorkspace(){adminTableObservers.forEach(observer=>observer.disconnect());adminTableObservers=[];disposeLabs?.();disposeLabs=null;labObjectId=null;labView={};disposeTeam?.();disposeTeam=null;clearTimeout(colorHelperTimer);colorHelperTimer=null;++sqlHelperSeq;disposeTraining?.();disposeTraining=null;clearInterval(dbTimer);dbTimer=null;++dbListSequence;++dbRowSequence;disposeLayout?.();disposeLayout=null;collaboration?.destroy();collaboration=null;++runVersion;++openVersion;editor?.destroy();editor=null;activeFile=null;dirty=false;runJob?.stop();runJob=null;}
 function armAccessWindow(){
-  clearTimeout(accessTimer);const delays=[accessWindowDelay(user?.access),...(!admin?[accessWindowDelay(user?.address),60000]:[])].filter(Number.isFinite);if(delays.length)accessTimer=setTimeout(checkAccessWindow,Math.min(...delays));
+  clearTimeout(accessTimer);const delays=[accessWindowDelay(user?.access),...(!admin?[accessWindowDelay(user?.address),document.hidden?60000:WORKSPACE_ACCESS_POLL_MS]:[])].filter(Number.isFinite);if(delays.length)accessTimer=setTimeout(checkAccessWindow,Math.min(...delays));
 }
 async function checkAccessWindow(){
-  const uid=user?.id;if(!uid||accessChecking)return;accessChecking=true;
-  try{const previous=workspaceAccessKey(user.groups,flags),fresh=await api('bootstrap');if(user?.id!==uid)return;csrf=fresh.csrf;if(!fresh.user){user=null;await boot();return;}const wasClosed=accessScreen;user.access=fresh.user.access;user.address=fresh.user.address;user.groups=fresh.user.groups;flags=fresh.features;if(!user.access.allowed){setAddressMode(admin?'formal':fresh.user.address?.mode);showAccessWindow(fresh.user);return;}if(wasClosed){await boot();return;}
+  const uid=user?.id;if(!uid)return;if(accessChecking){accessCheckQueued=true;return;}clearTimeout(accessTimer);accessTimer=null;accessChecking=true;
+  try{const previous=workspaceAccessKey(user.groups,flags),fresh=await api('bootstrap');if(user?.id!==uid)return;csrf=fresh.csrf;if(!fresh.user){user=null;await boot();return;}const wasClosed=accessScreen;user.access=fresh.user.access;user.address=fresh.user.address;user.groups=fresh.user.groups;replaceWorkspaceFlags(flags,fresh.features);if(!user.access.allowed){setAddressMode(admin?'formal':fresh.user.address?.mode);showAccessWindow(fresh.user);return;}if(wasClosed){await boot();return;}
     const changed=!admin&&previous!==workspaceAccessKey(user.groups,flags);if(changed)accessRefreshPending=true;
-    const safe=!dirty&&!document.querySelector('dialog[open]')&&!$('#message')?.value.trim()&&!document.querySelector('.chat-bubble-panel.is-open')&&!location.hash.startsWith('#chat');
-    if(!admin&&safe&&(accessRefreshPending||getAddressMode()!==user.address?.mode)){accessRefreshPending=false;shell();await route();}
-    else if(!admin&&accessRefreshPending)await reconcileWorkspaceAccess();armAccessWindow();
-  }catch{if(user?.id===uid)accessTimer=setTimeout(checkAccessWindow,30000);}finally{accessChecking=false;}
+    const safe=()=>!dirty&&!document.querySelector('dialog[open]')&&!$('#message')?.value.trim()&&!document.querySelector('.chat-bubble-panel.is-open')&&!location.hash.startsWith('#chat');
+    if(!admin&&accessRefreshPending){if(await reconcileWorkspaceAccess())accessRefreshPending=false;else accessCheckQueued=true;}
+    if(!admin&&getAddressMode()!==user.address?.mode&&safe()){shell();await route();}armAccessWindow();
+  }catch{if(user?.id===uid)accessTimer=setTimeout(checkAccessWindow,30000);}finally{accessChecking=false;if(accessCheckQueued){accessCheckQueued=false;queueMicrotask(checkAccessWindow);}}
 }
 async function reconcileWorkspaceAccess(){
-  const groupIds=new Set(user.groups.map(g=>g.id));let lostContext=false;
+  const version=routeVersion;const groupIds=new Set(user.groups.map(g=>g.id));let lostContext=false;
   for(const select of document.querySelectorAll('select[name="group"],#chat-group,#team-group,#teaching-group')){const lost=pruneWorkspaceSelect(select,groupIds);if(lost&&select.closest('#view'))lostContext=true;}
-  const result=flags.files?await get('lab.projects'):{projects:[]},projectIds=new Set(result.projects.map(p=>p.id));
+  const result=flags.files?await get('lab.projects'):{projects:[]};if(version!==routeVersion)return false;const projectIds=new Set(result.projects.map(p=>p.id));
   for(const select of document.querySelectorAll('#project-select,select[name="project"],[data-field="project"],[data-studio-project]'))if(pruneWorkspaceSelect(select,projectIds)&&select.closest('#view'))lostContext=true;
   for(const card of document.querySelectorAll('.project-card[data-project],.project-card:has([data-open-project])')){const id=card.dataset.project||card.querySelector('[data-open-project]')?.dataset.openProject;if(id&&!projectIds.has(id))card.remove();}
   projects=projects.filter(p=>projectIds.has(p.id));for(const link of document.querySelectorAll('.dashboard-labs a')){const target=new URL(link.href);if(target.hash.includes('?project=')&&!projectIds.has(new URLSearchParams(target.hash.split('?')[1]).get('project')))link.href=target.hash.split('?')[0];}
   const params=new URLSearchParams(location.hash.split('?')[1]||''),name=location.hash.slice(1).split('?')[0],projectId=params.get('project')||(['files','editor','graph','data-lab','ai-lab',...Object.values(STUDIO_LABS).filter(s=>!s.standalone).map(s=>s.route)].includes(name)?activeProject:['database','sql-training'].includes(name)?dbProject:null);
   if(projectId&&!projectIds.has(projectId)||!workspaceRouteAllowed(name,flags,STUDIO_LABS)||name==='chat'&&chatGroup&&!groupIds.has(chatGroup))lostContext=true;if(activeProject&&!projectIds.has(activeProject)){activeProject=null;rememberProject(null);}
-  const templates=document.querySelector('.template-options');if(templates){const available=flags.files?await api('templates'):{templates:[]},ids=new Set(available.templates.map(t=>t.id));for(const radio of templates.querySelectorAll('input[name="template"]'))if(!ids.has(radio.value))radio.closest('label').remove();if(!templates.querySelector('input:checked')){const first=templates.querySelector('input');if(first)first.checked=true;else{templates.innerHTML='<p class="notice">Aktuell ist kein Startpunkt freigegeben.</p>';templates.closest('form').querySelector('[type="submit"]').disabled=true;}}}
-  const nav=$('.nav');if(nav){nav.innerHTML=workspaceNavigation();for(const link of nav.querySelectorAll('[data-route]'))link.setAttribute('aria-current',link.dataset.route===name?'page':'false');const labGroup=nav.querySelector('.nav-lab-group');if(labGroup?.querySelector('[aria-current="page"]'))labGroup.open=true;}
-  if(chatGroup&&!groupIds.has(chatGroup))resetChat();
+  const templates=document.querySelector('.template-options');if(templates){const available=flags.files?await api('templates'):{templates:[]};if(version!==routeVersion)return false;const ids=new Set(available.templates.map(t=>t.id));for(const radio of templates.querySelectorAll('input[name="template"]'))if(!ids.has(radio.value))radio.closest('label').remove();if(!templates.querySelector('input:checked')){const first=templates.querySelector('input');if(first)first.checked=true;else{templates.innerHTML='<p class="notice">Aktuell ist kein Startpunkt freigegeben.</p>';templates.closest('form').querySelector('[type="submit"]').disabled=true;}}}
+  refreshWorkspaceNavigation($('.nav'),workspaceNavigation(),name==='sql-training'?'database':name);
+  if(!flags.chat||chatGroup&&!groupIds.has(chatGroup))resetChat();
+  if(flags.chat&&!chatBubble)chatBubble=createChatBubble(user.id,ensureChat);
   const view=$('#view');let notice=$('#workspace-access-notice');if(lostContext){view.hidden=true;view.inert=true;document.querySelectorAll('dialog[open]').forEach(d=>d.close());if(!notice){notice=document.createElement('section');notice.id='workspace-access-notice';notice.className='content';notice.setAttribute('role','alert');notice.innerHTML='<div class="notice"><strong>Dieser Bereich ist nicht mehr freigegeben.</strong><p>Der Zugriffszeitraum oder die Gruppenzuordnung wurde geändert. Private Arbeiten bleiben über aktive Gruppen erreichbar.</p><a class="es-btn es-btn--secondary" href="#dashboard">Zur Übersicht</a></div>';view.before(notice);}}else{view.hidden=false;view.inert=false;notice?.remove();}
-  document.dispatchEvent(new Event('workspace-access-change'));
+  if(!lostContext&&name==='labs')refreshLabsHub(version);
+  document.dispatchEvent(new Event('workspace-access-change'));return true;
 }
 function showAccessWindow(account){
   ++routeVersion;user=account;accessScreen=true;resetWorkspace();resetChat();clearInterval(presenceTimer);presenceTimer=null;$$('dialog[open]').forEach(dialog=>dialog.close());
@@ -248,8 +253,7 @@ addEventListener('hashchange',async()=>{
   if(token!==null){if(!await leaveDirty())return;resetWorkspace();recoveryToken=token;await boot();return;}
   if(!user)return;if(!await leaveDirty()){history.replaceState(null,'',lastHash);return;}lastHash=location.hash;try{await route();}catch(e){toast(e.message,true);}
 });
-document.addEventListener('close',()=>{if(accessRefreshPending&&!accessChecking)checkAccessWindow();},true);
-addEventListener('focus',()=>{if(user&&!admin)checkAccessWindow();});
+document.addEventListener('close',()=>{if(user&&!admin&&(accessRefreshPending||getAddressMode()!==user.address?.mode))checkAccessWindow();},true);
 addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
 addEventListener('keydown',e=>{if(e.key==='Escape')setMobileNavigation(false);});
 async function route(){
@@ -860,7 +864,12 @@ async function team(version){
   const focus=()=>refresh();addEventListener('focus',focus);document.addEventListener('visibilitychange',focus);const timer=setInterval(refresh,15000);disposeTeam=()=>{disposed=true;clearInterval(timer);removeEventListener('focus',focus);document.removeEventListener('visibilitychange',focus);if(selected){hideMember();$('[data-action="close-modal"]',$('#modal'))?.click();}};await refresh();
 }
 
-async function studioHub(version){const params=new URLSearchParams(location.hash.split('?')[1]||'');if(render(labsHubHtml(flags,icon,params.get('project')||activeProject||rememberedProject()||''),version))disposeLabs=equalizeLabCards($('.studio-hub'));}
+function refreshLabsHub(version){
+  if(version!==routeVersion)return;const old=$('.studio-hub'),height=old?.style.getPropertyValue('--hub-card-height'),active=document.activeElement,focused=old?.contains(active)?active.closest('a')?.getAttribute('href'):null,x=scrollX,y=scrollY;
+  const params=new URLSearchParams(location.hash.split('?')[1]||'');disposeLabs?.();disposeLabs=null;
+  if(render(labsHubHtml(flags,icon,params.get('project')||activeProject||rememberedProject()||''),version)){const hub=$('.studio-hub');if(height)hub.style.setProperty('--hub-card-height',height);disposeLabs=equalizeLabCards(hub);if(focused)[...hub.querySelectorAll('a')].find(a=>a.getAttribute('href')===focused)?.focus({preventScroll:true});if(old)scrollTo(x,y);}
+}
+async function studioHub(version){refreshLabsHub(version);}
 async function studioPage(version){if(!render('<div id="studio-root"></div>',version))return;const dispose=await mountStudio($('#studio-root'),{api,get,esc,icon,modal,confirm,toast,flags,user,project:activeProject||rememberedProject(),isCurrent:()=>version===routeVersion,setDirty:value=>{dirty=value;},onProject:pid=>{activeProject=pid;rememberProject(pid);},onObject:id=>{labObjectId=id;labView={};lastHash=location.hash;publishPresence();}});if(version===routeVersion)disposeLabs=dispose;else dispose();}
 async function labsPage(version){
   const isData=location.hash.slice(1).split('?')[0]==='data-lab';

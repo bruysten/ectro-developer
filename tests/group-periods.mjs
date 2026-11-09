@@ -1,3 +1,4 @@
+import './workspace-access-sync.mjs';
 import './address.mjs';
 import './workspace-access.mjs';
 import assert from 'node:assert/strict';

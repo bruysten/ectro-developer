@@ -1,4 +1,4 @@
-import {workspaceAccessKey} from '../src/workspace-access.js';
+import {workspaceAccessKey,replaceWorkspaceFlags} from '../src/workspace-access.js';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {readFileSync,readdirSync} from 'node:fs';
@@ -47,11 +47,11 @@ for(const file of readdirSync(new URL('../src/',import.meta.url)).filter(f=>f.en
 // Exercise the real periodic refresh with the chat's actual closed state:
 // its panel has no hidden attribute, but is inert and lacks .is-open.
 const appSource=readFileSync(new URL('../src/app.js',import.meta.url),'utf8');
-const refreshSource=appSource.slice(appSource.indexOf('async function checkAccessWindow(){'),appSource.indexOf('function showAccessWindow('));
+const refreshSource=appSource.slice(appSource.indexOf('async function checkAccessWindow(){'),appSource.indexOf('async function reconcileWorkspaceAccess(){'));
 async function refreshScenario(patch={}){
   const context={user:{id:'learner',address:{mode:'formal'}},refresh:0,armed:0,dirty:false,dialog:false,chat:false,draft:'',page:'#editor',...patch};
   const doc={querySelector:selector=>selector==='dialog[open]'?(context.dialog?{}:null):selector==='.chat-bubble-panel.is-open'?(context.chat?{}:null):selector==='.chat-bubble-panel:not([hidden])'?{}:null};
-  const run=new Function('api','$','document','context','workspaceAccessKey',`let user=context.user,dirty=context.dirty,csrf,flags=context.flags||{},accessTimer,accessChecking=false,accessRefreshPending=false;const admin=false,accessScreen=false,location={hash:context.page};const getAddressMode=()=>context.mode||'formal',setAddressMode=()=>{},shell=()=>context.refresh++,route=async()=>{},boot=async()=>{},showAccessWindow=()=>{};const armAccessWindow=()=>context.armed++,setTimeout=()=>0;${refreshSource};return checkAccessWindow;`)(async()=>({csrf:'fixture',user:{id:'learner',access:{allowed:true},address:{mode:'informal'},groups:[]},features:{}}),()=>context.draft?{value:context.draft}:null,doc,context,workspaceAccessKey);
+  const run=new Function('api','$','document','context','workspaceAccessKey','replaceWorkspaceFlags',`let user=context.user,dirty=context.dirty,csrf,flags=context.flags||{},accessTimer,accessChecking=false,accessRefreshPending=false,accessCheckQueued=false;const admin=false,accessScreen=false,location={hash:context.page};const getAddressMode=()=>context.mode||'formal',setAddressMode=()=>{},shell=()=>context.refresh++,route=async()=>{},boot=async()=>{},showAccessWindow=()=>{};const reconcileWorkspaceAccess=async()=>true,armAccessWindow=()=>context.armed++,setTimeout=()=>0;${refreshSource};return checkAccessWindow;`)(async()=>({csrf:'fixture',user:{id:'learner',access:{allowed:true},address:{mode:'informal'},groups:[]},features:{}}),()=>context.draft?{value:context.draft}:null,doc,context,workspaceAccessKey,replaceWorkspaceFlags);
   await run();return context;
 }
 assert.equal((await refreshScenario()).refresh,1,'A closed chat must allow automatic address refresh');

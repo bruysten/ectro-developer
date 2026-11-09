@@ -124,3 +124,7 @@ Die Laborsuite verwendet temporäre Datenbanken und prüft unter anderem fremde 
 ## Weitere Projektlabore
 
 Chatbot-Labor, Assistenten-Builder, Quellenprüfungs-Labor, Analysefehler-Labor, Visualisation Lab und Customer Journey Lab sind über **Labore** erreichbar. Sie verwenden dieselben Projekte, Vorlagen und Gruppenfreigaben. [Bedienung, Datenquellen, Rechte und Grenzen](learning-studios.md).
+
+## Freigaben in geöffneten Sitzungen
+
+Neu freigegebene Labore erscheinen automatisch in der Frontend-Navigation und unter **Alle Labs**. Der Abgleich erfolgt in sichtbaren Sitzungen alle zehn Sekunden und zusätzlich bei Fokus/Tab-Rückkehr; andere Tabs desselben Ursprungs erhalten nach administrativen Änderungen sofort einen Hinweis. Offene Entwürfe und Formulare bleiben erhalten. [Ablauf, wirksame Rechte und Validierung](live-lab-grants.md).
