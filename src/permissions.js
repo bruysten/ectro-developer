@@ -14,6 +14,7 @@ export const PERMISSION_SECTIONS=[
     ['visualization_lab','Visualisation Lab','Projektdaten vergleichen, erklären und als Strategiekurve darstellen.'],
     ['reasoning_lab','Analysefehler-Labor','Kausalität, Stichproben, Mittelwerte und Simpson-Paradox untersuchen.'],
     ['canvas_lab','Canvas Lab','Geschäftsmodelle und Kundenverständnis privat oder gemeinsam entwickeln.'],
+    ['readiness_lab','Digital Readiness Lab','Digitalen Standort und den Übergang zur AI Organisation mit einem Selbstcheck einschätzen.'],
     ['landscape_lab','Digital Landscape Lab','Systeme, Datenbestände und Datenflüsse im Unternehmen erfassen.'],
     ['blueprint_lab','Service Blueprint · Journey Lab','Sichtbare Leistungen, interne Abläufe und Abhängigkeiten innerhalb einer Journey bearbeiten.'],
     ['journey_lab','Customer Journey Lab','Kundenwege, Touchpoints, Belege und Verbesserungen gestalten.']]},
@@ -29,7 +30,7 @@ export const PERMISSION_SECTIONS=[
     ['team','Team','Freigegebene Profile der Lerngruppe ansehen.']]},
 ];
 export const PERMISSION_CATALOG=Object.fromEntries(PERMISSION_SECTIONS.flatMap(s=>s.features.map(([key,label,copy])=>[key,[label,copy]])));
-const dependencies={editor:['files'],html:['files','editor'],php:['files','editor'],python:['files','editor'],data_lab:['files'],graph:['files'],rag:['files'],neural:['files'],chat_lab:['files','ai'],assistant_lab:['files'],evaluation_lab:['files'],visualization_lab:['files'],reasoning_lab:['files'],journey_lab:['files'],canvas_lab:['files']};
+const dependencies={editor:['files'],html:['files','editor'],php:['files','editor'],python:['files','editor'],data_lab:['files'],graph:['files'],rag:['files'],neural:['files'],chat_lab:['files','ai'],assistant_lab:['files'],evaluation_lab:['files'],visualization_lab:['files'],reasoning_lab:['files'],journey_lab:['files'],canvas_lab:['files'],readiness_lab:['files'],landscape_lab:['files']};
 export const normalizedPermissions=flags=>Object.fromEntries(Object.keys(PERMISSION_CATALOG).map(key=>[key,flags?.[key]!==false]));
 
 export function mountPermissionEditor(root,{features={},system={},esc,onChange=()=>{}}){
