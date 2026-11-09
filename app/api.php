@@ -243,6 +243,10 @@ try {
             needFeature($u,'database'); rateLimit('mysql.'.$u['id'],30,60); $my=mysqlConnection($u); $sql=validateSql(textField($data,'sql',16000));
             try { $stmt=$my->prepare($sql); $stmt->execute(); $rows=[]; if ($stmt->columnCount()) { while(count($rows)<201 && ($row=$stmt->fetch())) $rows[]=$row; }
                 audit($u['id'],'db.query'); jsonOut(['rows'=>array_slice($rows,0,200),'affected'=>$stmt->rowCount(),'truncated'=>count($rows)>200]); } catch(PDOException $e) { mysqlError($e); }
+        case 'db.table.delete':
+            needFeature($u,'database');rateLimit('mysql.'.$u['id'],30,60);
+            require_once __DIR__.'/mysql-table-delete.php';$table=tableDeleteInput($data);$conn=tableDeleteConnection($data,mysqlSavedConnection($u));$my=mysqlConnection($u,$conn);
+            try {deleteMysqlTable($my,$table);audit($u['id'],'db.table.delete',['table'=>$table,'database'=>$conn['db_name'],'project'=>$GLOBALS['academyDbProject']??null]);jsonOut(['ok'=>true]);}catch(PDOException $e){mysqlError($e);}
         case 'db.table.create':
             needFeature($u,'database'); rateLimit('mysql.'.$u['id'],30,60);
             $sql=createTableSql(textField($data,'table',64),$data['fields']??[]);$my=mysqlConnection($u);

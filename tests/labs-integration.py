@@ -36,6 +36,11 @@ with tempfile.TemporaryDirectory(prefix='academy-labs-test-') as private:
             uid=admin.ok('admin.user.save',{'name':name,'email':name+'@example.test','role':role,'password':'secure-test-password','must_change_password':False,'groups':[group]})['id'];client=Client(base);client.ok('bootstrap');client.ok('login',{'portal':'user','email':name+'@example.test','password':'secure-test-password'});return uid,client
         uid,alice=make('alice');_,bob=make('bob',group=other);tid,teacher=make('teacher',role='teacher')
         pid=alice.ok('project.create',{'name':'Laborprojekt','template':'web'})['id']
+        check(alice.call('db.table.delete')[0]==405,'Table deletion requires POST')
+        check(alice.call('db.table.delete',{'table':'sample','confirmation':'sample'},csrf=False)[0]==403,'Table deletion requires CSRF')
+        check(bob.call('db.table.delete',{'project':pid,'table':'sample','confirmation':'sample'})[0]==404,'Cannot drop a table through another learner project')
+        check(alice.call('db.table.delete',{'table':'sample','confirmation':'wrong'})[0]==422,'Table name must be confirmed before connection or deletion')
+
         # Administrator-only readiness reporting over HTTP, including GET routing and saved actor attribution.
         for action in ['admin.readiness.directory','admin.readiness','admin.readiness.detail']:
             check(alice.call(action,id='0'*32)[0]==403,'Readiness report denies learners')

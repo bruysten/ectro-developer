@@ -1,0 +1,19 @@
+<?php
+declare(strict_types=1);
+require __DIR__.'/../app/bootstrap.php';require __DIR__.'/../app/mysql.php';require __DIR__.'/../app/mysql-table-delete.php';
+$n=0;function dropCheck(bool $v,string $why):void{global $n;$n++;if(!$v)throw new RuntimeException($why);}function dropReject(int $status,callable $f):void{try{$f();throw new RuntimeException('Expected rejection');}catch(ApiError $e){dropCheck($status===$e->status,$e->getMessage());}}
+foreach([null,'',[],"bad\0name",str_repeat('a',65)] as $t)dropReject(422,fn()=>tableDeleteInput(['table'=>$t,'confirmation'=>$t]));foreach(['',true,'other',null] as $confirmation)dropReject(422,fn()=>tableDeleteInput(['table'=>'sample','confirmation'=>$confirmation]));dropCheck(tableDeleteInput(['table'=>'sample','confirmation'=>'sample'])==='sample','Exact name accepted');
+$connection=['host'=>'localhost','db_name'=>'own_db','username'=>'own_user','secret'=>'not exposed'];dropCheck(tableDeleteConnection(['connection'=>$connection],$connection)===$connection,'Exact destination preserved');dropReject(409,fn()=>tableDeleteConnection(['connection'=>$connection],null));foreach(['host','db_name','username'] as $key){$other=$connection;$other[$key]='changed';dropReject(409,fn()=>tableDeleteConnection(['connection'=>$other],$connection));}dropReject(409,fn()=>tableDeleteConnection([], $connection));
+$dsn=getenv('MYSQL_SCHEMA_TEST_DSN');if(!$dsn){echo "$n deletion confirmation/context checks passed; real MariaDB deletion runs in CI.\n";exit;}
+if(!preg_match('/^mysql:host=127\.0\.0\.1;port=[0-9]+;dbname=ectro_schema_test$/',$dsn))throw new RuntimeException('Only isolated local schema-test database allowed.');
+$pdo=new PDO($dsn,'schema_test','disposable-schema-test-password',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false]);
+$tables=['drop_target','drop_keep','drop_parent','drop_child','drop`quoted'];$quote=fn($s)=>'`'.str_replace('`','``',$s).'`';
+try{
+ $pdo->exec('CREATE TABLE drop_target(id INT PRIMARY KEY)');$pdo->exec('INSERT INTO drop_target VALUES(1)');$pdo->exec('CREATE TABLE drop_keep(id INT PRIMARY KEY)');$pdo->exec('INSERT INTO drop_keep VALUES(9)');
+ deleteMysqlTable($pdo,'drop_target');dropCheck(!$pdo->query("SHOW TABLES LIKE 'drop_target'")->fetchColumn(),'Table and its rows removed');dropCheck((int)$pdo->query('SELECT id FROM drop_keep')->fetchColumn()===9,'Unrelated table and data unchanged');dropReject(404,fn()=>deleteMysqlTable($pdo,'drop_target'));dropReject(404,fn()=>deleteMysqlTable($pdo,'drop_keep; DROP TABLE drop_keep; --'));
+ $pdo->exec('CREATE VIEW drop_test_view AS SELECT * FROM drop_keep');dropReject(422,fn()=>deleteMysqlTable($pdo,'drop_test_view'));
+ $pdo->exec('CREATE TABLE drop_parent(id INT PRIMARY KEY) ENGINE=InnoDB');$pdo->exec('CREATE TABLE drop_child(id INT PRIMARY KEY,parent_id INT,CONSTRAINT drop_test_fk FOREIGN KEY(parent_id) REFERENCES drop_parent(id)) ENGINE=InnoDB');$pdo->exec('INSERT INTO drop_parent VALUES(1)');$pdo->exec('INSERT INTO drop_child VALUES(1,1)');
+ try{deleteMysqlTable($pdo,'drop_parent');throw new RuntimeException('Foreign key protection bypassed');}catch(PDOException $e){dropCheck(in_array((int)$e->errorInfo[1],[1217,1451,3730],true),'Foreign key rejection preserved');}dropCheck((int)$pdo->query('SELECT COUNT(*) FROM drop_child')->fetchColumn()===1,'Related rows preserved');
+ $pdo->exec('CREATE TABLE '.$quote('drop`quoted').'(id INT)');deleteMysqlTable($pdo,'drop`quoted');dropCheck((int)$pdo->query('SELECT COUNT(*) FROM drop_keep')->fetchColumn()===1,'Quoted identifier cannot escape statement');
+ echo "$n MariaDB table deletion, confirmation, context, foreign-key, view, missing-table and escaping checks passed.\n";
+}finally{$pdo->exec('DROP VIEW IF EXISTS drop_test_view');foreach(array_reverse($tables) as $table)$pdo->exec('DROP TABLE IF EXISTS '.$quote($table));}

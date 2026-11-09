@@ -39,3 +39,7 @@ if ($studioStatus !== 0) throw new RuntimeException('Studio MariaDB source check
 // The same isolated service verifies the Data Lab database-copy contract.
 passthru(escapeshellarg(PHP_BINARY).' '.escapeshellarg(__DIR__.'/dataset-database.php'), $datasetStatus);
 if ($datasetStatus !== 0) throw new RuntimeException('Data Lab MariaDB import checks failed.');
+
+// Exercise table deletion against the same isolated MariaDB service.
+passthru(escapeshellarg(PHP_BINARY).' '.escapeshellarg(__DIR__.'/mysql-table-delete.php'), $dropStatus);
+if ($dropStatus !== 0) throw new RuntimeException('MariaDB table deletion checks failed.');
