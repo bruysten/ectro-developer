@@ -5,6 +5,7 @@ AddType application/wasm .wasm
 AddType text/javascript .mjs
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
   RewriteRule ^(?:app|var|src|scripts|tests|docs|\.git|config)(?:/|\.|$) - [F,L]
 </IfModule>
 <IfModule mod_headers.c>
