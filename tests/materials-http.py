@@ -31,6 +31,11 @@ with tempfile.TemporaryDirectory(prefix='ectro-materials-http-') as private:
             value={'title':'Geschützte Unterlage','description':'Nur für eine Gruppe','category':'Kurs','kind':'link','url':'https://example.org/material','enabled':True,'groups':[ids['first']]}
             user.api('admin.material.save',value,403);admin.api('admin.material.save',value,403,csrf='wrong');user.api('materials',{},405);admin.api('admin.material.save',expected=405)
             link=admin.api('admin.material.save',value)['material'];assert len(user.api('materials')['materials'])==1 and not other.api('materials')['materials']
+            draft=admin.api('admin.material.save',{**value,'id':link['id'],'version':link['version'],'enabled':False})['material'];assert not user.api('materials')['materials']
+            publish={'id':draft['id'],'version':draft['version']}
+            user.api('admin.material.publish',publish,403);admin.api('admin.material.publish',publish,403,csrf='wrong');admin.api('admin.material.publish',expected=405)
+            link=admin.api('admin.material.publish',publish)['material'];assert link['enabled'] and [g['id'] for g in link['groups']]==[ids['first']]
+            assert len(user.api('materials')['materials'])==1 and not other.api('materials')['materials'];admin.api('admin.material.publish',publish,409)
             boundary='MaterialBoundarySynthetic';payload=bytearray();fields={**value,'kind':'document','url':'','enabled':'true','groups':json.dumps([ids['first']])}
             for key,val in fields.items():payload.extend(f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{val}\r\n'.encode())
             content=b'%PDF-synthetic-material-test';payload.extend(f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="Kurs.pdf"\r\nContent-Type: application/pdf\r\n\r\n'.encode()+content+f'\r\n--{boundary}--\r\n'.encode())

@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS profile_sharing (user_id TEXT PRIMARY KEY REFERENCES 
 
 CREATE TABLE IF NOT EXISTS lab_type_config (type_id TEXT PRIMARY KEY REFERENCES project_types(id) ON DELETE CASCADE, config TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS lab_project_config (project_id TEXT PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE, config TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS lab_objects (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK(kind IN ('graph','dataset','network','prompt','rag','conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics','geo','agent','archive')), name TEXT NOT NULL, content TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS lab_objects (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK(kind IN ('graph','dataset','network','prompt','rag','conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics','geo','agent','archive','pipeline')), name TEXT NOT NULL, content TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS lab_objects_project ON lab_objects(project_id,kind);
 CREATE TABLE IF NOT EXISTS readiness_revisions (object_id TEXT NOT NULL REFERENCES lab_objects(id) ON DELETE CASCADE, version INTEGER NOT NULL, actor_id TEXT REFERENCES users(id) ON DELETE SET NULL, content TEXT NOT NULL, saved_at TEXT NOT NULL, PRIMARY KEY(object_id,version));
 CREATE INDEX IF NOT EXISTS readiness_revisions_actor ON readiness_revisions(actor_id,object_id);

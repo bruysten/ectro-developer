@@ -1,0 +1,21 @@
+# Datenfluss Lab
+
+`/#dataflow-lab` ergänzt die Daten-Labs um nachvollziehbare Verarbeitungsketten. Das Gruppenrecht `pipeline_lab` steht unter **Daten & Graphen**. Projekte benötigen das Werkzeug `pipeline`; bisher vollständige Werkzeugkataloge werden einmalig erweitert, eingeschränkte Auswahlen bleiben erhalten. Navigation und Lab-Übersicht verwenden die bestehende automatische Rechteaktualisierung.
+
+Eine gespeicherte Arbeit enthält eine Quellreferenz und höchstens zwölf geordnete Verarbeitungsschritte. Die vorhandene Quellenauswahl unterstützt Projekt-Datensätze, JSON-Projektdateien, JSON-Importe, Graphknoten/-beziehungen sowie persönliche und projektbezogene MySQL-/MariaDB-Tabellen. Mehrere Datenbanktabellen können bereits bei der Quellenauswahl kombiniert werden. Ein **Quelle verknüpfen**-Schritt verbindet zusätzlich eine zweite Quelle über explizite Schlüssel als Left oder Inner Join.
+
+Die Stationen zeigen die Zeilenzahl nach jedem Schritt. Beim Auswählen erscheinen Einstellungen, Vorher/Nachher, markierte Zelländerungen bzw. entfallende Zeilen und konkrete Rechenbeispiele. „Nächster Schritt“ ermöglicht eigenes Lerntempo; „Ablauf ansehen“ führt durch die tatsächlichen Zwischenergebnisse und lässt sich jederzeit anhalten. Die Animation führt keine separaten, simulierten Berechnungen vor. Die Quellenwahl bleibt eingeklappt, solange eine Quelle hinterlegt ist. Auf schmalen Ansichten liegen Stationen oberhalb der Einstellungen, Tabellen scrollen innerhalb ihrer eigenen Fläche.
+
+Verfügbare Schritte: Text bereinigen (Rand-Leerzeichen/Groß-/Kleinschreibung), Filtern, Spalten auswählen, Datentyp ändern, zwei Spalten berechnen, Dubletten entfernen, Sortieren, Gruppieren/Aggregieren und Quellen verknüpfen. Schritte lassen sich hinzufügen, verschieben und entfernen. Das Bestellbeispiel enthält absichtlich Leerzeichen, einen doppelten Auftrag, Textpreise und eine Nullmenge.
+
+## Berechnung und Grenzen
+
+Die Verarbeitung erfolgt autark im Browser auf Kopien der gelesenen Daten: höchstens 1.000 Zeilen, 50 Spalten und zwölf Schritte. Ein Quellenausschnitt wird als solcher gekennzeichnet. Abfragen und Leseberechtigungen laufen über die bestehende serverseitige Projekt- und Quellenprüfung. Es gibt weder frei ausführbaren JavaScript-/SQL-Code noch Rückschreiben in eine Quelle. Die Konfiguration wird serverseitig validiert und mit den bestehenden Quoten/Objektversionen gespeichert.
+
+Zahlen akzeptieren eindeutige Dezimalwerte mit Punkt oder Komma, keine Währungszeichen oder mehrdeutigen Tausenderseparatoren. Ungültige Zahlen, fehlende Spalten, Division durch null und übergroße Ergebnisse stoppen den betroffenen Schritt; abhängige Ergebnisse und Exporte sind dann nicht verfügbar. Numerische Aggregationen verlangen gültige Werte; Zeilenzählen zählt alle Zeilen der jeweiligen Gruppe. Leere Werte sind sichtbar als `∅` markiert.
+
+Joins vergleichen Schlüssel **typgenau**: Zahl `1` und Text `"1"` unterscheiden sich; null/leere Schlüssel verbinden sich nicht. Mehrfachtreffer und Zeilen ohne Treffer werden ausgewiesen. Die Ergebnisgrenze wird auch während der Verknüpfung durchgesetzt, statt eine explodierte Ergebnismenge still abzuschneiden. Ergänzte Spalten heißen `Quelle2.<Name>`. Überlange oder kollidierende Namen werden abgelehnt. Dublettenvergleich nutzt die ausgewählten Spalten, ohne Auswahl alle Spalten; die erste Zeile bleibt erhalten.
+
+CSV/JSON exportieren das vollständige berechnete Ergebnis. CSV nutzt den vorhandenen Schutz gegen Tabellenformeln. „Als Datensatz speichern“ legt einen neuen, unabhängigen Projektdatensatz an, sofern das Daten-Lab und das Projektwerkzeug freigegeben sind. Dieser Stand steht anschließend den übrigen Labs als Quelle zur Verfügung. Quellenreferenzen werden beim erneuten Öffnen frisch geprüft und gelesen; Zwischenergebnisse werden nicht als angeblich aktuelle Daten persistiert.
+
+`tests/pipeline.mjs` prüft Berechnungen, unveränderte Quellen, Ablaufspuren, fehlerhafte Zahlen, Join-Kardinalität und Typgleichheit. `tests/pipeline.php` prüft den JS/PHP-Vertrag, vollständige/eingeschränkte Katalogmigration, erhaltene Readiness-Revisionen/Fremdschlüssel, Gruppenaktivierung, Projekt-/Quellenisolation und veraltete Speicherversuche. Die bestehende Studio- und API-Suite bezieht den neuen Lab-Typ ein.

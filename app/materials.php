@@ -51,10 +51,15 @@ function materialGrant(array $u,array $data):array {
     materialAdmin($u);$id=textField($data,'id',32);$groups=materialGroupIds([$data['group']??null]);if(!is_bool($data['enabled']??null))fail(422,'Bitte die Gruppenfreigabe prüfen.');
     return transaction(function()use($u,$data,$id,$groups){$m=one('SELECT version FROM materials WHERE id=?',[$id]);if(!$m||!is_int($data['version']??null)||(int)$m['version']!==$data['version'])fail(409,'Die Freigaben wurden inzwischen geändert. Bitte neu laden.');$exists=(bool)one('SELECT 1 FROM material_groups WHERE material_id=? AND group_id=?',[$id,$groups[0]]);if($exists!==$data['enabled']){if($data['enabled'])query('INSERT INTO material_groups VALUES(?,?)',[$id,$groups[0]]);else query('DELETE FROM material_groups WHERE material_id=? AND group_id=?',[$id,$groups[0]]);query('UPDATE materials SET version=version+1,updated_at=? WHERE id=?',[now(),$id]);audit($u['id'],'material.grant',['id'=>$id,'group'=>$groups[0],'enabled'=>$data['enabled']]);}return materialSaved($id);});
 }
+function materialPublish(array $u,array $data):array {
+    materialAdmin($u);$id=textField($data,'id',32);
+    return transaction(function()use($u,$data,$id){$m=one('SELECT version,enabled FROM materials WHERE id=?',[$id]);if(!$m||!is_int($data['version']??null)||(int)$m['version']!==$data['version'])fail(409,'Das Material wurde inzwischen geändert. Bitte neu laden.');if(!one('SELECT 1 FROM material_groups WHERE material_id=?',[$id]))fail(422,'Bitte zuerst mindestens eine Gruppe auswählen.');if(!$m['enabled']){query('UPDATE materials SET enabled=1,version=version+1,updated_at=? WHERE id=?',[now(),$id]);audit($u['id'],'material.publish',['id'=>$id]);}return materialSaved($id);});
+}
 function materialsDispatch(array $u,string $action,array $data):never {
     if($action==='materials')jsonOut(['materials'=>materialRows($u)]);
     materialAdmin($u);
     if($action==='admin.materials'){$groups=all('SELECT id,name FROM groups ORDER BY name');foreach($groups as &$g)$g['periods']=groupPeriodsPublic($g['id']);unset($g);jsonOut(['materials'=>materialRows(),'groups'=>$groups,'limits'=>['fileBytes'=>materialUploadLimit(),'spaceBytes'=>MATERIAL_SPACE_LIMIT,'usedBytes'=>(int)query('SELECT COALESCE(SUM(size),0) FROM material_files')->fetchColumn(),'types'=>MATERIAL_FILE_TYPES]]);}
+    if($action==='admin.material.publish')jsonOut(['material'=>materialPublish($u,$data)]);
     if($action==='admin.material.save')jsonOut(['material'=>materialSave($u,$data)]);
     if($action==='admin.material.upload')jsonOut(['material'=>materialUpload($u,$data)]);
     if($action==='admin.material.grant')jsonOut(['material'=>materialGrant($u,$data)]);
