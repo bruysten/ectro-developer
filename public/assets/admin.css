@@ -76,3 +76,13 @@
  .admin-surface .chart { gap:4px; }
  .admin-surface .chart-column:not(:first-child):not(:nth-child(5)):not(:nth-child(9)):not(:last-child) span { visibility:hidden; }
 }
+
+/* Project grants use the same stable columns as the shared access controls. */
+.admin-surface .ai-project-grant { display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:16px;align-items:center; }
+.admin-surface .ai-project-grant>span { min-width:0; }
+.admin-surface .ai-project-grant strong { font-weight:600; }
+.admin-surface .ai-project-grant>.toolbar { display:flex;flex-wrap:wrap;gap:12px; }
+@media(max-width:700px){.admin-surface .ai-project-grant { grid-template-columns:minmax(0,1fr);gap:10px; }.admin-surface .ai-project-grant>.toolbar { justify-content:flex-start; }}
+
+.admin-surface .ai-grant-summary { padding:14px;border:1px solid var(--border-strong);background:var(--surface-sunken);overflow-wrap:anywhere; }
+.admin-surface .ai-grant-summary strong { font-size:15px;line-height:1.5;font-weight:600; }

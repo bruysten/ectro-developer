@@ -55,6 +55,26 @@ with tempfile.TemporaryDirectory(prefix='ectro-studio-http-') as private:
         check(any(g['group_id']==gid for g in admin.ok('admin.labs')['group_grants']),'Admin overview exposes editable group budget')
         admin.ok('admin.ai.group.save',{'group':gid,'connection':connection['id'],'version':group_grant['version'],'remove':True})
         check(not alice.ok('lab.info',project=pid)['connections'],'Group revocation immediately removes connection')
+        project_grant={'project':pid,'connection':connection['id'],'max_calls':5}
+        check(alice.call('ai.grant',project_grant)[0]==403,'Learners cannot grant provided project connections')
+        check(admin.call('ai.grant',project_grant,csrf=False)[0]==403,'Project grants require CSRF')
+        check(admin.call('ai.grant')[0]==405,'Project grants reject GET')
+        check(admin.call('ai.grant',{**project_grant,'project':'f'*32})[0]==404,'Project grants validate destination project')
+        for invalid in [-1,10001,1.5,'5']:
+            check(admin.call('ai.grant',{**project_grant,'max_calls':invalid})[0]==422,'Project call budgets require a bounded integer')
+        admin.ok('ai.grant',project_grant)
+        check(connection['id'] in [c['id'] for c in alice.ok('lab.info',project=pid)['connections']],'Project grant makes provided connection available without group grant')
+        check(not bob.ok('lab.info',project=personal)['connections'],'Project grant does not leak into unrelated projects')
+        admin.ok('ai.grant',{**project_grant,'max_calls':12})
+        row=next(g for g in admin.ok('admin.labs')['grants'] if g['project_id']==pid and g['connection_id']==connection['id'])
+        check(row['max_calls']==12 and row['project_name']=='Studio' and row['connection_name']==conn_data['name'],'Admin project overview reflects edited budget and names')
+        check(len([g for g in admin.ok('admin.labs')['grants'] if g['project_id']==pid and g['connection_id']==connection['id']])==1,'Regrant updates one pair rather than duplicating it')
+        group_grant=admin.ok('admin.ai.group.save',grant)['grant']
+        admin.ok('ai.grant',{**project_grant,'max_calls':0})
+        check(connection['id'] in [c['id'] for c in alice.ok('lab.info',project=pid)['connections']],'Revoking a project grant preserves independent group access')
+        check(not any(g['project_id']==pid and g['connection_id']==connection['id'] for g in admin.ok('admin.labs')['grants']),'Revoked project pair disappears from admin overview')
+        admin.ok('admin.ai.group.save',{'group':gid,'connection':connection['id'],'version':group_grant['version'],'remove':True})
+        check(not alice.ok('lab.info',project=pid)['connections'],'Revoking both access paths removes the connection')
         admin.ok('admin.ai.connection.delete',{'id':connection['id'],'version':connection['version']})
         company=alice.ok('project.create',{'name':'Company landscape','template':'web','group':gid})['id']
         landscape_content={'organization':'Synthetic company','systems':[{'id':'crm','name':'CRM'},{'id':'shop','name':'Shop'}],'stores':[{'id':'contacts','system':'crm','name':'Contacts'}],'flows':[{'id':'f','name':'Export','from':'crm','to':'shop','stores':['contacts']}]}
