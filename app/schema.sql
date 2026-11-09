@@ -98,3 +98,7 @@ CREATE TABLE IF NOT EXISTS mcp_oauth_codes (hash TEXT PRIMARY KEY, user_id TEXT 
 CREATE TABLE IF NOT EXISTS mcp_oauth_grants (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, client_id TEXT NOT NULL REFERENCES mcp_oauth_clients(id) ON DELETE CASCADE, profile_version INTEGER NOT NULL, auth_version INTEGER NOT NULL, connection_hash TEXT NOT NULL, resource TEXT NOT NULL, refresh_hash TEXT UNIQUE, expires INTEGER NOT NULL, revoked INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS mcp_oauth_access (hash TEXT PRIMARY KEY, grant_id TEXT NOT NULL REFERENCES mcp_oauth_grants(id) ON DELETE CASCADE, expires INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS mcp_oauth_refresh_used (hash TEXT PRIMARY KEY, grant_id TEXT NOT NULL REFERENCES mcp_oauth_grants(id) ON DELETE CASCADE);
+
+CREATE TABLE IF NOT EXISTS loop_runs (id TEXT PRIMARY KEY, object_id TEXT NOT NULL REFERENCES lab_objects(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, config TEXT NOT NULL, runtime TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1, lease TEXT, lease_at INTEGER, halt INTEGER NOT NULL DEFAULT 0 CHECK(halt IN(0,1,2)), created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS loop_runs_object ON loop_runs(object_id);
+CREATE TABLE IF NOT EXISTS loop_requests (request TEXT PRIMARY KEY, run_id TEXT NOT NULL REFERENCES loop_runs(id) ON DELETE CASCADE, fingerprint TEXT NOT NULL, state TEXT NOT NULL);
