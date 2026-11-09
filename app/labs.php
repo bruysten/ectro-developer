@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/readiness-admin.php';
 
 require_once __DIR__.'/lab-studio.php';
 const LAB_KINDS = ['graph','dataset','network','prompt','rag','conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness'];
@@ -89,7 +90,8 @@ function labSave(array $u,array $data): array {
         if($old&&(!is_int($data['version']??null)||$old['version']!==$data['version']))fail(409,'Inzwischen geändert. Ihr Entwurf bleibt erhalten; bitte zuerst exportieren oder neu laden.');
         if(!$old&&(int)query('SELECT COUNT(*) FROM lab_objects WHERE project_id=?',[$pid])->fetchColumn()>=labLimits()['objects'])fail(413,'Die maximale Anzahl an Laborobjekten ist erreicht.');
         if($kind==='journey'&&isset($data['content']['blueprint']))needFeature($u,'blueprint_lab');$validated=labValidate($kind,$data['content']??null);if($kind==='journey'&&!features($u)['blueprint_lab']&&$old){$original=json_decode(one('SELECT content FROM lab_objects WHERE id=?',[$old['id']])['content'],true);if(isset($original['blueprint'])){$kept=array_fill_keys(array_column($validated['stages'],'id'),true);$items=array_filter($original['blueprint']['items'],fn($i)=>isset($kept[$i['stage']]));if(count($items)!==count($original['blueprint']['items']))fail(403,'Diese Phase enthält einen gesperrten Service-Blueprint. Die Kursleitung kann die Erweiterung freigeben.');$validated['blueprint']=$original['blueprint'];}}$content=labJson($validated);if(workspaceBytes($p)-($old?(int)query('SELECT length(CAST(content AS BLOB)) FROM lab_objects WHERE id=?',[$old['id']])->fetchColumn():0)+strlen($content)>SPACE_LIMIT)fail(413,'Der Workspace-Speicher ist voll.');$oid=$oid?:id();$name=labName($data['name']??null);
-        if($old)query('UPDATE lab_objects SET name=?,content=?,version=version+1,updated_at=? WHERE id=?',[$name,$content,now(),$oid]);else query('INSERT INTO lab_objects(id,project_id,kind,name,content,updated_at) VALUES(?,?,?,?,?,?)',[$oid,$pid,$kind,$name,$content,now()]);query('UPDATE projects SET updated_at=? WHERE id=?',[now(),$pid]);audit($u['id'],'lab.save',['kind'=>$kind,'project'=>$pid]);return labObject($u,$oid);
+        if($old&&$kind==='readiness')query('INSERT OR IGNORE INTO readiness_revisions(object_id,version,actor_id,content,saved_at) VALUES(?,?,?,?,?)',[$oid,$old['version'],null,labJson($old['content']),$old['updated_at']]);
+        if($old)query('UPDATE lab_objects SET name=?,content=?,version=version+1,updated_at=? WHERE id=?',[$name,$content,now(),$oid]);else query('INSERT INTO lab_objects(id,project_id,kind,name,content,updated_at) VALUES(?,?,?,?,?,?)',[$oid,$pid,$kind,$name,$content,now()]);if($kind==='readiness')readinessRecord($oid,$old?$old['version']+1:1,$u,$validated);query('UPDATE projects SET updated_at=? WHERE id=?',[now(),$pid]);audit($u['id'],'lab.save',['kind'=>$kind,'project'=>$pid]);return labObject($u,$oid);
     });
 }
 function labInitializeProject(string $pid,string $type): void {
