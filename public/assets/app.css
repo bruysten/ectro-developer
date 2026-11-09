@@ -803,3 +803,10 @@ html[data-workspace-resizing] iframe { pointer-events:none!important; }
 .graph-property-value { grid-column:1/-1; }
 .graph-property-dialog .dialog-body>h3 { margin-top:22px; }
 @media(max-width:700px){.graph-property-grid{grid-template-columns:minmax(0,1fr)}.graph-property-heading .graph-icon-button{width:44px;height:44px}.graph-property-row .graph-property-remove{width:44px;height:44px;top:-27px}}
+
+.lab-column-head { display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:130px; }
+.lab-column-head>span { overflow-wrap:anywhere; }
+.lab-column-head .graph-icon-button { flex:none; }
+.dataset-database-dialog { width:min(880px,calc(100vw - 32px)); }
+.dataset-database-dialog .table-wrap { max-height:260px;overflow:auto; }
+.dataset-database-dialog td { max-width:240px;overflow-wrap:anywhere; }

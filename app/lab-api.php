@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/labs.php';
 require_once __DIR__.'/lab-ai.php';
+require_once __DIR__.'/lab-database.php';
 function labDispatch(array $u,string $action,array $data): never {
     switch($action){
         case 'lab.projects':
@@ -9,6 +10,9 @@ function labDispatch(array $u,string $action,array $data): never {
             $rows=$u['role']==='admin'?all('SELECT p.*,g.name group_name FROM projects p LEFT JOIN groups g ON g.id=p.group_id ORDER BY p.updated_at DESC LIMIT 1000'):all('SELECT p.*,g.name group_name FROM projects p LEFT JOIN groups g ON g.id=p.group_id ORDER BY p.updated_at DESC LIMIT 1000');$visible=[];foreach($rows as $p){try{project($u,$p['id']);$visible[]=$p;}catch(ApiError){}}jsonOut(['projects'=>$visible,'limits'=>labLimits()]);
         case 'lab.info':
             $pid=textField($data,'project',32);$p=labAccess($u,$pid);$objects=[];foreach(all('SELECT id,project_id,kind,name,version,updated_at,length(CAST(content AS BLOB)) bytes FROM lab_objects WHERE project_id=? ORDER BY kind,name',[$pid]) as $o){try{labAccess($u,$pid,$o['kind']);$o['version']=(int)$o['version'];$objects[]=$o;}catch(ApiError){}}$c=json_decode(one('SELECT config FROM lab_project_config WHERE project_id=?',[$pid])['config']??'{}',true);jsonOut(['project'=>$p,'objects'=>$objects,'config'=>$c,'limits'=>labLimits(),'connections'=>features($u)['ai']?aiAvailable($u,$pid):[]]);
+        case 'lab.dataset.databases': jsonOut(datasetDatabases($u,$data));
+        case 'lab.dataset.tables': jsonOut(datasetDatabaseTables($u,$data));
+        case 'lab.dataset.read': jsonOut(datasetDatabaseRead($u,$data));
         case 'lab.object': jsonOut(['object'=>labObject($u,textField($data,'id',32))]);
         case 'lab.validate': if(($data['kind']??'')==='journey'&&isset($data['content']['blueprint']))needFeature($u,'blueprint_lab');labAccess($u,textField($data,'project',32),textField($data,'kind',20));jsonOut(['content'=>labValidate($data['kind'],$data['content']??null)]);
         case 'lab.save': jsonOut(['object'=>labSave($u,$data)]);
