@@ -7,6 +7,7 @@ require_once __DIR__.'/lab-statistics.php';
 require_once __DIR__.'/lab-geo.php';
 require_once __DIR__.'/geo-fetch.php';
 require_once __DIR__.'/lab-agent.php';
+require_once __DIR__.'/lab-loop.php';
 require_once __DIR__.'/agent-mcp.php';
 
 const STUDIO_KINDS = ['conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics','geo','agent'];
@@ -69,7 +70,7 @@ function studioValidate(string $kind,array $c): array {
         }
         if(count($messages)%2!==0)fail(422,'Nur vollständige Gesprächsschritte speichern.');
         if(isset($c['assistantVersion'])&&(!is_int($c['assistantVersion'])||$c['assistantVersion']<0))fail(422,'Ungültige Assistentenversion.');
-        return ['assistant'=>studioText($c['assistant']??'',32),'assistantVersion'=>$c['assistantVersion']??0,'connection'=>studioText($c['connection']??'',32),'messages'=>$messages];
+        return ['assistant'=>studioText($c['assistant']??'',32),'assistantVersion'=>$c['assistantVersion']??0,'connection'=>studioText($c['connection']??'',32),'messages'=>$messages,...(array_key_exists('loop',$c)?['loop'=>loopValidate($c['loop'])]:[])];
     }
     if ($kind==='assistant') {
         $tools=labList($c['tools']??[],3);foreach($tools as $t)studioEnum($t,['knowledge','data','graph']);
@@ -199,6 +200,7 @@ function studioEvaluate(array $u,array $data,?callable $transport=null): array {
     return ['object'=>labSave($u,[...$o,'project'=>$o['project_id'],'content'=>$c])];
 }
 function studioDispatch(array $u,string $action,array $data): never {
+    if(str_starts_with($action,'studio.loop.'))jsonOut(loopDispatch($u,$action,$data));
     if(str_starts_with($action,'studio.agent.'))jsonOut(agentDispatch($u,$action,$data));
     if(str_starts_with($action,'studio.mcp.'))jsonOut(agentMcpDispatch($u,$action,$data));
     if($action==='studio.personas')jsonOut(studioPersonas($u,textField($data,'project',32)));

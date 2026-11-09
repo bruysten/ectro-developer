@@ -5,7 +5,7 @@ require_once __DIR__ . '/group-periods.php';
 require_once __DIR__ . '/group-address.php';
 
 const APP_ROOT = __DIR__ . '/..';
-const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter', 'data_lab', 'graph', 'ai', 'rag', 'neural', 'chat_lab', 'assistant_lab', 'evaluation_lab', 'reasoning_lab', 'visualization_lab', 'journey_lab', 'blueprint_lab', 'landscape_lab', 'readiness_lab', 'statistics_lab', 'geo_lab', 'agent_lab', 'mcp_external', 'canvas_lab'];
+const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter', 'data_lab', 'graph', 'ai', 'rag', 'neural', 'chat_lab', 'loop_lab', 'assistant_lab', 'evaluation_lab', 'reasoning_lab', 'visualization_lab', 'journey_lab', 'blueprint_lab', 'landscape_lab', 'readiness_lab', 'statistics_lab', 'geo_lab', 'agent_lab', 'mcp_external', 'canvas_lab'];
 const CONVERTER_FORMATS = ['csv', 'tsv', 'json', 'xml', 'jsonl', 'yaml', 'md'];
 const FILE_LIMIT = 524288;
 const SPACE_LIMIT = 20971520;
@@ -340,7 +340,8 @@ function workspaceBytes(array $p): int {
     $aiBytes=(int)query("SELECT COALESCE(SUM(CASE WHEN state='running' THEN 1048576 ELSE COALESCE(length(CAST(result AS BLOB)),0) END),0) FROM ai_calls WHERE project_id IN (SELECT id FROM projects WHERE ".($p['group_id']?'group_id=?':'user_id=?').')',[$p['group_id']?:$p['user_id']])->fetchColumn();
     $personaBytes=(int)query('SELECT COALESCE(SUM(length(CAST(content AS BLOB))),0) FROM lab_personas WHERE project_id IN (SELECT id FROM projects WHERE '.($p['group_id']?'group_id=?':'user_id=?').')',[$p['group_id']?:$p['user_id']])->fetchColumn();
     $agentBytes=(int)query('SELECT COALESCE(SUM(MAX(200000,length(CAST(r.config AS BLOB))+length(CAST(r.runtime AS BLOB)))),0) FROM agent_runs r JOIN lab_objects o ON o.id=r.object_id JOIN projects p ON p.id=o.project_id WHERE '.($p['group_id']?'p.group_id=?':'p.user_id=?'),[$p['group_id']?:$p['user_id']])->fetchColumn();
-    return $agentBytes+$labBytes+$aiBytes+$personaBytes+(int)query('SELECT COALESCE(SUM(length(CAST(f.content AS BLOB))+COALESCE(a.size,0)),0) FROM files f JOIN projects p ON p.id=f.project_id LEFT JOIN workspace_uploads a ON a.file_id=f.id WHERE '.($p['group_id']?'p.group_id=?':'p.user_id=?'),[$p['group_id']?:$p['user_id']])->fetchColumn();
+    $loopBytes=(int)query('SELECT COALESCE(SUM(MAX(1000000,length(CAST(r.config AS BLOB))+length(CAST(r.runtime AS BLOB)))),0) FROM loop_runs r JOIN lab_objects o ON o.id=r.object_id JOIN projects p ON p.id=o.project_id WHERE '.($p['group_id']?'p.group_id=?':'p.user_id=?'),[$p['group_id']?:$p['user_id']])->fetchColumn();
+    return $loopBytes+$agentBytes+$labBytes+$aiBytes+$personaBytes+(int)query('SELECT COALESCE(SUM(length(CAST(f.content AS BLOB))+COALESCE(a.size,0)),0) FROM files f JOIN projects p ON p.id=f.project_id LEFT JOIN workspace_uploads a ON a.file_id=f.id WHERE '.($p['group_id']?'p.group_id=?':'p.user_id=?'),[$p['group_id']?:$p['user_id']])->fetchColumn();
 }
 function filePath(string $path): string {
     if (!$path || strlen($path) > 240 || !preg_match('~^[\pL\pN _./-]+$~u', $path) || str_starts_with($path, '/') || str_contains($path, '//')) fail(422, 'Bitte verwenden Sie einen relativen Dateinamen ohne Sonderzeichen.');
