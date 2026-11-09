@@ -1,3 +1,5 @@
+import {mountRegression} from './studio-regression.js';
+import {regressionExample} from './regression-models.js';
 import {ui} from './address.js';
 import {escapeHtml as e,downloadText,csvText} from './studio-charts.js';
 import {mountSourcePicker} from './studio-source-picker.js';
@@ -6,11 +8,18 @@ const num=n=>n.toLocaleString('de-DE',{maximumFractionDigits:2});
 const pct=n=>n===null?'–':num(n*100)+' %';
 const button=(text,key,primary=false)=>`<button type="button" class="es-btn es-btn--sm es-btn--${primary?'primary':'secondary'}" data-basket-${key}>${text}</button>`;
 export async function mountStatistics(root,ctx){
+ let dispose=null,alive=true;const c=ctx.content;
+ root.innerHTML='<nav class="statistics-analysis-tabs" aria-label="Statistische Verfahren"><button type="button" data-analysis="basket">Warenkorbanalyse</button><button type="button" data-analysis="regression">Lineare Regression</button></nav><div data-statistics-workbench></div>';
+ async function draw(){dispose?.();dispose=null;const key=c.analysis||'basket';root.querySelectorAll('[data-analysis]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.analysis===key)));const mounted=await (key==='regression'?mountRegression:mountBasket)(root.querySelector('[data-statistics-workbench]'),{...ctx,content:key==='regression'?c.regression:c});if(alive)dispose=mounted;else mounted?.();}
+ root.querySelectorAll('[data-analysis]').forEach(b=>b.onclick=async()=>{if((c.analysis||'basket')===b.dataset.analysis)return;c.analysis=b.dataset.analysis;if(c.analysis==='regression'&&!c.regression)c.regression=regressionExample();ctx.changed();await draw();});
+ await draw();return()=>{alive=false;dispose?.();};
+}
+async function mountBasket(root,ctx){
  const c=ctx.content;let alive=true,timer=null,disposeSource=null,sourceData=null,scan=null,metric='support',page=0;
  const live=()=>alive&&ctx.alive(),$=s=>root.querySelector(s),pageSize=12;
  const stop=()=>{clearInterval(timer);timer=null;};
  function changed(){stop();scan=null;ctx.changed();render();}
- function apply(next){Object.keys(c).forEach(k=>delete c[k]);Object.assign(c,next);page=0;changed();}
+ function apply(next){const keep={...(c.analysis?{analysis:c.analysis}:{}),...(c.regression?{regression:c.regression}:{})};Object.keys(c).forEach(k=>delete c[k]);Object.assign(c,next,keep);page=0;changed();}
  root.innerHTML=ui`<section class="panel basket-lab"><header class="basket-heading"><div><span class="meta">WARENKORBANALYSE</span><h2>Was wird gemeinsam gekauft?</h2><p>Eine Zeile ist ein Warenkorb. 1 bedeutet: Artikel enthalten.</p></div><div class="toolbar">${button('Beispiel wählen','example')}${button('Daten übernehmen','import')}</div></header><div data-basket-import-panel hidden><div data-basket-source></div><div data-basket-mapping></div></div><div data-basket-rule></div><div data-basket-results></div><div data-basket-data></div><details class="basket-discovery"><summary>Weitere Regeln entdecken</summary><p class="studio-note">Vergleich aller Regeln mit je einem Artikel links und rechts. Eine häufige Kombination ist eine Hypothese für weitere Tests.</p><div class="basket-thresholds"><label class="field"><span>Mindest-Support (%)</span><input type="number" min="0" max="100" step="any" required value="${c.minSupport}" data-basket-threshold="minSupport"></label><label class="field"><span>Mindest-Konfidenz (%)</span><input type="number" min="0" max="100" step="any" required value="${c.minConfidence}" data-basket-threshold="minConfidence"></label>${button('CSV exportieren','csv')}</div><div data-basket-discovery></div></details></section>`;
  function rule(){
   const open=new Set([...root.querySelectorAll('[data-basket-choices][open]')].map(el=>el.dataset.basketChoices));

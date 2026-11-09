@@ -43,6 +43,11 @@ with tempfile.TemporaryDirectory(prefix='academy-labs-test-') as private:
         check(bob.call('lab.object',id=stat['id'])[0]==404,'Statistics never leaks another project')
         check(alice.call('lab.save',{**stat,'project':pid,'version':0})[0]==409,'Statistics stale version rejected')
         check(alice.call('lab.save',{'project':pid,'kind':'statistics','name':'Invalid','content':{**basket,'rule':{'antecedent':['A'],'consequent':['A']}}})[0]==422,'Statistics overlapping rule rejected')
+        reg={'points':[{'id':'1','label':'One','x':1,'y':3,'included':True},{'id':'2','label':'Two','x':2,'y':5,'included':True}],'xLabel':'X','yLabel':'Y','sourceLabel':'Synthetic regression','line':{'slope':2,'intercept':1},'mode':'fit','predictionX':3,'showResiduals':True,'showSquares':False}
+        both={**basket,'analysis':'regression','regression':reg}
+        stat=alice.ok('lab.save',{**stat,'project':pid,'content':both})['object']
+        check(alice.ok('lab.object',id=stat['id'])['object']['content']==both,'Regression HTTP round trip preserves both experiments')
+        check(alice.call('lab.save',{**stat,'project':pid,'content':{**both,'regression':{**reg,'points':[{'id':'1','label':'Bad','x':None,'y':3,'included':True}]}}})[0]==422,'Regression HTTP rejects missing coordinates')
         stat_group=next(g for g in admin.ok('admin.groups')['groups'] if g['id']==gid)
         blocked=admin.ok('admin.group.features.save',{'id':gid,'version':stat_group['version'],'features':{'statistics_lab':False}})['group']
         check(alice.ok('bootstrap')['features']['statistics_lab'] is False,'Statistics group disable visible to frontend refresh')

@@ -2,7 +2,7 @@ import {basketExample} from './statistics-models.js';
 import {emptyReadiness} from './readiness-models.js';
 import {emptyLandscape} from './landscape-models.js';
 export const STUDIO_LABS={
-  statistics:{title:'Statistik Lab',route:'statistics-lab',feature:'statistics_lab',icon:'query_stats',group:'Daten & Erkenntnisse',description:'Warenkörbe untersuchen, Regeln zusammenstellen und Support, Konfidenz und Lift sichtbar berechnen.'},
+  statistics:{title:'Statistik Lab',route:'statistics-lab',feature:'statistics_lab',icon:'query_stats',group:'Daten & Erkenntnisse',description:'Warenkörbe und lineare Zusammenhänge untersuchen und die Berechnung sichtbar nachvollziehen.'},
   canvas:{standalone:true,title:'Canvas Lab',route:'canvas-lab',feature:'canvas_lab',icon:'dashboard_customize',group:'Kunden & Erlebnisse',description:'Geschäftsmodelle, Nutzenversprechen und Kundenverständnis privat oder gemeinsam entwickeln.'},
   conversation:{title:'Chatbot Lab',route:'chat-lab',feature:'chat_lab',icon:'forum',group:'KI & Vertrauen',description:'Ein Gespräch führen, Rückfragen stellen und den Kontext weiterentwickeln.'},
   assistant:{title:'Assistenten Lab',route:'assistant-lab',feature:'assistant_lab',icon:'smart_toy',group:'KI & Vertrauen',description:'Aufgabe, Regeln, Wissen und lesende Werkzeuge zu einem Assistenten verbinden.'},

@@ -11,7 +11,7 @@ export const PERMISSION_SECTIONS=[
     ['converter','Daten-Labor · Umwandeln','CSV, TSV, JSON und XML lokal umwandeln; auch ohne Projektzugriff.'],
     ['data_lab','Daten-Labor · Datensätze','Projektdatensätze importieren, prüfen, analysieren und visualisieren.'],
     ['graph','Graph-Labor & Ontologien','Entitäten, Eigenschaften, Knoten und Kanten modellieren.'],
-    ['statistics_lab','Statistik Lab','Warenkörbe und Assoziationsregeln mit sichtbaren Rechenwegen untersuchen.'],
+    ['statistics_lab','Statistik Lab','Warenkorbanalyse und lineare Regression mit sichtbaren Rechenwegen untersuchen.'],
     ['visualization_lab','Visualisation Lab','Projektdaten vergleichen, erklären und als Strategiekurve darstellen.'],
     ['reasoning_lab','Analysefehler-Labor','Kausalität, Stichproben, Mittelwerte und Simpson-Paradox untersuchen.'],
     ['canvas_lab','Canvas Lab','Geschäftsmodelle und Kundenverständnis privat oder gemeinsam entwickeln.'],

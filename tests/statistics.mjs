@@ -1,3 +1,4 @@
+import './regression.mjs';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {basketExample,basketMetrics,basketPairRules,basketsFromTable} from '../src/statistics-models.js';
