@@ -1,3 +1,4 @@
+import './statistics.mjs';
 import './database-table-delete.mjs';
 import './readiness-admin.mjs';
 import './dataset-import.mjs';
