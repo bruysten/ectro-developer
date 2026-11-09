@@ -38,6 +38,8 @@
 .studio-error p { margin:8px 0 0; }
 .studio-overflow { position:relative; }.studio-overflow>summary { list-style:none;cursor:pointer;display:flex;gap:5px;align-items:center;padding:8px 10px;font-size:13px;min-height:40px; }
 .studio-overflow>summary::-webkit-details-marker { display:none; }
+.studio-overflow:not([open])>div,.graph-overflow:not([open])>div { display:none; }
+.studio-overflow>div,.graph-overflow>div { translate:var(--menu-shift,0px) 0;max-width:calc(100vw - 24px); }
 .studio-overflow>div { position:absolute;right:0;top:100%;z-index:8;min-width:190px;padding:6px;background:var(--surface-card);border:1px solid var(--border-strong);box-shadow:0 10px 28px #1112;display:grid; }
 .studio-overflow>div>button { border:0;background:none;padding:11px 12px;text-align:left;font-size:13px;cursor:pointer;color:var(--text-strong); }
 .studio-overflow>div>button:hover { background:var(--surface-sunken); }
