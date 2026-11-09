@@ -1,3 +1,4 @@
+import {isHierarchy} from './hierarchy-models.js';
 import {archiveExample} from './archive-models.js';
 import {agentExample} from './agent-models.js';
 import {geoExample} from './geo-models.js';
@@ -35,9 +36,14 @@ export const VISUAL_VIEWS={
   treemap:{label:'Flächenanteile',purpose:'composition',hint:'Positive Anteile nach ihrer Fläche vergleichen. Für genaue Werte Tabelle nutzen.'},
   kpi:{label:'Kennzahlen',purpose:'compare',hint:'Eine berechnete Kennzahl je Kategorie mit ihrem Wert zeigen.'},
   network:{label:'Beziehungsnetz',purpose:'network',hint:'Verbindungen zwischen Quelle und Ziel sichtbar machen.'},
+  hyperbolic:{label:'Hyperbolic Tree',purpose:'hierarchy',hint:'Einen Knoten in den Fokus rücken und dabei die gesamte Hierarchie im Blick behalten.'},
+  star:{label:'Star Tree',purpose:'hierarchy',hint:'Einen Teilbaum sternförmig aufklappen. Abstände zeigen Ebenen, keine Mengen.'},
+  columns:{label:'Spaltennavigation',purpose:'hierarchy',hint:'Eine Hierarchie Schritt für Schritt von links nach rechts erkunden.'},
+  sunburst:{label:'Sunburst',purpose:'hierarchy',hint:'Hierarchische Anteile als verschachtelte Ringe erkunden. Winkel zeigen Gewichte.'},
+  icicle:{label:'Icicle · Ebenenbänder',purpose:'hierarchy',hint:'Hierarchische Anteile als Ebenen untereinander vergleichen. Breiten zeigen Gewichte.'},
   strategy:{label:'Blue Ocean · Strategiekurve',purpose:'strategy',hint:'Angebote auf denselben Faktoren von 0 bis 5 vergleichen und vier Handlungsfelder ableiten.'},
 };
-export const PURPOSES={compare:'Werte vergleichen',time:'Entwicklung zeigen',distribution:'Verteilung verstehen',relationship:'Zusammenhang untersuchen',composition:'Anteile zeigen',matrix:'Dimensionen kreuzen',network:'Beziehungen entdecken',strategy:'Strategie entwickeln'};
+export const PURPOSES={compare:'Werte vergleichen',time:'Entwicklung zeigen',distribution:'Verteilung verstehen',relationship:'Zusammenhang untersuchen',composition:'Anteile zeigen',matrix:'Dimensionen kreuzen',network:'Beziehungen entdecken',hierarchy:'Hierarchien erkunden',strategy:'Strategie entwickeln'};
 const inline=(name,rows)=>({type:'inline',name,columns:inferColumns(rows),rows});
 export function inferColumns(rows){const names=[...new Set(rows.flatMap(r=>Object.keys(r)))];return names.map(name=>{const values=rows.map(r=>r[name]).filter(v=>v!==null&&v!==undefined&&v!=='');return {name,type:values.length&&values.every(v=>typeof v==='number'&&Number.isFinite(v))?'number':values.length&&values.every(v=>typeof v==='boolean')?'boolean':'text'};});}
 export function studioExample(kind){
@@ -75,6 +81,11 @@ export function aggregateValues(values,method,count=values.length){if(method==='
 export function viewData(data,view){
  const columns=data.columns?.length?data.columns.map(c=>c.name):[...new Set(data.rows.flatMap(r=>Object.keys(r)))];
  if(!Object.hasOwn(VISUAL_VIEWS,view.kind))throw Error('Bitte eine verfügbare Datensicht wählen.');
+ if(isHierarchy(view.kind)){
+  if(view.filterColumn&&!columns.includes(view.filterColumn))throw Error('Die Filterspalte ist in dieser Quelle nicht vorhanden.');
+  const rows=data.rows.filter(row=>!view.filter||!view.filterColumn||String(row[view.filterColumn]??'').toLocaleLowerCase('de').includes(view.filter.toLocaleLowerCase('de')));
+  return {rows,columns,filtered:rows.length};
+ }
  if(data.rows.length){
   const roles=view.kind==='table'?[]:view.kind==='network'?['x','target']:view.kind==='histogram'?['y']:view.kind==='boxplot'?['x','y']:['x',...(view.aggregate==='count'&&view.kind!=='scatter'?[]:['y']),'series'];
   for(const key of [...roles,'filterColumn']){

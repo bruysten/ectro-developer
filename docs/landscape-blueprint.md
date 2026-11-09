@@ -29,15 +29,15 @@ Mobile Verzeichnisse stellen Einträge als kompakte Karten dar. Such- und Bereic
 
 ### Systemprofil nach der bereitgestellten Vorlage
 
-Der Einstieg zeigt Systemname, Typ, Verantwortliche, Bereich/Realm und Status. Die übrigen Angaben liegen in kompakten, aufklappbaren Bereichen:
+Der Einstieg zeigt Systemname, Typ, Verantwortliche, Bereich/Realm und Status sowie Betriebsmodell und Standort/Cloud-Region. Die übrigen Angaben liegen in kompakten, aufklappbaren Bereichen:
 
 | Bereich | Angaben |
 |---|---|
-| System | Beschreibung, Version, Anbieter/Vendor, Standort/Hosting |
+| System | Beschreibung, Version, Anbieter/Vendor |
 | Zuständigkeit & Kontakte | Administratoren, Notfallkontakt, Datum der letzten Aktualisierung |
 | Technik | Sprachen/Plattformen, Servertyp, Betriebssystem, Datenbanksystem, APIs/Schnittstellen, Backup/Wiederherstellung |
 | Geschäft & Nutzen | Unterstützte Prozesse, Schlüsselfunktionen, KPIs, Geschäftsrisiken, Prozesszielgruppen, Wettbewerbsvorteile |
-| Governance | Sicherheits- und Compliance-Anforderungen, SLAs/Wartung/Support, Lizenzen, Redaktion/fachliche Pflege, Datenqualität |
+| Governance | Regulatory relevance (AI Act, DSA, DMA, GDPR), Sicherheits- und Compliance-Anforderungen, SLAs/Wartung/Support, Lizenzen, Redaktion/fachliche Pflege, Datenqualität |
 | Kosten & Wirtschaftlichkeit | Anschaffung, Wartung, Betrieb, Amortisationszeitraum, Migration, Training |
 | Nutzung & Berechtigungen | Benutzeranzahl, Abteilungen, Rollen, Rechte, Rechte-Administration, Aktivität/Zufriedenheit |
 
@@ -80,3 +80,36 @@ Wie besprochen nach Abschluss wieder aufgreifen: **Datenfluss Lab** für wiederh
 `access` ist `unknown` (noch offen), `read` (lesend), `write` (schreibend) oder `readwrite` (beides). Bei A → B heißt lesend: **B liest aus A**; schreibend: **A schreibt nach B**. Beides dokumentiert beide Übertragungsweisen auf diesem Datenweg, nicht automatisch eine Gegenrichtung. Bei A ↔ B gelten die gewählten Übertragungsweisen für beide Datenwege. Unterschiedliche Zugriffsarten, Inhalte oder Frequenzen je Richtung werden als zwei einzelne Flüsse erfasst. Die Live-Vorschau erklärt die Auswahl anhand der wirklichen Systemnamen. Altbeständen werden keine Zugriffsarten unterstellt. Die Angaben dokumentieren die Landschaft und verändern keine realen Datenbankrechte.
 
 Änderungen an Endpunkten, Richtung, Zugriffsart oder Bestandszuordnung setzen einen dokumentierten Fluss zur erneuten Belegprüfung auf „Annahme“. JSON enthält beide neuen Felder; CSV behält die A-/B-Endpunkte (`from`/`to`) und ergänzt Richtung, Zugriffsart, lesbaren Datenweg und Bedeutung. Suche erkennt auch deutsche Zugriffsbezeichnungen. Backendtests prüfen sämtliche zwölf Kombinationen einschließlich Speicherung/Neuladen, Bestandszuordnung und ungültiger Werte; Modelltests zusätzlich Erreichbarkeit, Zählungen, Altbestände und Exportbedeutung.
+
+### Betriebsmodell und regulatorische Relevanz
+
+Das Betriebsmodell steht direkt neben Standort/Cloud-Region: Noch offen, On-Premises, Cloud (einschließlich SaaS), Hybrid oder externes klassisches Hosting. Bestehende Angaben zu Standort/Hosting bleiben erhalten; ältere Profile erhalten keinen erfundenen Betriebsstandort. Die Auswahl wird im Profil, in der Systemliste, Suche und im CSV-Export berücksichtigt.
+
+Unter Governance erfasst ein kompakter englischer Bereich **Regulatory relevance** die vier Regelwerke separat: **Not assessed**, **Relevant**, **Not relevant**. Alle beginnen mit „Not assessed“. Es handelt sich um eine manuelle Relevanzeinschätzung pro System; daraus wird kein Compliance-Status berechnet. Kopieren, JSON-Speicherung und strukturierter CSV-Export erhalten die Einzelangaben. Die englischen Namen folgen den offiziellen Referenzen: [AI Act](https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai), [Digital Services Act](https://digital-strategy.ec.europa.eu/en/policies/digital-services-act), [Digital Markets Act](https://digital-markets-act.ec.europa.eu/about-dma/legislation_en), [General Data Protection Regulation](https://commission.europa.eu/law/law-topic/data-protection/legal-framework-eu-data-protection_en).
+
+## Journey × Landscape: Systeme & Daten
+
+Eine Journey kann genau eine vorhandene Landscape desselben Projekts auswählen. Pro Phase lassen sich die ganze Phase, Ziel, Handlung, Touchpoint, Kanal, Hürde, Verbesserung, Erfolgskriterium sowie einzelne Service-Blueprint-Aktivitäten mit mehreren Systemen und Datenbeständen verknüpfen. Datenbestände bringen ihr besitzendes System als abgeleitete Abhängigkeit mit. Durchgezogene Linien kennzeichnen direkte Zuordnungen, gestrichelte Linien diese Ableitung.
+
+„Systeme & Daten“ zeigt alle Phasen ohne abgeschnittene Randkarten. Ein Journey-Element hebt seine Ressourcen hervor; ein System oder Datenbestand hebt umgekehrt die betroffenen Elemente und Phasen hervor. Journey-Elemente und Blueprint-Aktivitäten haben getrennte Ansichten. Auf schmalen Bildschirmen stehen beide Seiten untereinander; eine namentliche Auswahlzeile hält den Zusammenhang auch ohne Verbindungslinien und unabhängig von Farbe lesbar. Der Suchdialog gruppiert Bestände unter ihren Systemen; vorhandene Zuordnungen lassen sich dort bearbeiten oder ausdrücklich entfernen. CSV exportiert die aktuellen Namen und den gelesenen Quellstand.
+
+Gespeichert werden ausschließlich stabile IDs (`infrastructure.landscape` und `bindings` mit `stage`, `element`, optional `blueprint`, `systems`, `stores`). Namen und Inhalte werden frisch mit den bestehenden Projekt- und Laborrechten gelesen. Quelländerungen erzeugen keine stillen Kopien; Aktualisieren liest den neuen Stand. Entfernte Einzelobjekte werden als fehlende Verweise markiert, entfernte oder gesperrte Landschaften als nicht verfügbar. Unveränderte Verweise bleiben bei gewöhnlichen Journey-Änderungen erhalten. Ein Quellenwechsel entfernt nach Rückfrage die alten Zuordnungen. Die Modellverknüpfung ist keine automatische Prüfung tatsächlicher Betriebsabhängigkeiten.
+
+Serverseitig werden Quellenprojekt, Laborart, Freigaben, Phasen-/Aktivitätszugehörigkeit und alle neuen Ressourcen-IDs geprüft. Höchstens 300 Elementzuordnungen und je 100 System-/Bestandsverweise pro Zuordnung. Beim Entzug von `landscape_lab` werden die Verweise aus Antworten entfernt und beim gewöhnlichen Bearbeiten erhalten. Entzug von `blueprint_lab` blendet auch die zugehörigen Aktivitätsverweise aus und bewahrt sie verlustfrei. Kopieren, Verschieben und Entfernen von Phasen bzw. Aktivitäten berücksichtigen die Zuordnungen.
+
+## Vier zusammenpassende Branchenbeispiele
+
+In beiden Labs über „Beispiel laden“ auswählbar. Bei Freigabe beider Labs entstehen eine neue Landscape und eine zugehörige Journey **in einer gemeinsamen Transaktion**; bei Fehlern oder Quotenüberschreitung entsteht kein halbes Paar. Bestehende Arbeiten werden zuvor gespeichert und nicht ersetzt. Ohne Journey-Freigabe kann ein Landscape-Beispiel einzeln angelegt werden. Der kompakte Einstieg bleibt separat verfügbar.
+
+| Synthetisches Szenario | Systeme / Bestände / Flüsse | Journey |
+| --- | --- | --- |
+| Deutscher Fach- und Publikumsverlag, 450 Beschäftigte | 20 / 20 / 33 | Digitalabo: Entdecken bis Verlängern oder Beenden |
+| Deutscher Kompositversicherer, 6.000 Beschäftigte | 23 / 23 / 38 | Leitungswasserschaden: Orientierung bis Abschluss |
+| Regionale Stadtwerke-Gruppe, 1.800 Beschäftigte | 22 / 22 / 34 | Einzug: Tarifwahl bis Rechnung und Klärung |
+| Deutsche Maschinenbaugruppe, 20.000 Beschäftigte | 25 / 25 / 46 | Maschinenbeschaffung: Anforderungen bis Betrieb und Service |
+
+Jede Journey enthält sieben Phasen, bei Blueprint-Freigabe 28 Aktivitäten und 56 konkrete Elementzuordnungen. Alle Aussagen, Stimmungen, Kosten und Systemgrößen sind fiktive Lernannahmen. Die Profile enthalten Verantwortungen, Betriebsmodelle, technische Angaben, Geschäftsnutzen, Governance, regulatorische Relevanzeinschätzung und Kosten-/Nutzungsangaben. Energie-Marktrollen bleiben getrennt; OT-Grenzen und kontrollierte Schnittstellen sind ausdrücklich modelliert. Geplante KI-Piloten sind als geplant gekennzeichnet.
+
+Fachliche Bezugspunkte für die Modellierung: [VLB · ONIX-Titeldaten](https://vlb.de/hilfe/datenbezug/onix-titeldaten), [VLB · Datenanlieferung](https://vlb.de/hilfe/datenanlieferung), [BiPRO · Branchenstandards](https://bipro.net/ueber-bipro/bipro-normen/), [Bundesnetzagentur · Digitalisierung der Netzsektoren](https://www.bundesnetzagentur.de/SharedDocs/Downloads/DE/Sachgebiete/Telekommunikation/Unternehmen_Institutionen/Digitalisierung/Grundsatzpapier/Digitalisierung.pdf?__blob=publicationFile&v=1), [VDMA · OPC UA im Maschinenbau](https://www.vdma.eu/de/opcua). Die konkreten Architekturen sind eigene synthetische Lernmodelle.
+
+Zusätzliche Prüfung: `node tests/journey-landscape.mjs` prüft alle vier Paarvorlagen, vollständige Referenzen, Kopier-/Verschiebe-/Löschlogik, atomare Speicherung einschließlich Quotenfehlern, Quellenisolation, Freigabeentzug, verlustfreie Redaktion sowie veraltete Verweise. `python3 tests/studio-integration.py` prüft den HTTP-Vertrag einschließlich CSRF, POST-Pflicht, fremden Projekten und Transaktionsrollback. Browserprüfung mit dem bestehenden Testkonto: vier Beispielpaare anlegen, manuelle Auswahl einer bestehenden Landschaft, Datenpool-Zuordnung mit abgeleitetem System, Speichern/Neuladen, Systemfokus über mehrere Phasen, Blueprint-Direkteinstieg und Ansichten/Formulare bei 320, 768 und 1280 px.

@@ -68,3 +68,37 @@ Zentrierte Summen vermeiden die Subtraktion großer, fast gleicher Rohsummen. Zu
 Methodik: [NIST: Least Squares](https://www.itl.nist.gov/div898/handbook/pmd/section4/pmd431.htm), [Penn State: Simple Linear Regression](https://online.stat.psu.edu/stat501/Lesson01).
 
 `node tests/regression.mjs` prüft bekannte Ergebnisse, das Minimum der Fehlerquadratsumme, Vorzeichen, Mittelwert-/Konstantfälle, große Offsets, Ausschluss von Punkten, Importvalidierung und reale Fehler in der Animation. PHP-Vertragstests prüfen Validierung, Speicherung beider Verfahren, Legacy-Kompatibilität und Berechtigungen. In den Lab-HTTP-Tests werden auch Regressionsinhalte und fehlende Koordinaten über die API geprüft.
+
+### Drei Branchenbeispiele für lineare Regression
+
+„Beispiel wählen“ gruppiert die bisherigen Grundlagen und drei zusätzliche Praxisfälle. Eine kurze Vorschau erklärt die Beobachtungseinheit und den Schätzauftrag vor der Übernahme. Im Arbeitsbereich bleibt der Auftrag kompakt sichtbar; Datenrahmen und Lernauftrag sind aufklappbar.
+
+| Beispiel | Ein Punkt | X → Y | Beobachtungen / Schätzauftrag |
+| --- | --- | --- | --- |
+| Verlag & Medien | Newsletter-Kampagne mit gleichem Digitalabo-Angebot und einheitlicher Zuordnung | Eindeutige Klicks in Tausend → zugeordnete neue Probeabos innerhalb von sieben Tagen | 14 / 4.500 Klicks |
+| Deutsche Industrie | Vergleichbares Fertigungslos auf derselben Maschine mit gleicher Bearbeitungsfolge | Losgröße in Stück → Maschinenbelegungsstunden einschließlich Rüsten | 12 / Los mit 450 Teilen |
+| Versicherung | Teamwoche mit vergleichbaren standardisierten Kfz-Glasschäden | Bearbeitete Fälle → erfasste Netto-Bearbeitungsstunden | 14 / 450 Fälle |
+
+Alle Daten sind konstruierte, streuende Übungsdaten und keine Unternehmensbeobachtungen oder Branchenbenchmarks. Die Schätzaufträge liegen innerhalb der jeweiligen X-Spanne. Die Beispiele beginnen mit einer waagerechten Geraden; Lernende verändern sie selbst oder verwenden „Beste Gerade finden“. Beobachtungen haben passende Kampagnen-, Fertigungslos- und Teamwochen-Bezeichnungen.
+
+Die aufklappbaren Hinweise behandeln die jeweilige Übertragbarkeit: Zielgruppen und Saison bei Kampagnen; Rüstanteil, Störungen und Prozesswechsel in der Fertigung; Fallmix sowie die Abgrenzung von Arbeitsstunden, Kalenderwartezeit und Personalstellen bei Versicherungen. Es werden weder individuelle Versicherungsentscheidungen noch Tarifierungen abgebildet.
+
+Die optionale Kennung `regression.example` erhält den Lernkontext beim Speichern und erneuten Laden. Eigene Tabellenimporte verwenden keine solche Kennung; beim Umbenennen von Achsen wird sie entfernt. Bestehende Statistik-Arbeiten ohne Kennung bleiben unverändert. Es entstehen unabhängige Datenkopien; die Warenkorbanalyse derselben Arbeit bleibt erhalten. Zu niedrige konfigurierte Zeilengrenzen werden vor der Übernahme benannt, ohne Punkte stillschweigend abzuschneiden.
+
+Verifikation: `node tests/regression.mjs` prüft zusätzlich alle drei Datensätze, Streuung, Einheiten, gültige Interpolation, Verbesserung gegenüber der Ausgangsgeraden, unveränderte Vorlagen nach Bearbeitung sowie PHP-Speicherung und Verfahrenswechsel einschließlich Kennung. Browserprüfung: Auswahl aller drei Fälle, Anpassung, Schätzung, Speichern/Neuladen und Arbeitsbereich bzw. Dialog bei 320, 768 und 1280 Pixeln.
+
+### Drei Praxisbeispiele für Warenkorbanalyse (B2C und B2B)
+
+„Beispiel wählen“ bietet zusätzlich drei synthetische Auftragsdatensätze. Vorschau und aufklappbarer Lernkontext verwenden dieselbe Gestaltung wie die Regression. Der Warenkorb-Begriff wird je Fall ausdrücklich benannt:
+
+| Fall | Warenkorb | Artikel | Startregel | Startzählung: alle / Ausgang / Ziel / gemeinsam |
+| --- | --- | --- | --- | --- |
+| B2C · Buchshop | Abgeschlossene Bestellung; Buchtitel sind zu Kategorien zusammengefasst | 6 | Kinderbuch → Geschenkverpackung | 24 / 10 / 9 / 6 |
+| B2B · Industriebedarf | Beschaffungsauftrag für eine vergleichbare Anlagenfamilie; Einzelpositionen statt Wartungssets | 6 | Filtereinsatz → Dichtungssatz | 24 / 12 / 13 / 9 |
+| B2B · Medienvermarktung | Beauftragte Kampagne mit frei wählbaren Bausteinen | 6 | Newsletterplatzierung → Advertorial | 20 / 10 / 9 / 6 |
+
+Die Lernaufträge behandeln den Vergleich mit der Grundhäufigkeit, die Richtungsumkehr und den Unterschied zwischen verbreiteten Artikeln und überdurchschnittlichen Assoziationen. Im Medienbeispiel ist Display-Werbung insgesamt häufig (13/20), bei Newsletter-Aufträgen aber nur in 5/10 Aufträgen enthalten: Lift kleiner als 1. Stückzahlen, Umsätze, Kundenanzahlen, Anzeigenkontakte und Werbewirkung werden nicht aus den Warenkörben abgeleitet. Alle Daten sind konstruierte Übungsdaten und keine Branchenbenchmarks.
+
+Die optionale Kennung `basketExample` bleibt beim Speichern und beim Wechsel zur Regression erhalten. Der Import eigener Tabellen und das Laden bisheriger Grundlagenbeispiele entfernen den Branchenkontext. Beim Laden eines anderen Warenkorbbeispiels bleibt eine vorhandene Regression unverändert. Konfigurierte Zeilengrenzen werden vor der Übernahme geprüft; Beispiele werden nicht gekürzt.
+
+Zusätzliche Verifikation in `tests/statistics.mjs` / `tests/statistics.php`: exakte Anfangszählungen aller drei Fälle, Richtungsumkehr, jede Zählpräfixmenge, eindeutige IDs und Artikel, unabhängige Kopien, Speicher-Roundtrip, ungültige Kennungen und Erhalt beider Verfahren beim Umschalten. Browserprüfung: alle drei Beispiele laden/speichern, Neuladen, Einzelzählung, Umkehr, unveränderte Regression sowie Ansichten/Dialog bei 320, 768 und 1280 Pixeln. Der Statistik-Arbeitsbereich erhält `min-width:0`, damit breite Matrizen intern scrollen und nicht das umgebende Grid verbreitern. Beim Entfernen eines Artikels wird der Fokus auf ein tatsächlich vorhandenes Auswahlfeld gesetzt.

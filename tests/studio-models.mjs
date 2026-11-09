@@ -1,3 +1,4 @@
+import './hierarchy-models.mjs';
 import './persona-models.mjs';
 import './studio-visualization.mjs';
 import './studio-source-tables.mjs';
@@ -56,7 +57,7 @@ const means=reasoningMetrics('averages');assert.equal(means.mean,1092);assert.eq
 assert.match(csvText([{name:'A;B',quote:'"x"'}]),/"A;B"/);assert.ok(csvText([{formula:'=1+1'}]).includes("'=1+1"));
 const examples=Object.fromEntries(['conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics','geo','agent','archive'].map(k=>[k,studioExample(k)]));
 const contract=spawnSync('php',['tests/studio.php'],{input:JSON.stringify(examples),encoding:'utf8'});assert.equal(contract.status,0,contract.stdout+contract.stderr);process.stdout.write(contract.stdout);
-console.log('Studio models verified: all 15 views, full aggregates, nulls, negatives, safe text, quote checks and four interpretation lessons.');
+console.log('Studio models verified: all 20 views, full aggregates, nulls, negatives, safe text, quote checks and four interpretation lessons.');
 
 // Exercise the real selection handler with the empty record shape returned by
 // the API. Named properties on an Array would disappear during JSON saving.

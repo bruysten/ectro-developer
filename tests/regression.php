@@ -16,7 +16,8 @@ foreach([
  [...$reg,'points'=>array_fill(0,1001,$reg['points'][0])],
  [...$reg,'points'=>[$reg['points'][0],$reg['points'][0]]],
  [...$reg,'mode'=>'unknown'],[...$reg,'showSquares'=>'yes'],[...$reg,'predictionX'=>INF],
- [...$reg,'line'=>['slope'=>1e13,'intercept'=>0]]
+ [...$reg,'line'=>['slope'=>1e13,'intercept'=>0]],
+ [...$reg,'example'=>'unknown'],[...$reg,'example'=>[]]
 ] as $bad)rejectRegression(fn()=>regressionValidate($bad));
 rejectRegression(fn()=>statisticsValidate([...$basket,'analysis'=>'other']));rejectRegression(fn()=>statisticsValidate([...$basket,'analysis'=>'regression']));rejectRegression(fn()=>labSave($u,[...$saved,'project'=>$pid,'content'=>$both]),409);
 query('UPDATE users SET features=? WHERE id=?',['{"statistics_lab":false}',$uid]);rejectRegression(fn()=>labObject(one('SELECT * FROM users WHERE id=?',[$uid]),$saved['id']),403);

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {regressionExample,regressionFit,regressionLine,regressionPredict,regressionErrors,regressionFromTable,regressionBounds} from '../src/regression-models.js';
+import {regressionExample,regressionFit,regressionLine,regressionPredict,regressionErrors,regressionFromTable,regressionBounds,REGRESSION_PRACTICE,REGRESSION_EXAMPLES} from '../src/regression-models.js';
 const near=(a,b,eps=1e-9)=>assert(Math.abs(a-b)<=eps,`${a} != ${b}`),points=p=>p.map(([x,y],i)=>({id:String(i),label:String(i),x,y,included:true}));
 const c=regressionExample(),fit=regressionFit(c.points);
 near(fit.meanX,41.6);near(fit.meanY,46);near(fit.sxx,2605.2);near(fit.sxy,2437);near(fit.slope,.9354368186703517);near(fit.intercept,7.085828343313366);near(fit.sse,90.34047290035308);near(fit.r2,.9618816570040705);
@@ -25,3 +25,13 @@ assert.throws(()=>regressionFromTable(data,{xColumn:'x',yColumn:'x'}),/unterschi
 let previous=Infinity;for(let i=0;i<=30;i++){const t=i/30,trial={...c,line:{slope:fit.slope*t,intercept:c.line.intercept+(fit.intercept-c.line.intercept)*t}};const error=regressionErrors(trial).sse;assert(error<=previous+1e-8);previous=error;}
 const php=spawnSync('php',['tests/regression.php'],{input:JSON.stringify(c),encoding:'utf8'});assert.equal(php.status,0,php.stdout+php.stderr);process.stdout.write(php.stdout);
 console.log('Linear regression verified: exact sample, optimum, signed slopes, zero/constant/identical data, stable offsets, exclusion, strict import, prediction and real interpolation errors.');
+for(const [key,scenario] of Object.entries(REGRESSION_PRACTICE)){
+ const example=regressionExample(key),f=regressionFit(example.points);
+ assert.equal(example.example,key);assert.equal(example.xLabel,scenario.xLabel);assert.equal(example.yLabel,scenario.yLabel);assert.match(example.sourceLabel,/synthetische/);assert(REGRESSION_EXAMPLES[key].includes(scenario.title));
+ assert(f.valid&&f.n>=12&&f.slope>0&&f.sse>0&&f.r2<.999,'Sector cases have usable variation and imperfect observations');assert(example.predictionX>f.minX&&example.predictionX<f.maxX,'Learning task interpolates within observed range');
+ assert.equal(example.mode,'manual');assert.equal(example.line.slope,0);assert(example.points.every(p=>p.included&&p.label.startsWith(scenario.pointLabel)));assert.equal(new Set(example.points.map(p=>p.id)).size,example.points.length);
+ const result=regressionPredict({...example,mode:'fit'},example.predictionX);assert(Number.isFinite(result)&&result>0);assert(regressionErrors(example).sse>f.sse,'Fitting visibly improves the starting baseline');
+ const snapshot=structuredClone(scenario.data);example.points[0].x=-9;assert.deepEqual(scenario.data,snapshot,'A participant edits an independent copy');assert.notEqual(regressionExample(key).points[0].x,-9);
+ const roundtrip=spawnSync('php',['tests/regression.php'],{input:JSON.stringify(regressionExample(key)),encoding:'utf8'});assert.equal(roundtrip.status,0,roundtrip.stdout+roundtrip.stderr);
+ console.log(`${key}: ${f.n} observations, fit/prediction, independent copies and saved scenario context verified.`);
+}
