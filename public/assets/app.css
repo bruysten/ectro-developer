@@ -815,3 +815,4 @@ html[data-workspace-resizing] iframe { pointer-events:none!important; }
 .database-table-delete-dialog .dialog-foot{flex-wrap:wrap;gap:10px}
 @media(max-width:500px){.database-table-delete-dialog .dialog-foot{display:grid;grid-template-columns:minmax(0,1fr)}.database-table-delete-dialog .dialog-foot button{width:100%;min-width:0;white-space:normal}}
 .database-table-delete-dialog{overflow:hidden}.database-table-delete-dialog form{display:flex;flex-direction:column;max-height:calc(100dvh - 48px)}.database-table-delete-dialog .dialog-body{overflow:auto;min-height:0}.database-table-delete-dialog .dialog-head,.database-table-delete-dialog .dialog-foot{flex:none}
+.project-card .card-foot{flex-wrap:wrap;gap:12px}.project-card h3{overflow-wrap:anywhere}

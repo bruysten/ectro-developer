@@ -45,7 +45,7 @@ function requireGroupPeriod(array $u,string $gid): void {
 }
 function groupDateLabel(string $date): string {return substr($date,8,2).'.'.substr($date,5,2).'.'.substr($date,0,4);}
 function learningAccess(array $u,?int $at=null): array {
-    $at??=time();$base=['allowed'=>true,'message'=>'','next_transition'=>null,'checked_at'=>$at,'timezone'=>GROUP_PERIOD_ZONE];if(workspaceManagement($u))return $base;
+    $at??=time();$base=['allowed'=>true,'message'=>'','next_transition'=>null,'checked_at'=>$at,'timezone'=>GROUP_PERIOD_ZONE];if(workspaceManagement($u)||$u['role']==='teacher')return $base;
     $rows=all('SELECT p.* FROM group_members m LEFT JOIN group_periods p ON p.group_id=m.group_id WHERE m.user_id=?',[$u['id']]);if(!$rows)return $base;
     $open=false;$next=null;$firstStart=null;
     foreach($rows as $p){$state=groupPeriodState($p,$at);if(in_array($state,['active','unlimited'],true))$open=true;foreach(['access_start_at','access_end_before'] as $key)if($p[$key]!==null&&(int)$p[$key]>$at)$next=$next===null?(int)$p[$key]:min($next,(int)$p[$key]);if($state==='scheduled'&&($firstStart===null||$p['access_start']<$firstStart))$firstStart=$p['access_start'];}

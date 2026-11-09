@@ -214,6 +214,8 @@ function features(array $u): array {
     foreach (all('SELECT g.features FROM groups g JOIN group_members m ON g.id=m.group_id WHERE m.user_id=? AND '.groupOpenSql('g.id'), [$u['id']]) as $g)
         foreach (json_decode($g['features'], true) as $f => $v) if (isset($flags[$f]) && !$v) $flags[$f] = false;
     foreach (json_decode($u['features'], true) as $f => $v) if (isset($flags[$f]) && !$v) $flags[$f] = false;
+    // Teachers always retain project supervision; other laboratory flags remain configurable.
+    if($u['role']==='teacher')$flags['files']=true;
     return $flags;
 }
 function converterFormats(): array {
@@ -255,11 +257,12 @@ function teacherParticipants(array $u): array {
 }
 function project(array $u, string $pid): array {
     requireLearningAccess($u);
-    if(workspaceManagement($u)){$p=one('SELECT p.*,g.name group_name,owner.name owner_name FROM projects p LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users owner ON owner.id=p.user_id WHERE p.id=?',[$pid]);if(!$p)fail(404,'Projekt nicht gefunden.');return $p;}
+    if(workspaceManagement($u)||$u['role']==='teacher'){$p=one('SELECT p.*,g.name group_name,owner.name owner_name FROM projects p LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users owner ON owner.id=p.user_id WHERE p.id=?',[$pid]);if(!$p)fail(404,'Projekt nicht gefunden.');return $p;}
     $p=one("SELECT p.*,g.name group_name,owner.name owner_name FROM projects p LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users owner ON owner.id=p.user_id WHERE p.id=? AND (p.user_id=? OR EXISTS(SELECT 1 FROM group_members m WHERE m.group_id=p.group_id AND m.user_id=? AND ".groupOpenSql('m.group_id').") OR (?='teacher' AND owner.role IN ('user','teacher') AND EXISTS(SELECT 1 FROM group_members student JOIN group_members teacher ON teacher.group_id=student.group_id WHERE student.user_id=p.user_id AND teacher.user_id=? AND ".groupOpenSql('student.group_id').")))",[$pid,$u['id'],$u['id'],$u['role']==='teacher'&&features($u)['files']?'teacher':'user',$u['id']]);if(!$p)fail(404,'Projekt nicht gefunden.');return $p;
 }
 function visibleProjects(array $u,string $target='',string $gid=''): array {
     if($target&&$target!==$u['id']){teacherTarget($u,$target,$gid);return all("SELECT p.*,g.name group_name,owner.name owner_name,(SELECT COUNT(*) FROM files f WHERE f.project_id=p.id AND f.kind IN ('file','asset')) file_count,(SELECT COUNT(*) FROM lab_objects o WHERE o.project_id=p.id) lab_count,(SELECT json_extract(c.config,'$.entry') FROM lab_project_config c WHERE c.project_id=p.id) lab_entry FROM projects p LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users owner ON owner.id=p.user_id WHERE p.user_id=? OR p.group_id=? ORDER BY p.updated_at DESC",[$target,$gid]);}
+    if($u['role']==='teacher')return all("SELECT p.*,g.name group_name,owner.name owner_name,(SELECT COUNT(*) FROM files f WHERE f.project_id=p.id AND f.kind IN ('file','asset')) file_count,(SELECT COUNT(*) FROM lab_objects o WHERE o.project_id=p.id) lab_count,(SELECT json_extract(c.config,'$.entry') FROM lab_project_config c WHERE c.project_id=p.id) lab_entry FROM projects p LEFT JOIN groups g ON g.id=p.group_id LEFT JOIN users owner ON owner.id=p.user_id ORDER BY p.updated_at DESC,p.id");
     return all("SELECT p.*,g.name group_name,(SELECT COUNT(*) FROM files f WHERE f.project_id=p.id AND f.kind IN ('file','asset')) file_count,(SELECT COUNT(*) FROM lab_objects o WHERE o.project_id=p.id) lab_count,(SELECT json_extract(c.config,'$.entry') FROM lab_project_config c WHERE c.project_id=p.id) lab_entry FROM projects p LEFT JOIN groups g ON g.id=p.group_id WHERE p.user_id=? OR EXISTS(SELECT 1 FROM group_members m WHERE m.group_id=p.group_id AND m.user_id=? AND ".groupOpenSql('m.group_id').") ORDER BY p.updated_at DESC",[$u['id'],$u['id']]);
 }
 function projectManager(array $u,array $p,bool $deleting=false): void {
