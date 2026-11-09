@@ -21,3 +21,20 @@ export async function renderPDF(blob,root,signal){
   try{await show();}catch(e){task.destroy();throw e;}
   return ()=>{signal?.removeEventListener('abort',abort);closed=true;renderTask?.cancel();task.destroy();};
 }
+
+export async function readArchivePDF(blob,{signal,forceOCR=false,rotation=0,recognize,onPage=()=>{},onPreview=()=>{}}={}){
+ if(blob.size>5*1024*1024)throw Error('PDF-Dateien dürfen höchstens 5 MB groß sein.');signal?.throwIfAborted();
+ const task=getDocument({data:new Uint8Array(await blob.arrayBuffer()),isEvalSupported:false,enableXfa:false,useWasm:false,standardFontDataUrl:'/assets/runtime/pdf/fonts/'});let render;
+ const abort=()=>{render?.cancel();void task.destroy();};signal?.addEventListener('abort',abort,{once:true});
+ try{signal?.throwIfAborted();const pdf=await task.promise;signal?.throwIfAborted();if(pdf.numPages>30)throw Error('Bis zu 30 PDF-Seiten. Einen kleineren Auszug importieren.');const pages=[];let length=0;
+  for(let number=1;number<=pdf.numPages;number++){
+   signal?.throwIfAborted();const page=await pdf.getPage(number);let canvas;
+   try{const content=await page.getTextContent();let text=content.items.map(i=>(i.str||'')+(i.hasEOL?'\n':' ')).join('').trim(),method='text',confidence=null;
+    const needsOCR=forceOCR||!text;onPage({page:number,total:pdf.numPages,method:needsOCR?'ocr':'text'});
+    if(needsOCR){if(!recognize)throw Error('Die OCR-Engine fehlt.');const base=page.getViewport({scale:1,rotation:(page.rotate+rotation)%360}),scale=Math.min(2.4,3000/Math.max(base.width,base.height),Math.sqrt(6000000/(base.width*base.height))),viewport=page.getViewport({scale,rotation:(page.rotate+rotation)%360});canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.ceil(viewport.width));canvas.height=Math.max(1,Math.ceil(viewport.height));render=page.render({canvasContext:canvas.getContext('2d'),viewport,background:'#fff'});await render.promise;signal?.throwIfAborted();const image=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error('Die PDF-Seite konnte nicht vorbereitet werden.')),'image/png'));onPreview(image);const result=await recognize(image);text=result.text.trim();method='ocr';confidence=result.confidence;}
+    const part=text?`[Seite ${number}]\n${text}`:'';length+=part.length+(part&&pages.some(p=>p.text)?2:0);if(length>12000)throw Error('Der Text ist länger als 12.000 Zeichen. Einen kleineren PDF-Auszug verwenden.');pages.push({page:number,method,text,confidence});
+   }finally{if(canvas)canvas.width=canvas.height=0;page.cleanup();}
+  }
+  return {text:pages.filter(p=>p.text).map(p=>`[Seite ${p.page}]\n${p.text}`).join('\n\n'),pages};
+ }finally{signal?.removeEventListener('abort',abort);await task.destroy();}
+}

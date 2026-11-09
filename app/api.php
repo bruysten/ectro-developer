@@ -5,6 +5,7 @@ require_once __DIR__ . '/templates.php';
 require_once __DIR__ . '/mysql.php';
 require_once __DIR__ . '/chat.php';
 require_once __DIR__ . '/workspace-uploads.php';
+require_once __DIR__ . '/materials.php';
 require_once __DIR__ . '/sql-training.php';
 require_once __DIR__ . '/collaboration.php';
 require_once __DIR__ . '/mail.php';
@@ -18,12 +19,12 @@ try {
     keyBytes(); sessionStart();
     $action = $_GET['action'] ?? 'bootstrap';
     $method = $_SERVER['REQUEST_METHOD'];
-    $readActions = ['canvas.list','canvas.get','lab.object','lab.projects','lab.info','ai.connections','admin.labs','admin.readiness','admin.readiness.directory','admin.readiness.detail','bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.overview','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info','admin.mail','admin.mail.templates','profile','team','team.profile','converter.config','php.mode'];
+    $readActions = ['materials','admin.materials','canvas.list','canvas.get','lab.object','lab.projects','lab.info','ai.connections','admin.labs','admin.readiness','admin.readiness.directory','admin.readiness.detail','bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.overview','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info','admin.mail','admin.mail.templates','profile','team','team.profile','converter.config','php.mode'];
     if ($method !== 'GET' && $method !== 'POST') fail(405, 'Methode nicht erlaubt.');
     if (!in_array($action, $readActions, true) && $method !== 'POST') fail(405, 'Diese Aktion benötigt POST.');
     if (in_array($action, $readActions, true) && $method !== 'GET') fail(405, 'Diese Aktion benötigt GET.');
-    if(in_array($action,['chat.upload','file.upload'],true) && ($postLimit=iniBytes((string)ini_get('post_max_size')))>0 && (int)($_SERVER['CONTENT_LENGTH']??0)>$postLimit)fail(413,'Der Upload überschreitet das PHP-Uploadlimit.');
-    $data = $method === 'POST' ? (in_array($action,['chat.upload','file.upload'],true)?$_POST:input()) : $_GET;
+    if(in_array($action,['chat.upload','file.upload','admin.material.upload'],true) && ($postLimit=iniBytes((string)ini_get('post_max_size')))>0 && (int)($_SERVER['CONTENT_LENGTH']??0)>$postLimit)fail(413,'Der Upload überschreitet das PHP-Uploadlimit.');
+    $data = $method === 'POST' ? (in_array($action,['chat.upload','file.upload','admin.material.upload'],true)?$_POST:input()) : $_GET;
     if ($method === 'POST') csrf();
     if ($action === 'bootstrap') {
         $u = currentUser(); $hasAdmin = (bool)query("SELECT 1 FROM users WHERE role='admin' LIMIT 1")->fetchColumn();
@@ -72,6 +73,7 @@ try {
         $_SESSION['auth_version'] = (int)$u['auth_version']+1; session_regenerate_id(true); audit($u['id'],'password.change'); jsonOut(['ok'=>true]);
     }
     if ($u['must_change_password']) fail(403,'Bitte ändern Sie zuerst Ihr vorläufiges Passwort.');
+    if($action==='materials'||str_starts_with($action,'admin.material'))materialsDispatch($u,$action,$data);
     if((str_starts_with($action,'db.')||str_starts_with($action,'training.'))&&!empty($data['participant'])){$target=textField($data,'participant',32);$gid=textField($data,'group',32);if(!workspaceManagement($u))teacherTarget($u,$target,$gid);$student=one('SELECT * FROM users WHERE id=? AND active=1',[$target]);if(!$student)fail(404,'Teilnehmer nicht gefunden.');$GLOBALS['academyDbUser']=$student;if(in_array($action,['db.connect','db.disconnect'],true)&&$target!==$u['id'])fail(403,'Persönliche Verbindungen verwaltet der Teilnehmer selbst.');}
     if((str_starts_with($action,'db.')||str_starts_with($action,'training.'))&&!empty($data['project'])){$GLOBALS['academyDbProject']=textField($data,'project',32);project($u,$GLOBALS['academyDbProject']);}
     if ($action === 'php.mode') jsonOut(['mode'=>phpExecutionMode()]);

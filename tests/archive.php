@@ -18,6 +18,8 @@ archeck(json_decode(one('SELECT config FROM lab_project_config WHERE project_id=
 archeck(one('SELECT config FROM lab_project_config WHERE project_id=?',[$limited])['config']===$restricted,'Restricted catalog unchanged');
 archeck((int)query('SELECT COUNT(*) FROM readiness_revisions')->fetchColumn()===1&&!db()->query('PRAGMA foreign_key_check')->fetch(),'History and foreign keys preserved');
 $u=one('SELECT * FROM users WHERE id=?',[$uid]);archeck(archiveValidate($c)==$c,'Lossless JS/PHP contract');
+$withOCR=$c;$withOCR['documents'][0]['extraction']=['mode'=>'mixed','language'=>'deu+eng','pages'=>2,'ocrPages'=>[2],'confidence'=>90];archeck(archiveValidate($withOCR)==$withOCR,'OCR provenance survives validation');
+foreach([['pages'=>31],['ocrPages'=>[2,2]],['mode'=>'text'],['language'=>'remote'],['confidence'=>101]] as $bad){$invalid=$withOCR;$invalid['documents'][0]['extraction']=[...$invalid['documents'][0]['extraction'],...$bad];arreject(422,fn()=>archiveValidate($invalid));}
 archeck(archiveValidate(['documents'=>[]])===['documents'=>[]],'An intentionally empty archive stays empty');
 foreach([['status'=>'fake'],['classification'=>'private'],['date'=>'2026-02-30'],['text'=>str_repeat('x',12001)],['tags'=>['Retoure','retoure']],['tags'=>['']],['id'=>'../escape'],['owner'=>['bad']]] as $bad){$value=$c;$value['documents'][0]=[...$value['documents'][0],...$bad];arreject(422,fn()=>archiveValidate($value));}
 $value=$c;$value['documents'][]=$value['documents'][0];arreject(422,fn()=>archiveValidate($value));
