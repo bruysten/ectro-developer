@@ -6,7 +6,8 @@ const svgs=[];
 for(const kind of Object.keys(CANVAS_MODELS)){
  const c={kind,name:'Unsafe <script> title',content:canvasExample(kind),version:1};
  const html=renderCanvasBoard(c);assert(!html.includes('<script>'));const print=canvasPrintHtml(c);assert(!print.includes('<script')&&!print.includes('src=')&&!print.includes('@import'));
- for(const note of c.content.cards){assert.equal((html.match(new RegExp('data-canvas-card="'+note.id+'"','g'))||[]).length,1,'Every card is an editable note on the default board');}for(const note of c.content.cards)assert(print.includes(note.text.replaceAll('&','&amp;').replaceAll('<','&lt;')),'Print retains every card');
+ for(const note of c.content.cards){assert.equal((html.match(new RegExp('data-canvas-card="'+note.id+'"','g'))||[]).length,1,'Every card is an editable note on the default board');assert.equal((html.match(new RegExp('data-canvas-delete="'+note.id+'"','g'))||[]).length,1,'Every editable card has one direct delete action');}for(const note of c.content.cards)assert(print.includes(note.text.replaceAll('&','&amp;').replaceAll('<','&lt;')),'Print retains every card');
+ assert(!print.includes('data-canvas-delete='));assert(!renderCanvasBoard({...c,archived:true}).includes('data-canvas-delete='));
  for(const field of canvasFieldChoices(kind))assert(renderCanvasBoard(c,field.id).length>50);
  if(['value','empathy'].includes(kind)){const fields=renderCanvasBoard(c,'',{layout:'fields'});for(const note of c.content.cards)assert.equal((fields.match(new RegExp('data-canvas-card="'+note.id+'"','g'))||[]).length,1);assert.equal((renderCanvasBoard({...c,archived:true}).match(/data-canvas-drag=/g)||[]).length,0);}
  if(kind==='value'){assert.equal((html.match(/<section class="canvas-on-map /g)||[]).length,6);assert(html.includes('canvas-value-map'));assert(html.includes('canvas-interactive-map'));assert(!html.includes('canvas-map-instruction'));assert(html.includes('Produkte &amp;'));}
