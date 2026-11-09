@@ -3,7 +3,7 @@ const sum=values=>{let s=0,c=0;for(const x of values){const y=x-c,t=s+y;c=(t-s)-
 export function regressionExample(key='books'){
  const data=key==='empty'?[]:key==='negative'?[[1,90],[2,70],[3,66],[4,55],[5,40],[6,38]]:key==='curve'?[-3,-2,-1,0,1,2,3].map(x=>[x,x*x]):[[16,20],[23,25],[37,50],[52,55],[80,80]];
  const points=data.map(([x,y],i)=>({id:String(i+1),label:'Beobachtung '+(i+1),x,y,included:true}));
- return {points,xLabel:key==='negative'?'Liefermenge':key==='curve'?'X':'Alter (Jahre)',yLabel:key==='negative'?'Stückkosten (€)':key==='curve'?'Y':'Bücherbudget (€ / Monat)',sourceLabel:key==='empty'?'Eigene Daten':'Synthetisches Lernbeispiel',line:{slope:0,intercept:points.length?sum(points.map(p=>p.y))/points.length:0},mode:'manual',predictionX:key==='books'?44:0,showResiduals:true,showSquares:false};
+ return {points,xLabel:key==='negative'?'Liefermenge':['curve','empty'].includes(key)?'X':'Alter (Jahre)',yLabel:key==='negative'?'Stückkosten (€)':['curve','empty'].includes(key)?'Y':'Bücherbudget (€ / Monat)',sourceLabel:key==='empty'?'Eigene Daten':'Synthetisches Lernbeispiel',line:{slope:0,intercept:points.length?sum(points.map(p=>p.y))/points.length:0},mode:'manual',predictionX:key==='books'?44:0,showResiduals:true,showSquares:false};
 }
 export function regressionFit(points){
  const active=points.filter(p=>p.included),n=active.length;

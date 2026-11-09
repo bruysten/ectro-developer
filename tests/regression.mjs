@@ -15,7 +15,7 @@ for(const dm of [-2,-.1,0,.1,2])for(const db of [-5,-.2,0,.2,5]){const trial={..
 const shifted=regressionFit(c.points.map(p=>({...p,x:p.x+1e7,y:p.y-1e7})));near(shifted.slope,fit.slope,1e-9);near(shifted.r2,fit.r2,1e-9);
 const excluded={...c,points:[...c.points,{id:'outlier',x:40,y:300,included:false}]};near(regressionFit(excluded.points).sse,fit.sse);excluded.points.at(-1).included=true;assert(regressionFit(excluded.points).sse>fit.sse*10);assert.equal(c.points.length,5);
 assert.equal(regressionFit(points([[1e-200,1],[2e-200,2]])).valid,false);assert.equal(regressionFit(points([[1,1e-200],[2,2e-200]])).valid,false);
-assert.equal(regressionExample('empty').points.length,0);assert.deepEqual(regressionExample('books'),c);
+assert.equal(regressionExample('empty').points.length,0);assert.equal(regressionExample('empty').xLabel,'X');assert.equal(regressionExample('empty').yLabel,'Y');assert.deepEqual(regressionExample('books'),c);
 const bounds=regressionBounds(points([[5,5],[5,5]]));assert(bounds.xmax>bounds.xmin&&bounds.ymax>bounds.ymin);
 const data={name:'Numbers',columns:[{name:'x',type:'number'},{name:'y',type:'number'},{name:'label',type:'text'}],rows:[{x:1,y:3,label:'One'},{x:2,y:5,label:'<img src=x>'}]},mapping={xColumn:'x',yColumn:'y',labelColumn:'label'};
 const imported=regressionFromTable(data,mapping);assert.equal(imported.points[1].label,'<img src=x>');near(regressionFit(imported.points).slope,2);assert.throws(()=>regressionFromTable({...data,truncated:true},mapping),/Ausschnitt/);
