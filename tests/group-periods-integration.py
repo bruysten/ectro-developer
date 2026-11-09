@@ -116,7 +116,8 @@ with tempfile.TemporaryDirectory(prefix='academy-group-periods-') as private:
         for action,params in [('dashboard',{}),('files',{'project':personal}),('files',{'project':project}),('ai.connections',{}),('db.info',{})]:
             status,body=learner.call(action,**params);check(status==403 and body.get('code')=='access_period','Existing sessions are blocked across learning APIs')
         check(learner.call('file.save',{'project':personal,'path':'blocked.txt','content':'cannot save','version':0})[0]==403,'Closed access cannot write personal files')
-        check(teacher.call('files',project=personal)[0]==404,'A separate active teacher group does not reveal learners from a closed group')
+        check(teacher.call('files',project=personal)[0]==200,'Teacher project supervision remains available after a course closes')
+        teacher.ok('project.rename',{'id':project,'name':'Teacher renamed expired group project'})
         check(teacher.call('chat',group=first)[0]==403,'Closed group chat remains closed even with another active group')
         save(backup,periods={'access_start':None})
         check(learner.ok('bootstrap')['user']['access']['allowed'],'Reopening another assigned group restores the same authenticated session')
