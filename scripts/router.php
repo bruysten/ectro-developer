@@ -1,6 +1,8 @@
 <?php
 // Local PHP development server only. Production uses Apache's public/ document root.
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+if (str_starts_with($path,'/oauth/') || in_array(rtrim($path,'/'),['/.well-known/oauth-authorization-server','/.well-known/oauth-protected-resource','/.well-known/oauth-protected-resource/mcp'],true)) { require __DIR__.'/../public/mcp/oauth.php'; return true; }
+if ($path === '/mcp' || $path === '/mcp/') { require __DIR__.'/../public/mcp/index.php'; return true; }
 if ($path === '/api' || $path === '/api/') { require __DIR__ . '/../public/api/index.php'; return true; }
 if ($path === '/admin' || $path === '/admin/') { require __DIR__ . '/../public/admin/index.php'; return true; }
 if (str_starts_with($path, '/assets/runtime/') || str_starts_with($path, '/sandbox/')) {

@@ -25,6 +25,8 @@ export const PERMISSION_SECTIONS=[
     ['rag','RAG-Werkstatt','Embeddings, Suchvergleich, Reranking und Graph-RAG.'],
     ['neural','Neuronale Netze','Netze gestalten, trainieren und bewerten.'],
     ['chat_lab','Chatbot-Labor','Projektgespräche mit fortlaufendem Kontext führen.'],
+    ['agent_lab','Agent Lab','Agenten erproben, AGENTS.md und Skills gestalten und MCP-Werkzeuge testen.'],
+    ['mcp_external','MCP · Zugriff von außen','Persönlichen, lesenden Datenbankzugang für externe KI-Clients aktivieren dürfen.'],
     ['assistant_lab','Assistenten-Builder','Regeln, Wissen und lesende Projektwerkzeuge bündeln.'],
     ['evaluation_lab','Quellenprüfungs-Labor','Antworten mit Referenzen und belegten Aussagen vergleichen.']]},
   {id:'team',name:'Zusammenarbeit',icon:'groups',features:[
@@ -32,7 +34,7 @@ export const PERMISSION_SECTIONS=[
     ['team','Team','Freigegebene Profile der Lerngruppe ansehen.']]},
 ];
 export const PERMISSION_CATALOG=Object.fromEntries(PERMISSION_SECTIONS.flatMap(s=>s.features.map(([key,label,copy])=>[key,[label,copy]])));
-const dependencies={geo_lab:['files'],statistics_lab:['files'],editor:['files'],html:['files','editor'],php:['files','editor'],python:['files','editor'],data_lab:['files'],graph:['files'],rag:['files'],neural:['files'],chat_lab:['files','ai'],assistant_lab:['files'],evaluation_lab:['files'],visualization_lab:['files'],reasoning_lab:['files'],journey_lab:['files'],canvas_lab:['files'],readiness_lab:['files'],landscape_lab:['files']};
+const dependencies={agent_lab:['files'],mcp_external:['agent_lab','database','files'],geo_lab:['files'],statistics_lab:['files'],editor:['files'],html:['files','editor'],php:['files','editor'],python:['files','editor'],data_lab:['files'],graph:['files'],rag:['files'],neural:['files'],chat_lab:['files','ai'],assistant_lab:['files'],evaluation_lab:['files'],visualization_lab:['files'],reasoning_lab:['files'],journey_lab:['files'],canvas_lab:['files'],readiness_lab:['files'],landscape_lab:['files']};
 export const normalizedPermissions=flags=>Object.fromEntries(Object.keys(PERMISSION_CATALOG).map(key=>[key,flags?.[key]!==false]));
 
 export function mountPermissionEditor(root,{features={},system={},esc,onChange=()=>{}}){

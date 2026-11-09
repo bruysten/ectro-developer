@@ -55,3 +55,5 @@ try {
     schemaCheck($pdo->query('SELECT amount FROM schema_dimensions')->fetchColumn()==='12.125','Declared decimal places preserve value');
     echo ($checks-$before)." MariaDB schema execution checks passed.\n";
 } finally {foreach($tables as $table)$pdo->exec('DROP TABLE IF EXISTS '.identifier($table));}
+
+$agentCommand=escapeshellarg(PHP_BINARY).' '.escapeshellarg(__DIR__.'/agent-mysql.php');passthru($agentCommand,$agentExit);if($agentExit!==0)exit($agentExit);

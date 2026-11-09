@@ -6,8 +6,10 @@ require_once __DIR__.'/lab-readiness.php';
 require_once __DIR__.'/lab-statistics.php';
 require_once __DIR__.'/lab-geo.php';
 require_once __DIR__.'/geo-fetch.php';
+require_once __DIR__.'/lab-agent.php';
+require_once __DIR__.'/agent-mcp.php';
 
-const STUDIO_KINDS = ['conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics','geo'];
+const STUDIO_KINDS = ['conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics','geo','agent'];
 const STUDIO_VIEWS = ['table','bar','column','stacked','line','area','scatter','histogram','boxplot','heatmap','donut','treemap','kpi','network','strategy'];
 
 function studioText(mixed $v,int $max=4000): string {
@@ -98,6 +100,7 @@ function studioValidate(string $kind,array $c): array {
         $actions=[];foreach(['eliminate','reduce','raise','create'] as $key)$actions[$key]=studioText($c['actions'][$key]??'',2000);
         return ['source'=>$source,'view'=>$view,'actions'=>$actions,'style'=>studioChartStyle($c['style']??null)];
     }
+    if ($kind==='agent')return agentValidate($c);
     if ($kind==='geo')return geoValidate($c);
     if ($kind==='statistics')return statisticsValidate($c);
     if ($kind==='readiness')return readinessValidate($c);
@@ -196,6 +199,8 @@ function studioEvaluate(array $u,array $data,?callable $transport=null): array {
     return ['object'=>labSave($u,[...$o,'project'=>$o['project_id'],'content'=>$c])];
 }
 function studioDispatch(array $u,string $action,array $data): never {
+    if(str_starts_with($action,'studio.agent.'))jsonOut(agentDispatch($u,$action,$data));
+    if(str_starts_with($action,'studio.mcp.'))jsonOut(agentMcpDispatch($u,$action,$data));
     if($action==='studio.personas')jsonOut(studioPersonas($u,textField($data,'project',32)));
     if($action==='studio.persona.save')jsonOut(['persona'=>studioPersonaSave($u,$data)]);
     if($action==='studio.persona.archive')jsonOut(['persona'=>studioPersonaArchive($u,$data)]);

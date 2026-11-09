@@ -5,7 +5,7 @@ require_once __DIR__ . '/group-periods.php';
 require_once __DIR__ . '/group-address.php';
 
 const APP_ROOT = __DIR__ . '/..';
-const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter', 'data_lab', 'graph', 'ai', 'rag', 'neural', 'chat_lab', 'assistant_lab', 'evaluation_lab', 'reasoning_lab', 'visualization_lab', 'journey_lab', 'blueprint_lab', 'landscape_lab', 'readiness_lab', 'statistics_lab', 'geo_lab', 'canvas_lab'];
+const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter', 'data_lab', 'graph', 'ai', 'rag', 'neural', 'chat_lab', 'assistant_lab', 'evaluation_lab', 'reasoning_lab', 'visualization_lab', 'journey_lab', 'blueprint_lab', 'landscape_lab', 'readiness_lab', 'statistics_lab', 'geo_lab', 'agent_lab', 'mcp_external', 'canvas_lab'];
 const CONVERTER_FORMATS = ['csv', 'tsv', 'json', 'xml', 'jsonl', 'yaml', 'md'];
 const FILE_LIMIT = 524288;
 const SPACE_LIMIT = 20971520;
@@ -20,7 +20,7 @@ function config(): array {
     $local = is_file(APP_ROOT . '/config.local.php') ? require APP_ROOT . '/config.local.php' : [];
     $config = array_merge(['data_dir' => APP_ROOT . '/var', 'environment' => 'production',
         'db_allowed_hosts' => ['localhost', '127.0.0.1'], 'mysql_tls_ca' => '/etc/ssl/certs/ca-certificates.crt', 'setup_token' => '', 'key' => ''], $local);
-    foreach (['APP_ENV' => 'environment', 'APP_SETUP_TOKEN' => 'setup_token', 'APP_KEY' => 'key', 'APP_DATA_DIR' => 'data_dir'] as $env => $key) {
+    foreach (['APP_ENV' => 'environment', 'APP_SETUP_TOKEN' => 'setup_token', 'APP_KEY' => 'key', 'APP_DATA_DIR' => 'data_dir', 'APP_PUBLIC_URL' => 'public_url'] as $env => $key) {
         if (getenv($env) !== false) $config[$key] = getenv($env);
     }
     return $config;
@@ -93,7 +93,7 @@ function db(): PDO {
         try {
             if (!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_objects'")->fetchColumn(), "'statistics'")) {
                 preg_match('/CREATE TABLE IF NOT EXISTS lab_objects \([^;]+;/s',file_get_contents(__DIR__.'/schema.sql'),$definition);
-                $pdo->exec(str_replace('CREATE TABLE IF NOT EXISTS lab_objects','CREATE TABLE lab_objects_statistics',str_replace(",'geo'",'',$definition[0])));
+                $pdo->exec(str_replace('CREATE TABLE IF NOT EXISTS lab_objects','CREATE TABLE lab_objects_statistics',str_replace([",'geo'",",'agent'"],'',$definition[0])));
                 $pdo->exec('INSERT INTO lab_objects_statistics SELECT * FROM lab_objects; DROP TABLE lab_objects; ALTER TABLE lab_objects_statistics RENAME TO lab_objects; CREATE INDEX lab_objects_project ON lab_objects(project_id,kind)');
                 $previous=['graph','dataset','network','prompt','rag','conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness'];
                 foreach(['lab_project_config'=>'project_id','lab_type_config'=>'type_id'] as $table=>$key)foreach($pdo->query('SELECT * FROM '.$table)->fetchAll() as $row){
@@ -113,7 +113,7 @@ function db(): PDO {
         try {
             if (!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_objects'")->fetchColumn(), "'geo'")) {
                 preg_match('/CREATE TABLE IF NOT EXISTS lab_objects \([^;]+;/s',file_get_contents(__DIR__.'/schema.sql'),$definition);
-                $pdo->exec(str_replace('CREATE TABLE IF NOT EXISTS lab_objects','CREATE TABLE lab_objects_geo',$definition[0]));
+                $pdo->exec(str_replace('CREATE TABLE IF NOT EXISTS lab_objects','CREATE TABLE lab_objects_geo',str_replace(",'agent'",'',$definition[0])));
                 $pdo->exec('INSERT INTO lab_objects_geo SELECT * FROM lab_objects; DROP TABLE lab_objects; ALTER TABLE lab_objects_geo RENAME TO lab_objects; CREATE INDEX lab_objects_project ON lab_objects(project_id,kind)');
                 $previous=['graph','dataset','network','prompt','rag','conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics'];
                 foreach(['lab_project_config'=>'project_id','lab_type_config'=>'type_id'] as $table=>$key)foreach($pdo->query('SELECT * FROM '.$table)->fetchAll() as $row){
@@ -123,6 +123,26 @@ function db(): PDO {
                     }
                 }
                 if($pdo->query('PRAGMA foreign_key_check')->fetch())throw new RuntimeException('GEO migration foreign key validation failed.');
+            }
+            $pdo->exec('COMMIT');
+        }catch(Throwable $e){$pdo->exec('ROLLBACK');throw $e;}finally{$pdo->exec('PRAGMA foreign_keys=ON');}
+    }
+    // Add Agent without cascading through saved readiness revisions. Retain restricted project catalogs.
+    if (!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_objects'")->fetchColumn(), "'agent'")) {
+        $pdo->exec('PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE');
+        try {
+            if (!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_objects'")->fetchColumn(), "'agent'")) {
+                preg_match('/CREATE TABLE IF NOT EXISTS lab_objects \([^;]+;/s',file_get_contents(__DIR__.'/schema.sql'),$definition);
+                $pdo->exec(str_replace('CREATE TABLE IF NOT EXISTS lab_objects','CREATE TABLE lab_objects_agent',$definition[0]));
+                $pdo->exec('INSERT INTO lab_objects_agent SELECT * FROM lab_objects; DROP TABLE lab_objects; ALTER TABLE lab_objects_agent RENAME TO lab_objects; CREATE INDEX lab_objects_project ON lab_objects(project_id,kind)');
+                $previous=['graph','dataset','network','prompt','rag','conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics','geo'];
+                foreach(['lab_project_config'=>'project_id','lab_type_config'=>'type_id'] as $table=>$key)foreach($pdo->query('SELECT * FROM '.$table)->fetchAll() as $row){
+                    $c=json_decode($row['config'],true);
+                    if(isset($c['tools'])&&count($c['tools'])===count($previous)&&!array_diff($previous,$c['tools'])){
+                        $c['tools'][]='agent';$pdo->prepare('UPDATE '.$table.' SET config=? WHERE '.$key.'=?')->execute([json_encode($c,JSON_UNESCAPED_UNICODE),$row[$key]]);
+                    }
+                }
+                if($pdo->query('PRAGMA foreign_key_check')->fetch())throw new RuntimeException('Agent migration foreign key validation failed.');
             }
             $pdo->exec('COMMIT');
         }catch(Throwable $e){$pdo->exec('ROLLBACK');throw $e;}finally{$pdo->exec('PRAGMA foreign_keys=ON');}
@@ -319,7 +339,8 @@ function workspaceBytes(array $p): int {
     $labBytes=(int)query('SELECT COALESCE(SUM(length(CAST(content AS BLOB))),0) FROM lab_objects WHERE project_id IN (SELECT id FROM projects WHERE '.($p['group_id']?'group_id=?':'user_id=?').')',[$p['group_id']?:$p['user_id']])->fetchColumn();
     $aiBytes=(int)query("SELECT COALESCE(SUM(CASE WHEN state='running' THEN 1048576 ELSE COALESCE(length(CAST(result AS BLOB)),0) END),0) FROM ai_calls WHERE project_id IN (SELECT id FROM projects WHERE ".($p['group_id']?'group_id=?':'user_id=?').')',[$p['group_id']?:$p['user_id']])->fetchColumn();
     $personaBytes=(int)query('SELECT COALESCE(SUM(length(CAST(content AS BLOB))),0) FROM lab_personas WHERE project_id IN (SELECT id FROM projects WHERE '.($p['group_id']?'group_id=?':'user_id=?').')',[$p['group_id']?:$p['user_id']])->fetchColumn();
-    return $labBytes+$aiBytes+$personaBytes+(int)query('SELECT COALESCE(SUM(length(CAST(f.content AS BLOB))+COALESCE(a.size,0)),0) FROM files f JOIN projects p ON p.id=f.project_id LEFT JOIN workspace_uploads a ON a.file_id=f.id WHERE '.($p['group_id']?'p.group_id=?':'p.user_id=?'),[$p['group_id']?:$p['user_id']])->fetchColumn();
+    $agentBytes=(int)query('SELECT COALESCE(SUM(MAX(200000,length(CAST(r.config AS BLOB))+length(CAST(r.runtime AS BLOB)))),0) FROM agent_runs r JOIN lab_objects o ON o.id=r.object_id JOIN projects p ON p.id=o.project_id WHERE '.($p['group_id']?'p.group_id=?':'p.user_id=?'),[$p['group_id']?:$p['user_id']])->fetchColumn();
+    return $agentBytes+$labBytes+$aiBytes+$personaBytes+(int)query('SELECT COALESCE(SUM(length(CAST(f.content AS BLOB))+COALESCE(a.size,0)),0) FROM files f JOIN projects p ON p.id=f.project_id LEFT JOIN workspace_uploads a ON a.file_id=f.id WHERE '.($p['group_id']?'p.group_id=?':'p.user_id=?'),[$p['group_id']?:$p['user_id']])->fetchColumn();
 }
 function filePath(string $path): string {
     if (!$path || strlen($path) > 240 || !preg_match('~^[\pL\pN _./-]+$~u', $path) || str_starts_with($path, '/') || str_contains($path, '//')) fail(422, 'Bitte verwenden Sie einen relativen Dateinamen ohne Sonderzeichen.');
