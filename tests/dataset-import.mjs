@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
+import {removeDatasetColumn} from '../src/dataset-columns.js';
+import {importDatabaseDataset} from '../src/data-lab-database.js';
+const original={columns:[{name:'a:b / "x"',type:'number'},{name:'code',type:'text'}],rows:[{'a:b / "x"':8.5,code:'00123'},{'a:b / "x"':null,code:null}]};
+const removed=removeDatasetColumn(original,'a:b / "x"');assert.deepEqual(removed,{columns:[{name:'code',type:'text'}],rows:[{code:'00123'},{code:null}]});assert.equal(original.columns.length,2);assert.deepEqual(removeDatasetColumn(removed,'code'),{columns:[],rows:[]});assert.throws(()=>removeDatasetColumn(removed,'missing'));
+const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
+const wait=async predicate=>{for(let i=0;i<20&&!predicate();i++)await tick();assert(predicate(),'Expected controller state');};
+function element(value=''){return {value,disabled:false,textContent:'',classList:{toggle(){}},set innerHTML(html){this.html=html;const match=html.match(/<option value="([^"]*)"/);if(match)this.value=match[1];},get innerHTML(){return this.html||'';}};}
+const preview={name:'sales',content:original,truncated:true,limit:2};
+async function scenario(flow,{noSources=false,pending=false}={}){
+ const nodes=new Map(['[name="database"]','[name="table"]','[name="name"]','[data-db-status]','[data-db-preview]','[data-action="submit-modal"]','[data-db-reload]','[data-db-configure]'].map(key=>[key,element(key==='[name="database"]'?'project':'')]));
+ const state={calls:[],imports:[],nodes,resolve:null},ctx={project:'own-project',destination:'Gruppenprojekt <Team> · für Mitglieder sichtbar',isCurrent:()=>true,api:async(action,data)=>{state.calls.push({action,data});assert.equal(data.project,'own-project');if(action==='lab.dataset.databases')return {databases:noSources?[]:[{scope:'project',name:'Projekt-Datenbank'},{scope:'personal',name:'Persönliche Datenbank'}],limit:2};if(action==='lab.dataset.tables')return {tables:['sales','empty']};if(pending&&data.table==='sales')return await new Promise(resolve=>state.resolve=resolve);return data.table==='empty'?{name:'empty',content:{columns:[{name:'id',type:'number'}],rows:[]},truncated:false,limit:2}:preview;},onImport:async(name,content)=>state.imports.push({name,content}),modal:async(title,body,submit,label,options)=>{state.body=body;options.after({querySelector:q=>nodes.get(q)});await flow(state,submit);}};
+ await importDatabaseDataset(ctx);return state;
+}
+let s=await scenario(async(state,submit)=>{await wait(()=>!state.nodes.get('[data-action="submit-modal"]').disabled);assert(state.nodes.get('[data-db-status]').textContent.includes('weitere Zeilen'));assert(state.body.includes('&lt;Team&gt;'));await submit(new Map([['name','Imported']]));});assert.equal(s.imports.length,1);assert.deepEqual(s.imports[0].content,original);assert.notEqual(s.imports[0].content,original);
+s=await scenario(async(state,submit)=>{await wait(()=>!!state.resolve);const table=state.nodes.get('[name="table"]');table.value='empty';await table.onchange();state.resolve(preview);await tick();assert.equal(state.nodes.get('[name="name"]').value,'empty · Kopie');assert(!state.nodes.get('[data-action="submit-modal"]').disabled);await submit(new Map([['name','Empty']]));},{pending:true});assert.equal(s.imports[0].content.rows.length,0);assert.equal(s.imports[0].content.columns.length,1);
+s=await scenario(async(state,submit)=>{assert(state.nodes.get('[data-action="submit-modal"]').disabled);await assert.rejects(submit(new Map()),/Zuerst eine Tabelle/);},{noSources:true});assert.equal(s.imports.length,0);assert(s.body.includes('Projektdatenbank einrichten'));
+s=await scenario(async state=>{await wait(()=>!!state.resolve);},{pending:true});const before=s.nodes.get('[data-db-preview]').innerHTML;s.resolve(preview);await tick();assert.equal(s.nodes.get('[data-db-preview]').innerHTML,before,'Closed dialogs ignore late responses');
+const php=spawnSync('php',['tests/dataset-database.php'],{encoding:'utf8'});assert.equal(php.status,0,php.stdout+php.stderr);process.stdout.write(php.stdout);
+console.log('Dataset columns and SQL import: exact removal, last column, source/project context, previews, truncation, empty tables, stale selection and closed-dialog responses verified.');

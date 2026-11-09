@@ -146,3 +146,45 @@ Datenlabor: Escape, Außenklick, Tab-Verlassen und Umbenennen/Abbrechen mit
 Fokusrückkehr geprüft; bei 320/768/1440 Pixeln bleibt das Menü vollständig im
 sichtbaren Bereich. Ein geöffnetes Readiness-Lernpanel bleibt beim Schließen
 seines Aktionsmenüs geöffnet.
+
+## Datenlabor: Datenbanktabellen und Spalten
+
+**Aus Datenbank laden** liest eine Tabelle aus der eingerichteten Projekt- oder
+persönlichen MySQL-/MariaDB-Verbindung. Die Auswahl unterscheidet beide Quellen
+explizit; eine fehlende Projektverbindung fällt nicht auf eine andere Verbindung
+zurück. Der Dialog zeigt Zielprojekt und gegebenenfalls Gruppen-Sichtbarkeit,
+Datenbank, Tabelle, bis zu fünf Vorschauzeilen und einen Namen. **Als neuen
+Datensatz übernehmen** erzeugt eine unabhängige, regulär versionierte Kopie.
+Ein vorhandener ungespeicherter Datensatz wird vorher gespeichert. Änderungen
+im Datenlabor schreiben nicht in die Datenbank zurück. Auch ein Projekt ohne
+bisherigen Datensatz kann den Datenbankimport starten.
+
+Es gelten `data_lab`, `database`, Projektzugriff und die vorhandenen aktiven
+Gruppenfreigaben. Die drei POST-Endpunkte `lab.dataset.databases`,
+`lab.dataset.tables` und `lab.dataset.read` verwenden die bestehende CSRF-Prüfung.
+Verbindungsdaten bleiben serverseitig. Tabellen werden aufgelistet und geprüft,
+Bezeichner validiert und ausschließlich begrenzte SELECT-Abfragen ausgeführt.
+Importiert werden maximal die konfigurierte Labor-Zeilengrenze, höchstens 1000
+Zeilen, 50 Spalten und 1 MB. Weitere Zeilen werden ausdrücklich als begrenzter
+Ausschnitt ausgewiesen. Leere Tabellen behalten ihr Schema. Textcodes mit
+führenden Nullen und NULL bleiben erhalten; große oder hochpräzise SQL-Zahlen
+bleiben als Text erhalten, statt bei der Umwandlung Genauigkeit zu verlieren.
+Binärdaten ohne gültige UTF-8-Darstellung können nicht als Tabelle importiert werden.
+
+Im Tabellenkopf entfernt das Papierkorb-Symbol eine Spalte samt ihren Zellwerten
+nach Bestätigung. Andere Spalten und Zeilenwerte bleiben erhalten. Beim Entfernen
+der letzten Spalte entsteht ein leerer Datensatz; die Bestätigung nennt dies
+explizit. Auswertungs- und Diagrammzustände werden zurückgesetzt, damit keine
+entfernten Spalten weiterverwendet werden. Die Änderung wird mit **Speichern**
+versioniert übernommen. Während des Bestätigungs-/Importdialogs ersetzt der
+Hintergrundabgleich keine bearbeitete Tabelle.
+
+`tests/dataset-import.mjs` prüft unveränderte Restdaten, letzte Spalte,
+Projekt-/Quellenauswahl, Kopie, leere Tabellen, Ausschnitte und verspätete Antworten
+bei gewechselter Quelle oder geschlossenem Dialog. `tests/dataset-database.php`
+prüft Rechte, Quellenisolation, Typen, Präzision und ungültige Inhalte; im
+isolierten MariaDB-Dienst der CI zusätzlich echte Tabellen-/SELECT-Abfragen,
+Zeilengrenzen, SQL-Bezeichner, persönliche und Projektverbindungen,
+versionierte Speicherung und unveränderte Quelldaten. Im lokalen Browser sind
+Spalten hinzufügen/entfernen, Abbrechen, Speichern/Neuladen, der Einstieg ohne
+Verbindung und 320/768/1440 Pixel ohne Seitenüberlauf geprüft.

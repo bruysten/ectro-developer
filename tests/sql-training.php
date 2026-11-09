@@ -35,3 +35,7 @@ try{
 // The existing CI step supplies the isolated MariaDB DSN for this read-only source contract.
 passthru(escapeshellarg(PHP_BINARY).' '.escapeshellarg(__DIR__.'/studio-mysql.php'), $studioStatus);
 if ($studioStatus !== 0) throw new RuntimeException('Studio MariaDB source checks failed.');
+
+// The same isolated service verifies the Data Lab database-copy contract.
+passthru(escapeshellarg(PHP_BINARY).' '.escapeshellarg(__DIR__.'/dataset-database.php'), $datasetStatus);
+if ($datasetStatus !== 0) throw new RuntimeException('Data Lab MariaDB import checks failed.');
