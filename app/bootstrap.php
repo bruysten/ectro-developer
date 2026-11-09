@@ -5,7 +5,7 @@ require_once __DIR__ . '/group-periods.php';
 require_once __DIR__ . '/group-address.php';
 
 const APP_ROOT = __DIR__ . '/..';
-const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter', 'data_lab', 'graph', 'ai', 'rag', 'neural', 'chat_lab', 'assistant_lab', 'evaluation_lab', 'reasoning_lab', 'visualization_lab', 'journey_lab', 'blueprint_lab', 'landscape_lab', 'readiness_lab', 'statistics_lab', 'canvas_lab'];
+const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter', 'data_lab', 'graph', 'ai', 'rag', 'neural', 'chat_lab', 'assistant_lab', 'evaluation_lab', 'reasoning_lab', 'visualization_lab', 'journey_lab', 'blueprint_lab', 'landscape_lab', 'readiness_lab', 'statistics_lab', 'geo_lab', 'canvas_lab'];
 const CONVERTER_FORMATS = ['csv', 'tsv', 'json', 'xml', 'jsonl', 'yaml', 'md'];
 const FILE_LIMIT = 524288;
 const SPACE_LIMIT = 20971520;
@@ -93,7 +93,7 @@ function db(): PDO {
         try {
             if (!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_objects'")->fetchColumn(), "'statistics'")) {
                 preg_match('/CREATE TABLE IF NOT EXISTS lab_objects \([^;]+;/s',file_get_contents(__DIR__.'/schema.sql'),$definition);
-                $pdo->exec(str_replace('CREATE TABLE IF NOT EXISTS lab_objects','CREATE TABLE lab_objects_statistics',$definition[0]));
+                $pdo->exec(str_replace('CREATE TABLE IF NOT EXISTS lab_objects','CREATE TABLE lab_objects_statistics',str_replace(",'geo'",'',$definition[0])));
                 $pdo->exec('INSERT INTO lab_objects_statistics SELECT * FROM lab_objects; DROP TABLE lab_objects; ALTER TABLE lab_objects_statistics RENAME TO lab_objects; CREATE INDEX lab_objects_project ON lab_objects(project_id,kind)');
                 $previous=['graph','dataset','network','prompt','rag','conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness'];
                 foreach(['lab_project_config'=>'project_id','lab_type_config'=>'type_id'] as $table=>$key)foreach($pdo->query('SELECT * FROM '.$table)->fetchAll() as $row){
@@ -103,6 +103,26 @@ function db(): PDO {
                     }
                 }
                 if($pdo->query('PRAGMA foreign_key_check')->fetch())throw new RuntimeException('Statistics migration foreign key validation failed.');
+            }
+            $pdo->exec('COMMIT');
+        }catch(Throwable $e){$pdo->exec('ROLLBACK');throw $e;}finally{$pdo->exec('PRAGMA foreign_keys=ON');}
+    }
+    // Add GEO without cascading through saved readiness revisions. Retain restricted project catalogs.
+    if (!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_objects'")->fetchColumn(), "'geo'")) {
+        $pdo->exec('PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE');
+        try {
+            if (!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_objects'")->fetchColumn(), "'geo'")) {
+                preg_match('/CREATE TABLE IF NOT EXISTS lab_objects \([^;]+;/s',file_get_contents(__DIR__.'/schema.sql'),$definition);
+                $pdo->exec(str_replace('CREATE TABLE IF NOT EXISTS lab_objects','CREATE TABLE lab_objects_geo',$definition[0]));
+                $pdo->exec('INSERT INTO lab_objects_geo SELECT * FROM lab_objects; DROP TABLE lab_objects; ALTER TABLE lab_objects_geo RENAME TO lab_objects; CREATE INDEX lab_objects_project ON lab_objects(project_id,kind)');
+                $previous=['graph','dataset','network','prompt','rag','conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics'];
+                foreach(['lab_project_config'=>'project_id','lab_type_config'=>'type_id'] as $table=>$key)foreach($pdo->query('SELECT * FROM '.$table)->fetchAll() as $row){
+                    $c=json_decode($row['config'],true);
+                    if(isset($c['tools'])&&count($c['tools'])===count($previous)&&!array_diff($previous,$c['tools'])){
+                        $c['tools'][]='geo';$pdo->prepare('UPDATE '.$table.' SET config=? WHERE '.$key.'=?')->execute([json_encode($c,JSON_UNESCAPED_UNICODE),$row[$key]]);
+                    }
+                }
+                if($pdo->query('PRAGMA foreign_key_check')->fetch())throw new RuntimeException('GEO migration foreign key validation failed.');
             }
             $pdo->exec('COMMIT');
         }catch(Throwable $e){$pdo->exec('ROLLBACK');throw $e;}finally{$pdo->exec('PRAGMA foreign_keys=ON');}

@@ -11,6 +11,7 @@ export const PERMISSION_SECTIONS=[
     ['converter','Daten-Labor · Umwandeln','CSV, TSV, JSON und XML lokal umwandeln; auch ohne Projektzugriff.'],
     ['data_lab','Daten-Labor · Datensätze','Projektdatensätze importieren, prüfen, analysieren und visualisieren.'],
     ['graph','Graph-Labor & Ontologien','Entitäten, Eigenschaften, Knoten und Kanten modellieren.'],
+    ['geo_lab','SEO & GEO Lab','Inhalte für KI-Suche prüfen, belegen und kontrolliert vergleichen.'],
     ['statistics_lab','Statistik Lab','Warenkorbanalyse und lineare Regression mit sichtbaren Rechenwegen untersuchen.'],
     ['visualization_lab','Visualisation Lab','Projektdaten vergleichen, erklären und als Strategiekurve darstellen.'],
     ['reasoning_lab','Analysefehler-Labor','Kausalität, Stichproben, Mittelwerte und Simpson-Paradox untersuchen.'],
@@ -31,7 +32,7 @@ export const PERMISSION_SECTIONS=[
     ['team','Team','Freigegebene Profile der Lerngruppe ansehen.']]},
 ];
 export const PERMISSION_CATALOG=Object.fromEntries(PERMISSION_SECTIONS.flatMap(s=>s.features.map(([key,label,copy])=>[key,[label,copy]])));
-const dependencies={statistics_lab:['files'],editor:['files'],html:['files','editor'],php:['files','editor'],python:['files','editor'],data_lab:['files'],graph:['files'],rag:['files'],neural:['files'],chat_lab:['files','ai'],assistant_lab:['files'],evaluation_lab:['files'],visualization_lab:['files'],reasoning_lab:['files'],journey_lab:['files'],canvas_lab:['files'],readiness_lab:['files'],landscape_lab:['files']};
+const dependencies={geo_lab:['files'],statistics_lab:['files'],editor:['files'],html:['files','editor'],php:['files','editor'],python:['files','editor'],data_lab:['files'],graph:['files'],rag:['files'],neural:['files'],chat_lab:['files','ai'],assistant_lab:['files'],evaluation_lab:['files'],visualization_lab:['files'],reasoning_lab:['files'],journey_lab:['files'],canvas_lab:['files'],readiness_lab:['files'],landscape_lab:['files']};
 export const normalizedPermissions=flags=>Object.fromEntries(Object.keys(PERMISSION_CATALOG).map(key=>[key,flags?.[key]!==false]));
 
 export function mountPermissionEditor(root,{features={},system={},esc,onChange=()=>{}}){

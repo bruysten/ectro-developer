@@ -36,6 +36,25 @@ with tempfile.TemporaryDirectory(prefix='academy-labs-test-') as private:
             uid=admin.ok('admin.user.save',{'name':name,'email':name+'@example.test','role':role,'password':'secure-test-password','must_change_password':False,'groups':[group]})['id'];client=Client(base);client.ok('bootstrap');client.ok('login',{'portal':'user','email':name+'@example.test','password':'secure-test-password'});return uid,client
         uid,alice=make('alice');_,bob=make('bob',group=other);tid,teacher=make('teacher',role='teacher')
         pid=alice.ok('project.create',{'name':'Laborprojekt','template':'web'})['id']
+        # GEO is available without Coding Lab; all import/inspect/model routes retain project and group scope.
+        geo=json.loads(subprocess.check_output(['node','--input-type=module','-e',"import {geoExample} from './src/geo-models.js'; process.stdout.write(JSON.stringify(geoExample()))"],cwd=ROOT))
+        geo_object=alice.ok('lab.save',{'project':pid,'kind':'geo','name':'GEO HTTP','content':geo})['object']
+        check(alice.ok('lab.object',id=geo_object['id'])['object']['content']==geo,'GEO content round trip')
+        check(bob.call('lab.object',id=geo_object['id'])[0]==404,'GEO private content never leaks')
+        inspect_args={'project':pid,'kind':'geo','document':geo['original']}
+        extracted=alice.ok('studio.geo.inspect',inspect_args)['analysis']
+        check(extracted['title']=='Datenpraxis' and 'garantiert' in extracted['text'],'GEO inert HTML analysis over HTTP')
+        check(alice.call('studio.geo.inspect',inspect_args,csrf=False)[0]==403,'GEO analysis requires CSRF')
+        check(alice.call('studio.geo.fetch',{'project':pid,'kind':'geo','url':'https://127.0.0.1/'})[0]==422,'GEO URL import blocks local addresses before transport')
+        check(bob.call('studio.geo.files',{'project':pid,'kind':'geo'})[0]==404,'GEO source picker retains project authorization')
+        geo_group=next(g for g in admin.ok('admin.groups')['groups'] if g['id']==gid)
+        geo_blocked=admin.ok('admin.group.features.save',{'id':gid,'version':geo_group['version'],'features':{'geo_lab':False}})['group']
+        check(alice.ok('bootstrap')['features']['geo_lab'] is False,'GEO frontend catalog receives group disable')
+        for action,args in [('studio.geo.inspect',inspect_args),('studio.geo.fetch',{'project':pid,'kind':'geo','url':'https://www.example.org/'}),('studio.geo.files',{'project':pid,'kind':'geo'}),('studio.geo.compare',{'id':geo_object['id'],'version':geo_object['version'],'request':'a'*32,'connection':'b'*32})]:
+            check(alice.call(action,args)[0]==403,'GEO group disable enforced on '+action)
+        admin.ok('admin.group.features.save',{'id':gid,'version':geo_blocked['version'],'features':json.loads(geo_group['features'])})
+        check(alice.ok('bootstrap')['features']['geo_lab'] is True,'GEO release appears in frontend flags automatically')
+        alice.ok('lab.delete',{'id':geo_object['id'],'version':geo_object['version']})
         # Statistics uses the same server-side group/project permissions and version checks as the other labs.
         basket={'products':['A','B'],'baskets':[{'id':'1','items':['A','B']},{'id':'2','items':['A']}],'rule':{'antecedent':['A'],'consequent':['B']},'minSupport':0,'minConfidence':0,'sourceLabel':'Synthetic'}
         stat=alice.ok('lab.save',{'project':pid,'kind':'statistics','name':'Basket HTTP','content':basket})['object']
