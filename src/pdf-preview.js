@@ -1,5 +1,12 @@
 import {getDocument,GlobalWorkerOptions} from 'pdfjs-dist/build/pdf.mjs';
 GlobalWorkerOptions.workerSrc='/assets/runtime/pdf/pdf.worker.mjs';
+// Text extraction shares the locally bundled PDF runtime; document scripts are never executed.
+export async function extractPDFText(blob){
+ if(blob.size>5*1024*1024)throw Error('PDF-Dateien dürfen höchstens 5 MB groß sein.');
+ const task=getDocument({data:new Uint8Array(await blob.arrayBuffer()),isEvalSupported:false,enableXfa:false,useWasm:false,standardFontDataUrl:'/assets/runtime/pdf/fonts/'});
+ let timer;
+ try{return await Promise.race([(async()=>{const pdf=await task.promise;if(pdf.numPages>30)throw Error('Bis zu 30 PDF-Seiten. Einen kleineren Auszug importieren.');const parts=[];let length=0;for(let i=1;i<=pdf.numPages;i++){const page=await pdf.getPage(i),content=await page.getTextContent();const text=content.items.map(item=>(item.str||'')+(item.hasEOL?'\n':' ')).join('').trim();if(text){const part=`[Seite ${i}]\n${text}`;length+=part.length+2;if(length>12000)throw Error('Der PDF-Text ist länger als 12.000 Zeichen. Einen kleineren Auszug importieren.');parts.push(part);}page.cleanup();}return parts.join('\n\n');})(),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Das Auslesen dauert zu lange. Einen kleineren PDF-Auszug verwenden.')),15000);})]);}finally{clearTimeout(timer);await task.destroy();}
+}
 export async function renderPDF(blob,root,signal){
   const task=getDocument({data:new Uint8Array(await blob.arrayBuffer()),isEvalSupported:false,enableXfa:false,useWasm:false,standardFontDataUrl:'/assets/runtime/pdf/fonts/'});
   const abort=()=>task.destroy();signal?.addEventListener('abort',abort,{once:true});if(signal?.aborted){task.destroy();throw Error('Vorschau geschlossen.');}

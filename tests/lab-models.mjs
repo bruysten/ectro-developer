@@ -1,3 +1,4 @@
+import './archive.mjs';
 import './loop.mjs';
 import './agent.mjs';
 import './geo.mjs';

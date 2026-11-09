@@ -1,9 +1,11 @@
+import {archiveExample} from './archive-models.js';
 import {agentExample} from './agent-models.js';
 import {geoExample} from './geo-models.js';
 import {basketExample} from './statistics-models.js';
 import {emptyReadiness} from './readiness-models.js';
 import {emptyLandscape} from './landscape-models.js';
 export const STUDIO_LABS={
+  archive:{title:'Archiv Lab',route:'archive-lab',feature:'archive_lab',icon:'inventory_2',group:'Daten & Erkenntnisse',description:'Dokumente erschließen, gezielt wiederfinden und Dubletten oder fehlende Angaben sichtbar prüfen.'},
   agent:{title:'Agent Lab',route:'agent-lab',feature:'agent_lab',icon:'smart_toy',group:'KI & Vertrauen',description:'Agenten schrittweise erproben, AGENTS.md gestalten und Datenbankwerkzeuge per MCP freigeben.'},
   geo:{title:'SEO & GEO Lab',navTitle:'GEO Lab',route:'geo-lab',feature:'geo_lab',icon:'travel_explore',group:'KI & Vertrauen',description:'Inhalte für KI-Suche prüfen, mit Belegen verbessern und die Wirkung nachvollziehbar testen.'},
   statistics:{title:'Statistik Lab',route:'statistics-lab',feature:'statistics_lab',icon:'query_stats',group:'Daten & Erkenntnisse',description:'Warenkörbe und lineare Zusammenhänge untersuchen und die Berechnung sichtbar nachvollziehen.'},
@@ -39,6 +41,7 @@ export const PURPOSES={compare:'Werte vergleichen',time:'Entwicklung zeigen',dis
 const inline=(name,rows)=>({type:'inline',name,columns:inferColumns(rows),rows});
 export function inferColumns(rows){const names=[...new Set(rows.flatMap(r=>Object.keys(r)))];return names.map(name=>{const values=rows.map(r=>r[name]).filter(v=>v!==null&&v!==undefined&&v!=='');return {name,type:values.length&&values.every(v=>typeof v==='number'&&Number.isFinite(v))?'number':values.length&&values.every(v=>typeof v==='boolean')?'boolean':'text'};});}
 export function studioExample(kind){
+  if(kind==='archive')return archiveExample();
   if(kind==='agent')return agentExample();
   if(kind==='conversation')return {assistant:'',assistantVersion:0,connection:'',messages:[]};
   if(kind==='assistant')return {description:'Erklärt Projektdaten verständlich und nennt seine Quellen.',instructions:'Du bist ein hilfreicher Lernbegleiter. Erkläre nachvollziehbar auf Deutsch. Trenne Beobachtung und Interpretation. Nenne Quellenkennungen für belegte Aussagen. Sage klar, wenn Informationen fehlen. Stelle bei unklaren Aufgaben eine Rückfrage.',tools:['knowledge'],sources:[],knowledge:[{title:'Arbeitsweise',text:'Dieser Assistent unterstützt beim Lernen mit Projektdaten. Er kennzeichnet Unsicherheit und erfindet keine Zahlen oder Quellen.'}],starters:['Welche Informationen stehen dir zur Verfügung?','Welche Aussagen sind durch die Quellen belegt?'],connection:''};
