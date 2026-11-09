@@ -43,7 +43,7 @@ Der Einstieg zeigt Systemname, Typ, Verantwortliche, Bereich/Realm und Status. D
 
 Kosten werden als beschreibende Angaben mit Währung und Zeitraum erfasst. Unvergleichbare Kosten werden nicht automatisch summiert. Das Datum ist eine manuelle Angabe, keine automatisch behauptete fachliche Prüfung.
 
-Quellen und Ziele werden aus Datenflüssen abgeleitet und nicht noch einmal als widersprüchliche Textlisten im Systemprofil gepflegt. Übertragene Datenbestände dürfen ausschließlich zum Quellsystem gehören. Ein Richtungstausch leert deshalb die Bestandsauswahl. Für einen Rückweg wird ein eigener Datenfluss erfasst. Beim Entfernen eines Systems benennt die Rückfrage die Anzahl zugehöriger Bestände und Flüsse. Das Entfernen eines Bestands entfernt dessen Zuordnungen in Flüssen, nicht die Flüsse selbst.
+Quellen und Ziele werden aus Datenflüssen abgeleitet und nicht noch einmal als widersprüchliche Textlisten im Systemprofil gepflegt. Die Verbindung benennt System A und System B; die Datenrichtung ist A → B, A ← B oder A ↔ B. Die Pfeile zeigen immer den tatsächlichen Datenweg. Übertragene Bestände müssen zu einer Quelle der gewählten Richtung gehören; bei beidseitigen Flüssen sind Bestände beider Systeme möglich. Bei einem Richtungs- oder Systemwechsel bleiben unpassende Zuordnungen sichtbar markiert und blockieren die Übernahme, bis sie bewusst entfernt oder korrigiert wurden. Es wird nichts stillschweigend verworfen. Beim Entfernen eines Systems benennt die Rückfrage die Anzahl zugehöriger Bestände und Flüsse. Das Entfernen eines Bestands entfernt dessen Zuordnungen in Flüssen, nicht die Flüsse selbst.
 
 Das Ausfallszenario verfolgt gerichtete Datenflüsse und markiert nachgelagerte Systeme; es ist eine Erreichbarkeitsanalyse des dokumentierten Modells. Offene Zuständigkeiten, fehlende Flüsse, unbekannte Klassifikationen und unbelegte Flüsse sind separat untersuchbar. Sie sind Hinweise auf Dokumentationslücken, kein automatisches Audit. Ein synthetisches Handelsunternehmen dient als bearbeitbares Beispiel.
 
@@ -71,3 +71,12 @@ Browserprüfung: Blueprint-Übersicht und Phasenansicht sowie alle vier Landscap
 ## Nächste mögliche Ergänzungen
 
 Wie besprochen nach Abschluss wieder aufgreifen: **Datenfluss Lab** für wiederholbare Verarbeitungsschritte und **Experiment Lab** für simulierte Versuche und belastbare Entscheidungen. Das Landscape Lab dokumentiert Systemlandschaften und Schnittstellen; ausführbare Transformationsabläufe wären die Aufgabe des späteren Datenfluss Labs.
+
+
+### Datenrichtung und Zugriffsart (09.11.2026)
+
+`direction` verwendet `forward`, `reverse` oder `both`, bezogen auf die unverändert gespeicherten Endpunkte `from` (System A) und `to` (System B). Altbestände ohne Richtung bleiben A → B. Die Karte zeigt den Pfeil am richtigen Ende bzw. an beiden Enden; ein Richtungswechsel ordnet die Systeme nicht neu an. Eingehende, ausgehende und beidseitige Verbindungen, Systemzählungen und Ausfallszenario folgen denselben Datenwegen. Die Karte und Listen benennen die Zugriffsart zusätzlich im Klartext.
+
+`access` ist `unknown` (noch offen), `read` (lesend), `write` (schreibend) oder `readwrite` (beides). Bei A → B heißt lesend: **B liest aus A**; schreibend: **A schreibt nach B**. Beides dokumentiert beide Übertragungsweisen auf diesem Datenweg, nicht automatisch eine Gegenrichtung. Bei A ↔ B gelten die gewählten Übertragungsweisen für beide Datenwege. Unterschiedliche Zugriffsarten, Inhalte oder Frequenzen je Richtung werden als zwei einzelne Flüsse erfasst. Die Live-Vorschau erklärt die Auswahl anhand der wirklichen Systemnamen. Altbeständen werden keine Zugriffsarten unterstellt. Die Angaben dokumentieren die Landschaft und verändern keine realen Datenbankrechte.
+
+Änderungen an Endpunkten, Richtung, Zugriffsart oder Bestandszuordnung setzen einen dokumentierten Fluss zur erneuten Belegprüfung auf „Annahme“. JSON enthält beide neuen Felder; CSV behält die A-/B-Endpunkte (`from`/`to`) und ergänzt Richtung, Zugriffsart, lesbaren Datenweg und Bedeutung. Suche erkennt auch deutsche Zugriffsbezeichnungen. Backendtests prüfen sämtliche zwölf Kombinationen einschließlich Speicherung/Neuladen, Bestandszuordnung und ungültiger Werte; Modelltests zusätzlich Erreichbarkeit, Zählungen, Altbestände und Exportbedeutung.

@@ -14,3 +14,18 @@ const run=spawnSync('php',[new URL('landscape-blueprint.php',import.meta.url).pa
 const migration=spawnSync('php',['tests/studio-migration.php','intermediate'],{encoding:'utf8'});assert.equal(migration.status,0,migration.stdout+migration.stderr);console.log('Intermediate eleven-kind projects migrate to Landscape without widening restricted tools.');
 
 const many=Array.from({length:150},(_,i)=>({...newSystem(),id:'s'+i,name:'System '+i})),mapState={},visible=landscapeMapSystems(many,'',new Set(),mapState);assert.equal(visible.length,120);assert.deepEqual(landscapeMapSystems(many,'s30',new Set(),mapState).map(s=>s.id),visible.map(s=>s.id),'Selecting a visible system never rearranges the large-map subset');assert(landscapeMapSystems(many,'s149',new Set(),mapState).some(s=>s.id==='s149'),'A selected system outside the initial excerpt becomes visible');
+
+// Directions are actual data paths; access describes pull/read, push/write or both.
+const {newFlow,flowRoutes,flowPath,flowDescription,flowIncoming,flowOutgoing,flowStoreAllowed}=await import('../src/landscape-models.js');
+const base=newFlow('system-0','system-1');assert.equal(base.access,'unknown');assert.deepEqual(flowRoutes({from:'a',to:'b'}),[['a','b']]);
+for(const direction of ['forward','reverse','both'])for(const access of ['unknown','read','write','readwrite']){
+ const f={...base,id:'tested',direction,access,name:'Test',stores:[]},c={...l,flows:[f]},routes=flowRoutes(f);
+ assert.equal(flowIncoming(f,'system-0'),direction!=='forward');assert.equal(flowOutgoing(f,'system-0'),direction!=='reverse');
+ assert.equal(landscapeImpact(c,'system-0').size,direction==='reverse'?1:2);assert.equal(landscapeImpact(c,'system-1').size,direction==='forward'?1:2);
+ assert.equal(flowStoreAllowed(f,l.stores[0]),direction!=='reverse');assert.equal(flowStoreAllowed(f,l.stores[1]),direction!=='forward');assert(!flowStoreAllowed(f,l.stores[2]));
+ assert.equal(landscapeRows(c,'systems')[0].eingehend,direction==='forward'?0:1);assert.equal(landscapeRows(c,'flows')[0].direction,direction);assert.equal(landscapeRows(c,'flows')[0].access,access);
+ assert.equal(flowRoutes(JSON.parse(JSON.stringify(f))).length,routes.length);assert(flowPath(f).includes(direction==='both'?'↔':direction==='reverse'?'←':'→'));
+}
+assert.equal(flowDescription({from:'ERP',to:'CRM',access:'read'}),'CRM liest aus ERP');assert.equal(flowDescription({from:'ERP',to:'CRM',direction:'reverse',access:'write'}),'CRM schreibt nach ERP');assert.equal(flowDescription({from:'ERP',to:'CRM',direction:'both',access:'read'}),'ERP und CRM lesen voneinander');
+assert.equal(landscapeFilter({...l,flows:[{...base,access:'write'}]},{query:'schreibend'}).size,2);
+console.log('Landscape: all 12 direction/access combinations, legacy defaults, data-source eligibility, reachability, counts, descriptions and CSV semantics verified.');
