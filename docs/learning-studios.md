@@ -8,6 +8,10 @@ Jeder Bereich verwendet dieselbe Reihenfolge: Projekt auswählen, gespeicherte A
 
 Die Oberfläche verwendet vorhandene Entrosphere-Tokens, native beschriftete Formulare und einen gemeinsamen Projektkopf. Detailoptionen liegen in aufklappbaren Bereichen. Auf kleinen Bildschirmen werden Formulare einspaltig. Breite Diagramme, Journey-Phasen und Tabellen scrollen innerhalb ihrer eigenen Bereiche; Diagrammwerte stehen zusätzlich als Tabelle bereit.
 
+## Digital Readiness Lab
+
+`/#readiness-lab` begleitet den Kurs mit einem Selbstcheck: Organisation und Bezugsbereich festlegen, zehn kurze Fragebereiche beantworten, anschließend Standort, vollständiges Sieben-Stufen-Modell und nächste Schritte ansehen. Das Labor benötigt keinen KI-Zugang und lässt sich über `readiness_lab` unabhängig pro Gruppe freigeben. [Bedienung, Einordnungsregeln, Speicherung und Grenzen](digital-readiness-lab.md).
+
 ## Canvas Lab
 
 `/#canvas-lab` bietet Business Model Canvas, Value Proposition Canvas, Lean Canvas, Empathy Map, Experiment Canvas, SMART Goals, SWOT und PESTEL mit mehreren privaten oder gemeinsamen Boards. Kartenänderungen werden unmittelbar gespeichert und regelmäßig synchronisiert; getrennte Karten lassen sich parallel bearbeiten, Konflikte derselben Karte bleiben explizit. Die Details zu Sichtbarkeit, Wiederherstellung, Export und autarkem Betrieb stehen in [Canvas Lab](canvas-lab.md).

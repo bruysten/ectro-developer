@@ -5,7 +5,7 @@ require_once __DIR__ . '/group-periods.php';
 require_once __DIR__ . '/group-address.php';
 
 const APP_ROOT = __DIR__ . '/..';
-const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter', 'data_lab', 'graph', 'ai', 'rag', 'neural', 'chat_lab', 'assistant_lab', 'evaluation_lab', 'reasoning_lab', 'visualization_lab', 'journey_lab', 'blueprint_lab', 'landscape_lab', 'canvas_lab'];
+const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter', 'data_lab', 'graph', 'ai', 'rag', 'neural', 'chat_lab', 'assistant_lab', 'evaluation_lab', 'reasoning_lab', 'visualization_lab', 'journey_lab', 'blueprint_lab', 'landscape_lab', 'readiness_lab', 'canvas_lab'];
 const CONVERTER_FORMATS = ['csv', 'tsv', 'json', 'xml', 'jsonl', 'yaml', 'md'];
 const FILE_LIMIT = 524288;
 const SPACE_LIMIT = 20971520;
@@ -65,19 +65,19 @@ function db(): PDO {
         }catch(Throwable $e){$pdo->exec('ROLLBACK');throw $e;}finally{$pdo->exec('PRAGMA foreign_keys=ON');}
     }
     // Extend the object constraint atomically, retaining IDs, revisions and foreign keys.
-    if (!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_objects'")->fetchColumn(), "'landscape'")) {
+    if (!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_objects'")->fetchColumn(), "'readiness'")) {
         $pdo->exec('BEGIN IMMEDIATE');
         try {
-            if (!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_objects'")->fetchColumn(), "'landscape'")) {
-                $pdo->exec("CREATE TABLE lab_objects_upgrade (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK(kind IN ('graph','dataset','network','prompt','rag','conversation','assistant','evaluation','reasoning','visualization','journey','landscape')), name TEXT NOT NULL, content TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL)");
+            if (!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='lab_objects'")->fetchColumn(), "'readiness'")) {
+                $pdo->exec("CREATE TABLE lab_objects_upgrade (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK(kind IN ('graph','dataset','network','prompt','rag','conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness')), name TEXT NOT NULL, content TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1, updated_at TEXT NOT NULL)");
                 $pdo->exec('INSERT INTO lab_objects_upgrade SELECT * FROM lab_objects; DROP TABLE lab_objects; ALTER TABLE lab_objects_upgrade RENAME TO lab_objects; CREATE INDEX lab_objects_project ON lab_objects(project_id,kind)');
                 // Expand only the former full default. Deliberately restricted projects stay restricted.
                 $oldKinds=['graph','dataset','network','prompt','rag'];
                 foreach (['lab_project_config'=>'project_id','lab_type_config'=>'type_id'] as $table=>$key) {
                     foreach ($pdo->query('SELECT * FROM '.$table)->fetchAll() as $row) {
                         $c=json_decode($row['config'],true);
-                        if (isset($c['tools']) && ((count($c['tools'])===5 && !array_diff($oldKinds,$c['tools']))||(count($c['tools'])===11 && !array_diff([...$oldKinds,'conversation','assistant','evaluation','reasoning','visualization','journey'],$c['tools'])))) {
-                            $c['tools']=[...$oldKinds,'conversation','assistant','evaluation','reasoning','visualization','journey','landscape'];
+                        if (isset($c['tools']) && ((count($c['tools'])===5 && !array_diff($oldKinds,$c['tools']))||(in_array(count($c['tools']),[11,12],true) && !array_diff([...$oldKinds,'conversation','assistant','evaluation','reasoning','visualization','journey',...(count($c['tools'])===12?['landscape']:[])],$c['tools'])))) {
+                            $c['tools']=[...$oldKinds,'conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness'];
                             $stmt=$pdo->prepare('UPDATE '.$table.' SET config=? WHERE '.$key.'=?');$stmt->execute([json_encode($c,JSON_UNESCAPED_UNICODE),$row[$key]]);
                         }
                     }

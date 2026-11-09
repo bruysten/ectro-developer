@@ -1,3 +1,4 @@
+import {emptyReadiness} from './readiness-models.js';
 import {emptyLandscape} from './landscape-models.js';
 export const STUDIO_LABS={
   canvas:{standalone:true,title:'Canvas Lab',route:'canvas-lab',feature:'canvas_lab',icon:'dashboard_customize',group:'Kunden & Erlebnisse',description:'Geschäftsmodelle, Nutzenversprechen und Kundenverständnis privat oder gemeinsam entwickeln.'},
@@ -6,6 +7,7 @@ export const STUDIO_LABS={
   evaluation:{title:'Quellencheck Lab',route:'evaluation-lab',feature:'evaluation_lab',icon:'fact_check',group:'KI & Vertrauen',description:'Antworten prüfen, Aussagen belegen und fehlendes Wissen erkennen.'},
   reasoning:{title:'Analysefehler Lab',route:'reasoning-lab',feature:'reasoning_lab',icon:'psychology',group:'Daten & Erkenntnisse',description:'Kausalität, Stichproben, Mittelwerte und das Simpson-Paradox verstehen.'},
   visualization:{title:'Visualisation Lab',route:'visualization-lab',feature:'visualization_lab',icon:'monitoring',group:'Daten & Erkenntnisse',description:'Die passende Datensicht finden – von der Verteilung bis zur Strategiekurve.'},
+  readiness:{title:'Digital Readiness Lab',navTitle:'Readiness Lab',route:'readiness-lab',feature:'readiness_lab',icon:'explore',group:'Daten & Erkenntnisse',description:'Den digitalen Standort mit einem geführten Selbstcheck klären und nächste Schritte ableiten.'},
   landscape:{title:'Digital Landscape Lab',navTitle:'Landscape Lab',route:'landscape-lab',feature:'landscape_lab',icon:'account_tree',group:'Daten & Erkenntnisse',description:'Systeme, Datenbestände und Datenflüsse im Unternehmen gemeinsam erfassen und verstehen.'},
   journey:{title:'Customer Journey Lab',navTitle:'Journey Lab',route:'journey-lab',feature:'journey_lab',icon:'route',group:'Kunden & Erlebnisse',description:'Kundenwege, Touchpoints und Verbesserungen mit Belegen verbinden.'},
 };
@@ -41,6 +43,7 @@ export function studioExample(kind){
     {monat:'2026-03',kanal:'Direkt',umsatz:4600,kunden:33},{monat:'2026-03',kanal:'Partner',umsatz:3900,kunden:34},
     {monat:'2026-04',kanal:'Direkt',umsatz:6300,kunden:41},{monat:'2026-04',kanal:'Partner',umsatz:4200,kunden:37},
   ]),view:{kind:'bar',purpose:'compare',x:'kanal',y:'umsatz',series:'',target:'',aggregate:'sum',filterColumn:'',filter:'',title:'Umsatz nach Kanal'},actions:{eliminate:'',reduce:'',raise:'',create:''}};
+  if(kind==='readiness')return emptyReadiness();
   if(kind==='landscape')return emptyLandscape();
   if(kind==='journey')return journeyExample();
   throw Error('Unbekanntes Labor.');

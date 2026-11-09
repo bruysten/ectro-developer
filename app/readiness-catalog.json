@@ -1,0 +1,410 @@
+{
+  "version": 1,
+  "stages": [
+    {
+      "id": 0,
+      "title": "Analoge Organisation",
+      "color": "#b2026c",
+      "baselineCriteria": [
+        "Office und E-Mail als Basis-Tools",
+        "Prozesse sind papierbasiert",
+        "Geringe Integration digitaler Systeme",
+        "Hauptsächlich reaktive Arbeitsweise",
+        "Silostrukturen ohne digitale Vernetzung"
+      ],
+      "criterionOrder": []
+    },
+    {
+      "id": 1,
+      "title": "Die ersten Schritte",
+      "color": "#e44d35",
+      "baselineCriteria": [],
+      "criterionOrder": [
+        "workflows",
+        "processes",
+        "cloud",
+        "collaboration"
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Digitales Bauchgefühl",
+      "color": "#f39b16",
+      "baselineCriteria": [],
+      "criterionOrder": [
+        "acceptance",
+        "data_decisions",
+        "automation",
+        "knowledge",
+        "solutions"
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Digital Literacy",
+      "color": "#a0a951",
+      "baselineCriteria": [],
+      "criterionOrder": [
+        "training",
+        "reporting",
+        "quality",
+        "cross_processes",
+        "analysis"
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Digital Culture",
+      "color": "#649b94",
+      "baselineCriteria": [],
+      "criterionOrder": [
+        "digital_first",
+        "networked_teams",
+        "innovation",
+        "agile",
+        "values"
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Digitales Ökosystem",
+      "color": "#287f9a",
+      "baselineCriteria": [],
+      "criterionOrder": [
+        "integration",
+        "realtime",
+        "partners",
+        "personalization",
+        "experimentation"
+      ]
+    },
+    {
+      "id": 6,
+      "title": "AI Organisation",
+      "color": "#218dad",
+      "baselineCriteria": [],
+      "criterionOrder": [
+        "ai_core",
+        "ai_prediction",
+        "ai_chatbots",
+        "ai_autonomy",
+        "ai_learning",
+        "ai_value"
+      ]
+    }
+  ],
+  "questions": [
+    {
+      "id": "work",
+      "label": "Arbeitsabläufe",
+      "title": "Wie werden wiederkehrende Aufgaben erledigt?",
+      "criteria": [
+        "workflows",
+        "processes",
+        "automation"
+      ]
+    },
+    {
+      "id": "tools",
+      "label": "Werkzeuge",
+      "title": "Wie selbstverständlich werden digitale Werkzeuge genutzt?",
+      "criteria": [
+        "cloud",
+        "collaboration",
+        "acceptance"
+      ]
+    },
+    {
+      "id": "decisions",
+      "label": "Entscheidungen",
+      "title": "Welche Rolle spielen Daten bei Entscheidungen?",
+      "criteria": [
+        "data_decisions",
+        "reporting",
+        "analysis"
+      ]
+    },
+    {
+      "id": "learning",
+      "label": "Kompetenzen",
+      "title": "Wie entwickelt sich digitales Können?",
+      "criteria": [
+        "knowledge",
+        "solutions",
+        "training"
+      ]
+    },
+    {
+      "id": "data",
+      "label": "Daten & Übergaben",
+      "title": "Wie verlässlich fließen Informationen?",
+      "criteria": [
+        "quality",
+        "cross_processes",
+        "realtime"
+      ]
+    },
+    {
+      "id": "culture",
+      "label": "Zusammenarbeit",
+      "title": "Wie arbeiten und lernen Teams miteinander?",
+      "criteria": [
+        "digital_first",
+        "networked_teams",
+        "innovation"
+      ]
+    },
+    {
+      "id": "change",
+      "label": "Veränderung",
+      "title": "Wie wird aus einer Idee eine Verbesserung?",
+      "criteria": [
+        "agile",
+        "values",
+        "experimentation"
+      ]
+    },
+    {
+      "id": "ecosystem",
+      "label": "Vernetzung",
+      "title": "Wie weit reicht die digitale Zusammenarbeit?",
+      "criteria": [
+        "integration",
+        "partners",
+        "personalization"
+      ]
+    },
+    {
+      "id": "ai_use",
+      "label": "KI im Betrieb",
+      "title": "Was übernimmt KI bereits im Regelbetrieb?",
+      "criteria": [
+        "ai_core",
+        "ai_prediction",
+        "ai_chatbots"
+      ]
+    },
+    {
+      "id": "ai_org",
+      "label": "KI & Organisation",
+      "title": "Wie ist KI organisatorisch eingebettet?",
+      "criteria": [
+        "ai_autonomy",
+        "ai_learning",
+        "ai_value"
+      ]
+    }
+  ],
+  "criteria": [
+    {
+      "id": "workflows",
+      "stage": 1,
+      "original": "Einführung digitaler Workflows",
+      "prompt": "Wiederkehrende Aufgaben haben einen festgelegten digitalen Ablauf.",
+      "action": "Einen häufigen Vorgang mit Auslöser, Zuständigkeit und digitalem Ablauf dokumentieren."
+    },
+    {
+      "id": "processes",
+      "stage": 1,
+      "original": "Digitalisierung von Prozessen",
+      "prompt": "Prozesse werden digital bearbeitet, statt Papier nur durch E-Mail-Anhänge zu ersetzen.",
+      "action": "Einen papierbasierten Prozess durch einen gemeinsam bearbeitbaren digitalen Ablauf ersetzen."
+    },
+    {
+      "id": "automation",
+      "stage": 2,
+      "original": "Erste Automatisierungen in einfachen Prozessen",
+      "prompt": "Einfache Routinen laufen automatisch, zum Beispiel Erinnerungen oder Datenübernahmen.",
+      "action": "Eine wiederkehrende manuelle Routine automatisieren und die Zeitersparnis prüfen."
+    },
+    {
+      "id": "cloud",
+      "stage": 1,
+      "original": "Experimentieren mit Cloud",
+      "prompt": "Cloud-Dienste wurden in konkreten Arbeitsabläufen praktisch erprobt.",
+      "action": "Einen geeigneten Cloud-Anwendungsfall in einem begrenzten Pilot testen."
+    },
+    {
+      "id": "collaboration",
+      "stage": 1,
+      "original": "Kollaborationstools",
+      "prompt": "Gemeinsame digitale Arbeitsräume werden im Alltag tatsächlich genutzt.",
+      "action": "Für ein Team einen gemeinsamen Arbeitsraum und klare Nutzungsregeln vereinbaren."
+    },
+    {
+      "id": "acceptance",
+      "stage": 2,
+      "original": "Akzeptanz digitaler Tools und Prozesse steigt",
+      "prompt": "Digitale Werkzeuge und Abläufe werden von den Mitarbeitenden angenommen.",
+      "action": "Nutzungshürden im Team erheben und eine konkrete Verbesserung gemeinsam testen."
+    },
+    {
+      "id": "data_decisions",
+      "stage": 2,
+      "original": "Entscheidungen basieren teilweise auf digitalen Daten",
+      "prompt": "Bei Entscheidungen werden digitale Daten nachvollziehbar herangezogen.",
+      "action": "Eine wiederkehrende Entscheidung mit einer passenden Datenquelle verbinden."
+    },
+    {
+      "id": "reporting",
+      "stage": 3,
+      "original": "Einführung von datengestützten Reporting-Systemen",
+      "prompt": "Regelmäßige Berichte beziehen ihre Kennzahlen aus festgelegten Datenquellen.",
+      "action": "Für einen wiederkehrenden Bericht Quelle, Kennzahl und Aktualisierung festlegen."
+    },
+    {
+      "id": "analysis",
+      "stage": 3,
+      "original": "Effektivere Entscheidungsfindung durch Datenanalyse",
+      "prompt": "Datenanalysen fließen nachweisbar in Entscheidungen und deren Überprüfung ein.",
+      "action": "Eine Entscheidung mit einer Analyse begründen und die Wirkung später überprüfen."
+    },
+    {
+      "id": "knowledge",
+      "stage": 2,
+      "original": "Aufbau von digitalem Wissen bei Mitarbeitern",
+      "prompt": "Mitarbeitende bauen digitales Wissen auf und geben es weiter.",
+      "action": "Ein häufiges digitales Problem gemeinsam lösen und die Lösung zugänglich festhalten."
+    },
+    {
+      "id": "solutions",
+      "stage": 2,
+      "original": "Fokus auf Problemlösung mit digitalen Mitteln",
+      "prompt": "Teams wählen digitale Lösungen gezielt für konkrete Arbeitsprobleme.",
+      "action": "Ein Arbeitsproblem benennen, ein digitales Hilfsmittel testen und den Nutzen bewerten."
+    },
+    {
+      "id": "training",
+      "stage": 3,
+      "original": "Systematische Weiterbildung der Mitarbeiter zu digitalen Kompetenzen",
+      "prompt": "Digitale Weiterbildung wird nach Bedarf geplant und regelmäßig durchgeführt.",
+      "action": "Kompetenzbedarf im Team erfassen und einen regelmäßigen Lerntermin mit Praxisaufgaben planen."
+    },
+    {
+      "id": "quality",
+      "stage": 3,
+      "original": "Bewusstsein für Datenqualität und Datensicherheit entsteht",
+      "prompt": "Datenqualität und Datensicherheit werden im Alltag konkret berücksichtigt.",
+      "action": "Für einen wichtigen Datenbestand Qualitätsregeln, Zugriffsrechte und Verantwortliche festlegen."
+    },
+    {
+      "id": "cross_processes",
+      "stage": 3,
+      "original": "Abteilungsübergreifende digitale Prozesse werden etabliert",
+      "prompt": "Digitale Abläufe verbinden Abteilungen mit klaren Übergaben.",
+      "action": "Eine Übergabe zwischen zwei Abteilungen gemeinsam durchgängig gestalten."
+    },
+    {
+      "id": "realtime",
+      "stage": 5,
+      "original": "Echtzeit-Datennutzung in Entscheidungsprozessen",
+      "prompt": "Für zeitkritische Entscheidungen aktualisieren sich die benötigten Daten sofort, ohne manuelle Zusammenstellung.",
+      "action": "Bei einer zeitkritischen Entscheidung Aktualität und Bereitstellung der Daten prüfen."
+    },
+    {
+      "id": "digital_first",
+      "stage": 4,
+      "original": "Digital-first-Mentalität in der Organisation verankert",
+      "prompt": "Bei neuen Aufgaben wird eine passende digitale Arbeitsweise zuerst geprüft.",
+      "action": "Bei einer neuen Aufgabe die digitale Arbeitsweise ausdrücklich mitplanen."
+    },
+    {
+      "id": "networked_teams",
+      "stage": 4,
+      "original": "Teams arbeiten vernetzt und flexibel",
+      "prompt": "Teams arbeiten über Abteilungsgrenzen hinweg vernetzt und flexibel zusammen.",
+      "action": "Ein bereichsübergreifendes Team mit gemeinsamen Zielen und Arbeitsräumen aufsetzen."
+    },
+    {
+      "id": "innovation",
+      "stage": 4,
+      "original": "Offener Umgang mit Innovation und Experimenten",
+      "prompt": "Ideen und Experimente können offen eingebracht und ausgewertet werden.",
+      "action": "Ein kleines Experiment mit Hypothese, Zeitrahmen und gemeinsamer Auswertung vereinbaren."
+    },
+    {
+      "id": "agile",
+      "stage": 4,
+      "original": "Agile Methoden sind in Projekten Standard",
+      "prompt": "Projekte arbeiten üblicherweise in kurzen Lern- und Verbesserungszyklen.",
+      "action": "Ein Projekt in kurze überprüfbare Arbeitsschritte mit regelmäßiger Rückschau aufteilen."
+    },
+    {
+      "id": "values",
+      "stage": 4,
+      "original": "Unternehmenswerte betonen die Bedeutung digitaler Transformation",
+      "prompt": "Führung und gemeinsame Werte unterstützen die digitale Weiterentwicklung konkret.",
+      "action": "Mit der Führung ein konkretes Ziel und Zeit für digitale Weiterentwicklung vereinbaren."
+    },
+    {
+      "id": "experimentation",
+      "stage": 5,
+      "original": "Experimentieren mit neuen Technologien wie Blockchain und KI",
+      "prompt": "Neue Technologien werden gezielt erprobt und anhand ihres Nutzens bewertet.",
+      "action": "Eine neue Technologie anhand eines echten Problems mit messbarem Erfolgskriterium testen."
+    },
+    {
+      "id": "integration",
+      "stage": 5,
+      "original": "Vollständig integrierte Systeme",
+      "prompt": "Die relevanten Systeme sind durchgängig verbunden; Daten müssen nicht erneut abgetippt werden.",
+      "action": "Im Landscape Lab die Systeme und manuellen Datenübergaben erfassen; eine Lücke priorisieren."
+    },
+    {
+      "id": "partners",
+      "stage": 5,
+      "original": "Zusammenarbeit in digitalen Netzwerken mit Partnern und Kunden",
+      "prompt": "Digitale Zusammenarbeit und Datenflüsse schließen Partner und Kunden ein.",
+      "action": "Eine digitale Übergabe mit einem Partner oder Kunden gemeinsam verbessern."
+    },
+    {
+      "id": "personalization",
+      "stage": 5,
+      "original": "Kundenzentrierung durch datenbasierte Personalisierung",
+      "prompt": "Kundenangebote oder Services werden anhand geeigneter Daten gezielt angepasst.",
+      "action": "Für einen Touchpoint prüfen, welche datenbasierte Anpassung Kunden tatsächlich hilft."
+    },
+    {
+      "id": "ai_core",
+      "stage": 6,
+      "original": "Vollautomatisierte Abläufe in Kernbereichen",
+      "prompt": "KI ermöglicht vollautomatisierte Abläufe in einem wesentlichen Kernbereich.",
+      "action": "Einen Kernprozess und sinnvolle Automatisierungsgrenzen bestimmen; Nutzen und Fehlerfälle im Pilot prüfen."
+    },
+    {
+      "id": "ai_prediction",
+      "stage": 6,
+      "original": "KI-gestützte Vorhersage- und Optimierungssysteme",
+      "prompt": "KI-gestützte Vorhersagen oder Optimierungen werden im laufenden Betrieb verwendet.",
+      "action": "Eine Vorhersage oder Optimierung gegen eine einfache Referenz testen, bevor sie Entscheidungen beeinflusst."
+    },
+    {
+      "id": "ai_chatbots",
+      "stage": 6,
+      "original": "LLM-basierte Chatbots für Kunden und Mitarbeiter",
+      "prompt": "LLM-basierte Assistenten unterstützen Kunden und Mitarbeitende im Alltag.",
+      "action": "Für einen klar begrenzten Assistenzfall Wissen, Qualitätsprüfungen und einen menschlichen Kontakt festlegen."
+    },
+    {
+      "id": "ai_autonomy",
+      "stage": 6,
+      "original": "Autonome Entscheidungsfindung in wiederholbaren Prozessen",
+      "prompt": "KI trifft wiederkehrende Entscheidungen innerhalb festgelegter Grenzen; Verantwortliche können eingreifen.",
+      "action": "Für eine wiederkehrende KI-Entscheidung Grenzen, Zuständigkeit und Eingriffsmöglichkeiten vereinbaren."
+    },
+    {
+      "id": "ai_learning",
+      "stage": 6,
+      "original": "KI-Modelle entwickeln kontinuierlich neues Wissen",
+      "prompt": "Neue Daten und Rückmeldungen verbessern KI-Modelle oder ihre Wissensbasis regelmäßig; die Qualität wird geprüft.",
+      "action": "Einen überprüfbaren Ablauf für neue Daten, Feedback, Aktualisierung und Qualitätstests einrichten."
+    },
+    {
+      "id": "ai_value",
+      "stage": 6,
+      "original": "Nachhaltige und innovative Nutzung von Technologie für Wettbewerbsvorteile",
+      "prompt": "Der dauerhafte Nutzen von KI für Innovation und Wettbewerbsfähigkeit wird überprüft.",
+      "action": "Für einen KI-Anwendungsfall Nutzen, Aufwand und langfristige Tragfähigkeit regelmäßig gemeinsam bewerten."
+    }
+  ]
+}

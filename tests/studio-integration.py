@@ -76,6 +76,29 @@ with tempfile.TemporaryDirectory(prefix='ectro-studio-http-') as private:
         admin.ok('admin.ai.group.save',{'group':gid,'connection':connection['id'],'version':group_grant['version'],'remove':True})
         check(not alice.ok('lab.info',project=pid)['connections'],'Revoking both access paths removes the connection')
         admin.ok('admin.ai.connection.delete',{'id':connection['id'],'version':connection['version']})
+        readiness={'schemaVersion':1,'organization':'Self-check company','scope':'organization','area':'','baseline':'connected','answers':{},'screen':'questions','step':0,'completedAt':''}
+        assessment=alice.ok('lab.save',{'project':pid,'kind':'readiness','name':'Self-check','content':readiness})['object']
+        check(alice.call('lab.save',{'project':pid,'kind':'readiness','name':'CSRF','content':readiness},csrf=False)[0]==403,'Readiness saves require CSRF')
+        check(bob.call('lab.object',id=assessment['id'])[0]==404,'Private self-check remains private')
+        check(alice.call('lab.save',{**assessment,'project':pid,'version':0})[0]==409,'Concurrent readiness edits conflict')
+        readiness['answers']={'workflows':'partial','processes':'yes','automation':'unknown'}
+        assessment=alice.ok('lab.save',{**assessment,'project':pid,'content':readiness})['object']
+        check(alice.ok('lab.object',id=assessment['id'])['object']['content']['answers']==readiness['answers'],'Partial answers survive save and reload')
+        check(alice.call('lab.validate',{'project':pid,'kind':'readiness','content':{**readiness,'screen':'result','completedAt':'2026-11-09T09:00:00.000Z'}})[0]==422,'Incomplete readiness cannot be submitted as a result')
+        catalog=json.loads((ROOT/'app/readiness-catalog.json').read_text())
+        completed={**readiness,'answers':{k['id']:'unknown' for k in catalog['criteria']},'screen':'result','completedAt':'2026-11-09T09:00:00.000Z'}
+        assessment=alice.ok('lab.save',{**assessment,'project':pid,'content':completed})['object']
+        check(len(assessment['content']['answers'])==30 and assessment['content']['screen']=='result','Explicit unknowns permit a completed, uncertain self-check')
+        check(alice.call('lab.validate',{'project':pid,'kind':'readiness','content':{**completed,'answers':{**completed['answers'],'fake':'yes'}}})[0]==422,'Unknown criteria are rejected')
+        group=next(g for g in admin.ok('admin.groups')['groups'] if g['id']==gid)
+        admin.ok('admin.group.features.save',{'id':gid,'version':group['version'],'features':{'readiness_lab':False}})
+        check(alice.call('lab.object',id=assessment['id'])[0]==403,'Group switch revokes existing self-check access')
+        check(all(o['id']!=assessment['id'] for o in alice.ok('lab.info',project=pid)['objects']),'Revoked self-check omitted from project list')
+        group=next(g for g in admin.ok('admin.groups')['groups'] if g['id']==gid)
+        admin.ok('admin.group.features.save',{'id':gid,'version':group['version'],'features':{'ai':False}})
+        check(alice.ok('lab.object',id=assessment['id'])['object']['content']['screen']=='result','Self-check is independent of AI access')
+        group=next(g for g in admin.ok('admin.groups')['groups'] if g['id']==gid)
+        admin.ok('admin.group.features.save',{'id':gid,'version':group['version'],'features':{}})
         company=alice.ok('project.create',{'name':'Company landscape','template':'web','group':gid})['id']
         landscape_content={'organization':'Synthetic company','systems':[{'id':'crm','name':'CRM'},{'id':'shop','name':'Shop'}],'stores':[{'id':'contacts','system':'crm','name':'Contacts'}],'flows':[{'id':'f','name':'Export','from':'crm','to':'shop','stores':['contacts']}]}
         landscape=alice.ok('lab.save',{'project':company,'kind':'landscape','name':'Landscape','content':landscape_content})['object']
