@@ -117,7 +117,7 @@ try {
         case 'file.sync':
             needFeature($u,'editor'); needFeature($u,'files'); jsonOut(synchronizeFile($u,$data));
         case 'project.rename':
-            needFeature($u,'files'); transaction(function() use($u,$data) { $p=project($u,textField($data,'id',32));projectManager($u,$p);query('UPDATE projects SET name=?,updated_at=? WHERE id=?',[textField($data,'name',80),now(),$p['id']]); }); jsonOut(['ok'=>true]);
+            needFeature($u,'files'); transaction(function() use($u,$data) { $p=project($u,textField($data,'id',32));$name=textField($data,'name',80);if(array_key_exists('expected_name',$data)&&(!is_string($data['expected_name'])||$data['expected_name']!==$p['name']))fail(409,'Der Projektname wurde inzwischen geändert. Bitte die Übersicht neu laden.');query('UPDATE projects SET name=?,updated_at=? WHERE id=?',[$name,now(),$p['id']]);audit($u['id'],'project.rename',['project'=>$p['id']]); }); jsonOut(['ok'=>true]);
         case 'project.delete':
             needFeature($u,'files'); transaction(function() use($u,$data) { $p=project($u,textField($data,'id',32));projectManager($u,$p,true);query('DELETE FROM projects WHERE id=?',[$p['id']]);audit($u['id'],'project.delete'); }); jsonOut(['ok'=>true]);
         case 'uploads.info': needFeature($u,'files');jsonOut(['uploads'=>workspaceUploads()]);
