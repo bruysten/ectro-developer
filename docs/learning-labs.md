@@ -128,3 +128,21 @@ Chatbot-Labor, Assistenten-Builder, Quellenprüfungs-Labor, Analysefehler-Labor,
 ## Freigaben in geöffneten Sitzungen
 
 Neu freigegebene Labore erscheinen automatisch in der Frontend-Navigation und unter **Alle Labs**. Der Abgleich erfolgt in sichtbaren Sitzungen alle zehn Sekunden und zusätzlich bei Fokus/Tab-Rückkehr; andere Tabs desselben Ursprungs erhalten nach administrativen Änderungen sofort einen Hinweis. Offene Entwürfe und Formulare bleiben erhalten. [Ablauf, wirksame Rechte und Validierung](live-lab-grants.md).
+
+## Aktionsmenüs „Mehr“
+
+Die Fly-outs der Labs schließen bei Klick/Touch außerhalb, Escape, Tab-Verlassen
+und Auswahl einer aktiven Aktion. Escape und Aktionsauswahl setzen den Fokus
+zum Auslöser zurück; ein anschließend geöffneter Dialog erhält seinen normalen
+Fokus. Ein zweites Fly-out schließt das erste. Normale Lernpanels und die
+Lab-Navigation werden nicht als Aktionsmenüs behandelt. Auf schmalen Displays
+bleiben die Fly-outs mit zwölf Pixeln Abstand innerhalb des Viewports; beim
+Ändern der Fenstergröße wird die Position neu geprüft.
+
+`src/disclosure-menus.js` bindet die gemeinsamen Studio- und Graph-Menüs einmal
+per Ereignisdelegation, auch für später gerenderte Inhalte. Die Tests in
+`tests/disclosure-menus.mjs` sind in die Lab-Suite integriert. Im Browser sind
+Datenlabor: Escape, Außenklick, Tab-Verlassen und Umbenennen/Abbrechen mit
+Fokusrückkehr geprüft; bei 320/768/1440 Pixeln bleibt das Menü vollständig im
+sichtbaren Bereich. Ein geöffnetes Readiness-Lernpanel bleibt beim Schließen
+seines Aktionsmenüs geöffnet.

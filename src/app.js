@@ -1,3 +1,4 @@
+import {mountDisclosureMenus} from './disclosure-menus.js';
 import {mountWorkspaceAccessSignals,WORKSPACE_ACCESS_POLL_MS} from './workspace-access-sync.js';
 import {workspaceAccessKey,pruneWorkspaceSelect,workspaceRouteAllowed,replaceWorkspaceFlags,refreshWorkspaceNavigation} from './workspace-access.js';
 import {ui,uiError,setAddressMode,getAddressMode,addressPreview} from './address.js';
@@ -105,6 +106,7 @@ const admin=location.pathname.startsWith('/admin');
 document.body.classList.toggle('admin-surface',admin);
 let recoveryToken=takeRecoveryToken(location,history);
 const app=$('#app');
+mountDisclosureMenus();
 const workspaceSignals=mountWorkspaceAccessSignals({check:()=>checkAccessWindow(),enabled:()=>!!user&&!admin});
 function toast(message,error=false){message=uiError(message);const item=document.createElement('div');item.className='toast'+(error?' error-toast':'');item.textContent=message;$('#notifications').append(item);setTimeout(()=>item.remove(),error?7000:3500);}
 function databaseContext(){const p=new URLSearchParams(location.hash.split('?')[1]||'');return p.get('participant')&&p.get('group')?{participant:p.get('participant'),group:p.get('group')}:{};}
