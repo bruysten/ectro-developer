@@ -36,6 +36,22 @@ with tempfile.TemporaryDirectory(prefix='academy-labs-test-') as private:
             uid=admin.ok('admin.user.save',{'name':name,'email':name+'@example.test','role':role,'password':'secure-test-password','must_change_password':False,'groups':[group]})['id'];client=Client(base);client.ok('bootstrap');client.ok('login',{'portal':'user','email':name+'@example.test','password':'secure-test-password'});return uid,client
         uid,alice=make('alice');_,bob=make('bob',group=other);tid,teacher=make('teacher',role='teacher')
         pid=alice.ok('project.create',{'name':'Laborprojekt','template':'web'})['id']
+        # Statistics uses the same server-side group/project permissions and version checks as the other labs.
+        basket={'products':['A','B'],'baskets':[{'id':'1','items':['A','B']},{'id':'2','items':['A']}],'rule':{'antecedent':['A'],'consequent':['B']},'minSupport':0,'minConfidence':0,'sourceLabel':'Synthetic'}
+        stat=alice.ok('lab.save',{'project':pid,'kind':'statistics','name':'Basket HTTP','content':basket})['object']
+        check(alice.ok('lab.object',id=stat['id'])['object']['content']==basket,'Statistics data round trip')
+        check(bob.call('lab.object',id=stat['id'])[0]==404,'Statistics never leaks another project')
+        check(alice.call('lab.save',{**stat,'project':pid,'version':0})[0]==409,'Statistics stale version rejected')
+        check(alice.call('lab.save',{'project':pid,'kind':'statistics','name':'Invalid','content':{**basket,'rule':{'antecedent':['A'],'consequent':['A']}}})[0]==422,'Statistics overlapping rule rejected')
+        stat_group=next(g for g in admin.ok('admin.groups')['groups'] if g['id']==gid)
+        blocked=admin.ok('admin.group.features.save',{'id':gid,'version':stat_group['version'],'features':{'statistics_lab':False}})['group']
+        check(alice.ok('bootstrap')['features']['statistics_lab'] is False,'Statistics group disable visible to frontend refresh')
+        check(alice.call('lab.object',id=stat['id'])[0]==403,'Statistics group disable enforced on read')
+        check(alice.call('studio.sources',{'project':pid,'kind':'statistics'})[0]==403,'Statistics group disable enforced on source picker')
+        admin.ok('admin.group.features.save',{'id':gid,'version':blocked['version'],'features':json.loads(stat_group['features'])})
+        check(alice.ok('bootstrap')['features']['statistics_lab'] is True,'Statistics release appears automatically in frontend catalog')
+        alice.ok('lab.object',id=stat['id'])
+        alice.ok('lab.delete',{'id':stat['id'],'version':stat['version']})
         check(alice.call('db.table.delete')[0]==405,'Table deletion requires POST')
         check(alice.call('db.table.delete',{'table':'sample','confirmation':'sample'},csrf=False)[0]==403,'Table deletion requires CSRF')
         check(bob.call('db.table.delete',{'project':pid,'table':'sample','confirmation':'sample'})[0]==404,'Cannot drop a table through another learner project')

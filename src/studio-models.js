@@ -1,6 +1,8 @@
+import {basketExample} from './statistics-models.js';
 import {emptyReadiness} from './readiness-models.js';
 import {emptyLandscape} from './landscape-models.js';
 export const STUDIO_LABS={
+  statistics:{title:'Statistik Lab',route:'statistics-lab',feature:'statistics_lab',icon:'query_stats',group:'Daten & Erkenntnisse',description:'Warenkörbe untersuchen, Regeln zusammenstellen und Support, Konfidenz und Lift sichtbar berechnen.'},
   canvas:{standalone:true,title:'Canvas Lab',route:'canvas-lab',feature:'canvas_lab',icon:'dashboard_customize',group:'Kunden & Erlebnisse',description:'Geschäftsmodelle, Nutzenversprechen und Kundenverständnis privat oder gemeinsam entwickeln.'},
   conversation:{title:'Chatbot Lab',route:'chat-lab',feature:'chat_lab',icon:'forum',group:'KI & Vertrauen',description:'Ein Gespräch führen, Rückfragen stellen und den Kontext weiterentwickeln.'},
   assistant:{title:'Assistenten Lab',route:'assistant-lab',feature:'assistant_lab',icon:'smart_toy',group:'KI & Vertrauen',description:'Aufgabe, Regeln, Wissen und lesende Werkzeuge zu einem Assistenten verbinden.'},
@@ -43,6 +45,7 @@ export function studioExample(kind){
     {monat:'2026-03',kanal:'Direkt',umsatz:4600,kunden:33},{monat:'2026-03',kanal:'Partner',umsatz:3900,kunden:34},
     {monat:'2026-04',kanal:'Direkt',umsatz:6300,kunden:41},{monat:'2026-04',kanal:'Partner',umsatz:4200,kunden:37},
   ]),view:{kind:'bar',purpose:'compare',x:'kanal',y:'umsatz',series:'',target:'',aggregate:'sum',filterColumn:'',filter:'',title:'Umsatz nach Kanal'},actions:{eliminate:'',reduce:'',raise:'',create:''}};
+  if(kind==='statistics')return basketExample();
   if(kind==='readiness')return emptyReadiness();
   if(kind==='landscape')return emptyLandscape();
   if(kind==='journey')return journeyExample();

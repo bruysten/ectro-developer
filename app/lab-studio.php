@@ -3,8 +3,9 @@ declare(strict_types=1);
 require_once __DIR__.'/lab-personas.php';
 require_once __DIR__.'/lab-landscape.php';
 require_once __DIR__.'/lab-readiness.php';
+require_once __DIR__.'/lab-statistics.php';
 
-const STUDIO_KINDS = ['conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness'];
+const STUDIO_KINDS = ['conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics'];
 const STUDIO_VIEWS = ['table','bar','column','stacked','line','area','scatter','histogram','boxplot','heatmap','donut','treemap','kpi','network','strategy'];
 
 function studioText(mixed $v,int $max=4000): string {
@@ -95,6 +96,7 @@ function studioValidate(string $kind,array $c): array {
         $actions=[];foreach(['eliminate','reduce','raise','create'] as $key)$actions[$key]=studioText($c['actions'][$key]??'',2000);
         return ['source'=>$source,'view'=>$view,'actions'=>$actions,'style'=>studioChartStyle($c['style']??null)];
     }
+    if ($kind==='statistics')return statisticsValidate($c);
     if ($kind==='readiness')return readinessValidate($c);
     if ($kind==='landscape')return landscapeValidate($c);
     if ($kind==='journey') {
