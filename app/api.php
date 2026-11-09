@@ -18,7 +18,7 @@ try {
     keyBytes(); sessionStart();
     $action = $_GET['action'] ?? 'bootstrap';
     $method = $_SERVER['REQUEST_METHOD'];
-    $readActions = ['canvas.list','canvas.get','lab.object','lab.projects','lab.info','ai.connections','admin.labs','bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.overview','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info','admin.mail','admin.mail.templates','profile','team','team.profile','converter.config','php.mode'];
+    $readActions = ['canvas.list','canvas.get','lab.object','lab.projects','lab.info','ai.connections','admin.labs','admin.readiness','admin.readiness.directory','admin.readiness.detail','bootstrap','dashboard','projects','templates','files','file','chat','db.info','db.tables','db.overview','db.rows','admin.overview','admin.users','admin.groups','admin.templates','admin.template','admin.chat','training.info','training.table','teacher.participants','uploads.info','admin.mail','admin.mail.templates','profile','team','team.profile','converter.config','php.mode'];
     if ($method !== 'GET' && $method !== 'POST') fail(405, 'Methode nicht erlaubt.');
     if (!in_array($action, $readActions, true) && $method !== 'POST') fail(405, 'Diese Aktion benötigt POST.');
     if (in_array($action, $readActions, true) && $method !== 'GET') fail(405, 'Diese Aktion benötigt GET.');
@@ -77,7 +77,7 @@ try {
     if ($action === 'php.mode') jsonOut(['mode'=>phpExecutionMode()]);
     if(str_starts_with($action,'canvas.'))canvasDispatch($u,$action,$data);
     if(str_starts_with($action,'studio.'))studioDispatch($u,$action,$data);
-    if(str_starts_with($action,'lab.')||str_starts_with($action,'ai.')||str_starts_with($action,'presence.')||$action==='admin.labs'||str_starts_with($action,'admin.ai.'))labDispatch($u,$action,$data);
+    if(str_starts_with($action,'lab.')||str_starts_with($action,'ai.')||str_starts_with($action,'presence.')||($action==='admin.labs'||str_starts_with($action,'admin.readiness'))||str_starts_with($action,'admin.ai.'))labDispatch($u,$action,$data);
     switch ($action) {
         case 'converter.config': needFeature($u,'converter');jsonOut(['formats'=>converterFormats()]);
         case 'team': needFeature($u,'team');$groups=safeUser($u,true)['groups'];$gid=textField($data,'group',32,false);jsonOut(['groups'=>$groups,'members'=>$gid?teamMembers($u,$gid):[]]);

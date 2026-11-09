@@ -36,6 +36,21 @@ with tempfile.TemporaryDirectory(prefix='academy-labs-test-') as private:
             uid=admin.ok('admin.user.save',{'name':name,'email':name+'@example.test','role':role,'password':'secure-test-password','must_change_password':False,'groups':[group]})['id'];client=Client(base);client.ok('bootstrap');client.ok('login',{'portal':'user','email':name+'@example.test','password':'secure-test-password'});return uid,client
         uid,alice=make('alice');_,bob=make('bob',group=other);tid,teacher=make('teacher',role='teacher')
         pid=alice.ok('project.create',{'name':'Laborprojekt','template':'web'})['id']
+        # Administrator-only readiness reporting over HTTP, including GET routing and saved actor attribution.
+        for action in ['admin.readiness.directory','admin.readiness','admin.readiness.detail']:
+            check(alice.call(action,id='0'*32)[0]==403,'Readiness report denies learners')
+            check(teacher.call(action,id='0'*32)[0]==403,'Readiness report denies non-admin instructors')
+        ready_catalog=json.loads((ROOT/'app/readiness-catalog.json').read_text())
+        ready_content={'schemaVersion':1,'organization':'Test company','scope':'organization','area':'','baseline':'connected','answers':{k['id']:'yes' for k in ready_catalog['criteria']},'screen':'result','step':9,'completedAt':'2026-11-09T09:00:00.000Z'}
+        ready=alice.ok('lab.save',{'project':pid,'kind':'readiness','name':'Readiness HTTP','content':ready_content})['object']
+        ready_detail=admin.ok('admin.readiness.detail',id=ready['id'])['check']
+        check(ready_detail['actor_id']==uid and ready_detail['report']['score']==7,'Readiness detail reports server-recorded actor and actual score')
+        ready_overview=admin.ok('admin.readiness',group=gid,person=uid,status='complete')
+        check(ready_overview['total']==1 and ready_overview['checks'][0]['id']==ready['id'],'Readiness filters through real HTTP route')
+        check(admin.ok('admin.readiness.directory')['groups'],'Readiness directory available only in administration')
+        alice.ok('lab.delete',{'id':ready['id'],'version':ready['version']})
+        check(admin.call('admin.readiness.detail',id=ready['id'])[0]==404,'Deleted readiness check is no longer readable')
+
         graph={'types':[],'relations':[],'nodes':[{'id':'a','label':'Mara','type':'Person','properties':{},'x':1,'y':2},{'id':'b','label':'Firma','type':'Firma','properties':{},'x':3,'y':4}],'edges':[{'id':'e','from':'a','to':'b','label':'arbeitet bei'}]}
         obj=alice.ok('lab.save',{'project':pid,'kind':'graph','name':'Testgraph','content':graph})['object'];oid=obj['id']
         typed=json.loads(json.dumps(graph));typed['types']=[{'name':'Person','fields':[]},{'name':'Firma','fields':[]}]

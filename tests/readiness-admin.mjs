@@ -1,0 +1,7 @@
+import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
+import {READINESS,readinessReport,emptyReadiness} from '../src/readiness-models.js';
+let seed=27;const random=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};
+const fixtures=Array.from({length:160},(_,i)=>({...emptyReadiness(),organization:'Company',baseline:'connected',screen:'result',completedAt:'2026-11-09T09:00:00.000Z',answers:Object.fromEntries(READINESS.criteria.map(k=>[k.id,i===0?'yes':i===1?'unknown':i===2?'no':['yes','partial','no','unknown'][Math.floor(random()*4)]]))}));
+for(const mode of ['partial','unknown','no']){const c=structuredClone(fixtures[0]);for(const k of READINESS.criteria)if(k.stage===6)c.answers[k.id]=mode;fixtures.push(c);}fixtures.push({...structuredClone(fixtures[0]),answers:Object.fromEntries(READINESS.criteria.map(k=>[k.id,'partial']))});
+const php=spawnSync('php',['tests/readiness-admin.php'],{input:JSON.stringify(fixtures),encoding:'utf8'});assert.equal(php.status,0,php.stdout+php.stderr);const actual=JSON.parse(php.stdout);for(const [i,c] of fixtures.entries()){const expected=readinessReport(c);for(const key of ['score','upperScore','level','unknown','answered','progress','contributions'])assert.deepEqual(actual[i][key],expected[key],`PHP admin/JS lab match: ${i} ${key}`);}process.stdout.write(php.stderr);console.log(`${fixtures.length} scoring fixtures agree between admin and participant lab.`);
