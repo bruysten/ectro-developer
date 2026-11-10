@@ -782,3 +782,6 @@
 .agent-oauth-write{flex-basis:100%;min-width:0;margin:0 0 12px}.agent-mcp-access-row>label>span{overflow-wrap:anywhere}
 
 .agent-mcp-operations input,.agent-mcp-access-row input{accent-color:var(--accent)}.agent-mcp-access-row>label:last-child{flex-shrink:0}
+
+/* Landscape placement: the work surface stays mounted throughout pointer movement. */
+.landscape-map-toolbar{flex-wrap:wrap}.landscape-map-toolbar>.toolbar{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.landscape-map-system{cursor:grab;touch-action:none;user-select:none}.landscape-map-system.is-dragging,.landscape-map.is-moving-system{cursor:grabbing}.landscape-map-system.is-dragging circle{stroke:var(--accent);stroke-width:5px;filter:drop-shadow(0 4px 6px #0003)}.landscape-map.is-arranging{pointer-events:none}.landscape-map-flow text{pointer-events:none}@media(max-width:450px){.landscape-map-toolbar>.toolbar{width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.landscape-map-toolbar [data-map-arrange]{grid-column:1/-1;justify-content:center;min-height:40px}.landscape-map-toolbar .graph-icon-button{width:100%;height:40px}}

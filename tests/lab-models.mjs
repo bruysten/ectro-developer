@@ -13,6 +13,7 @@ import './disclosure-menus.mjs';
 import './readiness.mjs';
 import './journey-navigation.mjs';
 import './landscape-blueprint.mjs';
+import './landscape-map.mjs';
 import './journey-landscape.mjs';
 import {spawnSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
