@@ -74,5 +74,6 @@
   "public/assets/runtime/python/python_stdlib.zip": "71fee17f88a6260ec8c9c7c063533ee59c021fdc88a1ce76247378d3c4a35f4c",
   "public/assets/studio.css": "20f3aa22a9be76c46a4214afd4964207a3105d7c2ca036f297b5b18a15e98d29",
   "public/assets/vector-worker.js": "dbcfe96c01d0627aef93a2de61551dcebf4c0f82c4148769c4b3e1d291d89a05",
-  "app/certs/hetzner-mysql-ca.pem": "1da43be7f918ae2226a5f689d64535e2e3846b8ba2b15c2e4faed5c7f247f5b8"
+  "app/certs/hetzner-mysql-ca.pem": "1da43be7f918ae2226a5f689d64535e2e3846b8ba2b15c2e4faed5c7f247f5b8",
+  "public/assets/mcp-consent.js": "f0d5f09d01ef1fb02500dcd8f61bdc8e15a86e048016812bae52b0389af8c3f1"
 }
