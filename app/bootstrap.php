@@ -5,7 +5,7 @@ require_once __DIR__ . '/group-periods.php';
 require_once __DIR__ . '/group-address.php';
 
 const APP_ROOT = __DIR__ . '/..';
-const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter', 'data_lab', 'graph', 'ai', 'rag', 'neural', 'chat_lab', 'loop_lab', 'assistant_lab', 'evaluation_lab', 'reasoning_lab', 'visualization_lab', 'journey_lab', 'blueprint_lab', 'landscape_lab', 'readiness_lab', 'statistics_lab', 'geo_lab', 'pipeline_lab', 'archive_lab', 'agent_lab', 'mcp_external', 'canvas_lab'];
+const FEATURES = ['files', 'editor', 'html', 'php', 'python', 'database', 'chat', 'team', 'converter', 'data_lab', 'graph', 'ai', 'rag', 'neural', 'chat_lab', 'loop_lab', 'assistant_lab', 'evaluation_lab', 'reasoning_lab', 'visualization_lab', 'journey_lab', 'blueprint_lab', 'landscape_lab', 'readiness_lab', 'statistics_lab', 'geo_lab', 'pipeline_lab', 'archive_lab', 'agent_lab', 'mcp_external', 'mcp_write', 'canvas_lab'];
 const CONVERTER_FORMATS = ['csv', 'tsv', 'json', 'xml', 'jsonl', 'yaml', 'md'];
 const FILE_LIMIT = 524288;
 const SPACE_LIMIT = 20971520;
@@ -184,6 +184,12 @@ function db(): PDO {
             }
             $pdo->exec('COMMIT');
         }catch(Throwable $e){$pdo->exec('ROLLBACK');throw $e;}finally{$pdo->exec('PRAGMA foreign_keys=ON');}
+    }
+    // Existing profiles and OAuth grants remain read-only; write access always needs a new explicit grant.
+    foreach(['agent_mcp_profiles'=>['write_selection',"TEXT NOT NULL DEFAULT '{}'"],'mcp_oauth_codes'=>['scope',"TEXT NOT NULL DEFAULT 'db:read'"],'mcp_oauth_grants'=>['scope',"TEXT NOT NULL DEFAULT 'db:read'"]] as $table=>[$column,$type]){
+        if(!in_array($column,array_column($pdo->query('PRAGMA table_info('.$table.')')->fetchAll(),'name'),true)){
+            $pdo->exec('BEGIN IMMEDIATE');try{if(!in_array($column,array_column($pdo->query('PRAGMA table_info('.$table.')')->fetchAll(),'name'),true))$pdo->exec('ALTER TABLE '.$table.' ADD COLUMN '.$column.' '.$type);$pdo->exec('COMMIT');}catch(Throwable $e){$pdo->exec('ROLLBACK');throw $e;}
+        }
     }
     // Rebuild the role constraint without changing user IDs or dependent records.
     if(!str_contains($pdo->query("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'")->fetchColumn(), "'teacher'")){
