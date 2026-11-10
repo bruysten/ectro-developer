@@ -41,7 +41,7 @@ with tempfile.TemporaryDirectory(prefix='ectro-agent-http-') as private:
             status,_,raw=request('/oauth/register/',{'redirect_uris':[redirect],'client_name':'Synthetic test','token_endpoint_auth_method':'none'});assert status==201,raw
             client_id=json.loads(raw)['client_id'];verifier='v'*64;challenge=base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip('=')
             args={'client_id':client_id,'redirect_uri':redirect,'response_type':'code','code_challenge_method':'S256','code_challenge':challenge,'resource':base+'/mcp/','scope':'db:read','state':'synthetic-state'}
-            status,_,html=request('/oauth/authorize/?'+urllib.parse.urlencode(args),client=cookie);assert status==200 and 'courses' in html and 'Verbinden &amp;' not in html
+            status,headers,html=request('/oauth/authorize/?'+urllib.parse.urlencode(args),client=cookie);assert "form-action 'self' "+redirect in headers['Content-Security-Policy'];assert status==200 and 'courses' in html and 'Verbinden &amp;' not in html
             nonce=re.search(r'name="nonce" value="([a-f0-9]+)"',html).group(1)
             status,_,_=request('/oauth/authorize/',{'csrf':'wrong','nonce':nonce,'decision':'allow'},client=cookie,form=True);assert status==403 # Human-readable error page, never a redirect.
             status,_,html=request('/oauth/authorize/?'+urllib.parse.urlencode(args),client=cookie);nonce=re.search(r'name="nonce" value="([a-f0-9]+)"',html).group(1)
@@ -83,9 +83,44 @@ with tempfile.TemporaryDirectory(prefix='ectro-agent-http-') as private:
             status,_,raw=request('/oauth/token/',ref,form=True);assert status==200 and json.loads(raw)['scope']=='db:read',raw
             status,_,raw=request('/oauth/token/',{**refreshed,'refresh_token':write_consent['refresh_token'],'scope':'db:read'},form=True);assert status==200 and json.loads(raw)['scope']=='db:read',raw
             status,_,raw=request('/mcp/',{'jsonrpc':'2.0','id':8,'method':'tools/list'},write_auth);assert status==200 and len(json.loads(raw)['result']['tools'])==3
+            # Cross-site initial navigation cannot replace an existing Strict Academy session cookie.
+            status,headers,html=request('/oauth/authorize/?'+urllib.parse.urlencode(args),client=external)
+            assert status==200 and 'Mit Academy fortfahren' in html and 'Set-Cookie' not in headers
+            status,_,raw=request('/api/?action=bootstrap',client=cookie);assert json.loads(raw)['user']['name']=='MCP HTTP Test'
+            # More than five tabs and a refresh keep every independent request alive.
+            tabs=[]
+            for i in range(8):
+                status,_,html=request('/oauth/authorize/?'+urllib.parse.urlencode({**args,'state':'parallel-'+str(i)}),client=cookie)
+                assert status==200;tabs.append(re.search(r'name="nonce" value="([a-f0-9]+)"',html).group(1))
+            status,_,html=request('/oauth/authorize/?'+urllib.parse.urlencode({**args,'state':'parallel-0'}),client=cookie)
+            assert re.search(r'name="nonce" value="([a-f0-9]+)"',html).group(1)==tabs[0]
+            status,headers,_=request('/oauth/authorize/',{'csrf':csrf,'nonce':tabs[0],'decision':'allow'},client=cookie,form=True);assert status==303
+            callback=urllib.parse.parse_qs(urllib.parse.urlsplit(headers['Location']).query);assert callback['state']==['parallel-0']
+            status,_,html=request('/oauth/authorize/',{'csrf':csrf,'nonce':tabs[0],'decision':'allow'},client=cookie,form=True)
+            assert status==200 and 'Freigabe bereits bestätigt' in html and 'name="nonce"' not in html
+            # Expiry always returns to a fresh review on this server, never silently approving.
+            expire="require 'app/bootstrap.php';query('UPDATE mcp_oauth_consents SET expires=? WHERE hash=?',[time()-1,'"+hashlib.sha256(tabs[1].encode()).hexdigest()+"']);"
+            subprocess.run(['php','-r',expire],cwd=root,env=env,check=True,capture_output=True)
+            status,headers,_=request('/oauth/authorize/',{'csrf':csrf,'nonce':tabs[1],'decision':'allow'},client=cookie,form=True)
+            assert status==303 and headers['Location'].startswith('/oauth/authorize/?resume=')
+            status,_,html=request(headers['Location'],client=cookie);assert status==200 and 'aktuelle Auswahl erneut prüfen' in html
+            renewed_nonce=re.search(r'name="nonce" value="([a-f0-9]+)"',html).group(1);assert renewed_nonce!=tabs[1]
+            status,headers,_=request('/oauth/authorize/',{'csrf':csrf,'nonce':renewed_nonce,'decision':'allow'},client=cookie,form=True);assert status==303
+            assert urllib.parse.parse_qs(urllib.parse.urlsplit(headers['Location']).query)['state']==['parallel-1']
+            # Re-login rotates session and CSRF, but server-side consent can still be reviewed again.
+            old_csrf=csrf;api('login',{'email':'mcp-http@example.test','password':'synthetic-local-password','portal':'user'})
+            status,_,raw=request('/api/?action=bootstrap',client=cookie);csrf=json.loads(raw)['csrf'];assert csrf!=old_csrf
+            status,_,html=request('/oauth/authorize/',{'csrf':old_csrf,'nonce':tabs[2],'decision':'allow'},client=cookie,form=True)
+            assert status==403 and 'Freigabe erneut prüfen' in html
+            status,_,html=request('/oauth/authorize/?resume='+tabs[2],client=cookie);assert status==200 and 'name="nonce"' in html
+            # A missing session gets a recovery route without overwriting the main cookie.
+            status,headers,html=request('/oauth/authorize/',{'csrf':csrf,'nonce':tabs[3],'decision':'allow'},client=external,form=True)
+            assert status==403 and 'Freigabe erneut prüfen' in html and 'Set-Cookie' not in headers
+            status,headers,_=request('/oauth/authorize/',{'csrf':csrf,'nonce':tabs[4],'decision':'deny'},client=cookie,form=True);assert status==303 and 'access_denied' in headers['Location']
+            status,_,html=request('/oauth/authorize/',{'csrf':csrf,'nonce':tabs[4],'decision':'allow'},client=cookie,form=True);assert status==200 and 'Verbindung abgebrochen' in html
             api('studio.mcp.disable',{})
             status,_,_=request('/mcp/',{'jsonrpc':'2.0','id':4,'method':'tools/list'},{'Authorization':'Bearer '+new['access_token']});assert status in (401,403)
             status,_,_=request('/oauth/token/',{**refreshed,'refresh_token':new['refresh_token']},form=True);assert status==400
-            print('Standalone MCP/OAuth HTTP flow verified: discovery, login/consent, CSRF, DCR, PKCE, tools, Origin, code replay, refresh, explicit read/write consent, scope narrowing and immediate disable. No third-party requests.')
+            print('Standalone MCP/OAuth HTTP flow verified: discovery, login/consent, CSRF, DCR, PKCE, tools, Origin, code replay, refresh, explicit read/write consent, scope narrowing, parallel tabs, re-login, expiry recovery, repeated submits and immediate disable. No third-party requests.')
         finally:
             server.terminate();server.wait(timeout=5)

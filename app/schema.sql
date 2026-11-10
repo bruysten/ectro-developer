@@ -109,3 +109,6 @@ CREATE INDEX IF NOT EXISTS material_groups_group ON material_groups(group_id,mat
 
 CREATE TABLE IF NOT EXISTS agent_mcp_changes (id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,profile_version INTEGER NOT NULL,connection_hash TEXT NOT NULL,payload TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',expires INTEGER NOT NULL,result TEXT);
 CREATE INDEX IF NOT EXISTS agent_mcp_changes_user ON agent_mcp_changes(user_id,expires);
+
+CREATE TABLE IF NOT EXISTS mcp_oauth_consents (hash TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,profile_version INTEGER NOT NULL,auth_version INTEGER NOT NULL,fingerprint TEXT NOT NULL,payload TEXT NOT NULL,created INTEGER NOT NULL,expires INTEGER NOT NULL,completed INTEGER NOT NULL DEFAULT 0);
+CREATE INDEX IF NOT EXISTS mcp_oauth_consents_user ON mcp_oauth_consents(user_id,expires);
