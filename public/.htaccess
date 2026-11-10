@@ -1,12 +1,27 @@
 Options -Indexes -MultiViews
 Require all granted
 DirectoryIndex index.php
+CGIPassAuth On
 AddType application/wasm .wasm
 AddType text/javascript .mjs
+<IfModule mod_dir.c>
+  # These are protocol routes, not browsable directories. Scope this exception
+  # narrowly; normal directory canonicalization elsewhere stays enabled.
+  <If "%{REQUEST_URI} =~ m#^/(?:mcp|oauth/(?:authorize|token|register|revoke)|\.well-known/oauth-(?:authorization-server|protected-resource(?:/mcp)?))/?$#">
+    DirectorySlash Off
+  </If>
+</IfModule>
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
   RewriteRule ^(?:app|var|src|scripts|tests|docs|\.git|config)(?:/|\.|$) - [F,L]
+  # Handle protocol endpoints internally before mod_dir adds a slash with 301.
+  # MCP POST bodies and Bearer headers must survive either spelling of the URL.
+  RewriteRule ^mcp/?$ mcp/index.php [END]
+  RewriteRule ^oauth/(authorize|token|register|revoke)/?$ oauth/$1/index.php [END]
+  RewriteRule ^\.well-known/oauth-authorization-server/?$ .well-known/oauth-authorization-server/index.php [END]
+  RewriteRule ^\.well-known/oauth-protected-resource/?$ .well-known/oauth-protected-resource/index.php [END]
+  RewriteRule ^\.well-known/oauth-protected-resource/mcp/?$ .well-known/oauth-protected-resource/mcp/index.php [END]
 </IfModule>
 <IfModule mod_headers.c>
   Header always set X-Content-Type-Options "nosniff"

@@ -50,8 +50,12 @@ with tempfile.TemporaryDirectory(prefix='ectro-agent-http-') as private:
             token_data={'grant_type':'authorization_code','client_id':client_id,'code':callback['code'][0],'redirect_uri':redirect,'resource':base+'/mcp/','code_verifier':verifier}
             status,_,raw=request('/oauth/token/',token_data,form=True);assert status==200,raw
             tokens=json.loads(raw);auth={'Authorization':'Bearer '+tokens['access_token']}
-            for method,params in [('initialize',{'protocolVersion':'2025-11-25'}),('tools/list',{}),('tools/call',{'name':'db.list_tables','arguments':{}})]:
-                status,_,raw=request('/mcp/',{'jsonrpc':'2.0','id':1,'method':method,'params':params},auth);assert status==200 and 'result' in json.loads(raw),(method,status,raw)
+            for path in ['/mcp','/mcp/']:
+                for protocol in ['2025-03-26','2025-06-18','2025-11-25']:
+                    status,_,raw=request(path,{'jsonrpc':'2.0','id':1,'method':'initialize','params':{'protocolVersion':protocol}},auth)
+                    assert status==200 and json.loads(raw)['result']['protocolVersion']==protocol,(path,protocol,status,raw)
+                for method,params in [('tools/list',{}),('tools/call',{'name':'db.list_tables','arguments':{}})]:
+                    status,_,raw=request(path,{'jsonrpc':'2.0','id':1,'method':method,'params':params},auth);assert status==200 and 'result' in json.loads(raw),(path,method,status,raw)
             assert json.loads(raw)['result']['isError'] is False and 'courses' in raw
             status,_,_=request('/mcp/',{'jsonrpc':'2.0','method':'notifications/initialized'},auth);assert status==202
             status,_,_=request('/mcp/',{'jsonrpc':'2.0','id':2,'method':'tools/list'},{**auth,'Origin':'https://evil.example'});assert status==403
@@ -60,6 +64,20 @@ with tempfile.TemporaryDirectory(prefix='ectro-agent-http-') as private:
             refreshed={'grant_type':'refresh_token','client_id':client_id,'resource':base+'/mcp/','refresh_token':tokens['refresh_token']}
             status,_,raw=request('/oauth/token/',refreshed,form=True);assert status==200
             new=json.loads(raw)
+            # Claude callback and slashless connector/resource through the real OAuth endpoints.
+            claude_redirect='https://claude.ai/api/mcp/auth_callback'
+            status,_,raw=request('/oauth/register',{'redirect_uris':[claude_redirect],'client_name':'Synthetic Claude','token_endpoint_auth_method':'none'});assert status==201
+            claude_id=json.loads(raw)['client_id']
+            claude_args={**args,'client_id':claude_id,'redirect_uri':claude_redirect,'resource':base+'/mcp','state':'synthetic-claude'}
+            status,_,html=request('/oauth/authorize?'+urllib.parse.urlencode(claude_args),client=cookie);assert status==200
+            nonce=re.search(r'name="nonce" value="([a-f0-9]+)"',html).group(1)
+            status,headers,_=request('/oauth/authorize',{'csrf':csrf,'nonce':nonce,'decision':'allow'},client=cookie,form=True);assert status==303
+            code=urllib.parse.parse_qs(urllib.parse.urlsplit(headers['Location']).query)['code'][0]
+            status,_,raw=request('/oauth/token',{**token_data,'client_id':claude_id,'redirect_uri':claude_redirect,'resource':base+'/mcp','code':code},form=True);assert status==200,raw
+            claude_tokens=json.loads(raw);claude_auth={'Authorization':'Bearer '+claude_tokens['access_token']}
+            for method,params in [('initialize',{'protocolVersion':'2025-03-26'}),('tools/list',{})]:
+                status,_,raw=request('/mcp',{'jsonrpc':'2.0','id':10,'method':method,'params':params},claude_auth);assert status==200 and 'result' in json.loads(raw),(method,status,raw)
+            status,_,raw=request('/oauth/token',{'grant_type':'refresh_token','client_id':claude_id,'resource':base+'/mcp/','refresh_token':claude_tokens['refresh_token']},form=True);assert status==200,raw
             # A write-capable profile never broadens an existing read-only OAuth consent.
             write_seed=r"""require 'app/bootstrap.php';query('UPDATE agent_mcp_profiles SET write_selection=?',[json_encode(['courses'=>['columns'=>['name'],'insert'=>true,'update'=>true]])]);"""
             subprocess.run(['php','-r',write_seed],cwd=root,env=env,check=True,capture_output=True)
