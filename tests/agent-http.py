@@ -59,9 +59,33 @@ with tempfile.TemporaryDirectory(prefix='ectro-agent-http-') as private:
             status,_,_=request('/oauth/token/',token_data,form=True);assert status==400
             refreshed={'grant_type':'refresh_token','client_id':client_id,'resource':base+'/mcp/','refresh_token':tokens['refresh_token']}
             status,_,raw=request('/oauth/token/',refreshed,form=True);assert status==200
-            new=json.loads(raw);api('studio.mcp.disable',{})
+            new=json.loads(raw)
+            # A write-capable profile never broadens an existing read-only OAuth consent.
+            write_seed=r"""require 'app/bootstrap.php';query('UPDATE agent_mcp_profiles SET write_selection=?',[json_encode(['courses'=>['columns'=>['name'],'insert'=>true,'update'=>true]])]);"""
+            subprocess.run(['php','-r',write_seed],cwd=root,env=env,check=True,capture_output=True)
+            status,_,raw=request('/mcp/',{'jsonrpc':'2.0','id':5,'method':'tools/list'},auth);assert status==200 and len(json.loads(raw)['result']['tools'])==3
+            status,_,raw=request('/mcp/',{'jsonrpc':'2.0','id':6,'method':'tools/call','params':{'name':'db.prepare_change','arguments':{'operation':'update','table':'courses','key':{'id':1},'values':{'name':'Forbidden'}}}},auth);assert status==200 and json.loads(raw)['result']['isError']
+            def consent_write(approve):
+                status,_,html=request('/oauth/authorize/?'+urllib.parse.urlencode({**args,'scope':'db:read db:write'}),client=cookie)
+                assert status==200 and 'Auch Schreibzugriff erlauben' in html and 'name="write_access" value="yes"' in html and 'checked' not in html
+                nonce=re.search(r'name="nonce" value="([a-f0-9]+)"',html).group(1)
+                status,headers,_=request('/oauth/authorize/',{'csrf':csrf,'nonce':nonce,'decision':'allow',**({'write_access':'yes'} if approve else {})},client=cookie,form=True);assert status==303
+                code=urllib.parse.parse_qs(urllib.parse.urlsplit(headers['Location']).query)['code'][0]
+                status,_,raw=request('/oauth/token/',{**token_data,'code':code},form=True);assert status==200,raw
+                return json.loads(raw)
+            read_consent=consent_write(False);assert read_consent['scope']=='db:read'
+            write_consent=consent_write(True);assert write_consent['scope']=='db:read db:write'
+            write_auth={'Authorization':'Bearer '+write_consent['access_token']}
+            status,_,raw=request('/mcp/',{'jsonrpc':'2.0','id':7,'method':'tools/list'},write_auth);assert status==200 and len(json.loads(raw)['result']['tools'])==5
+            # Refresh can narrow scope, never enlarge it; rejected escalation must not consume the refresh token.
+            ref={**refreshed,'refresh_token':read_consent['refresh_token']}
+            status,_,_=request('/oauth/token/',{**ref,'scope':'db:read db:write'},form=True);assert status==400
+            status,_,raw=request('/oauth/token/',ref,form=True);assert status==200 and json.loads(raw)['scope']=='db:read',raw
+            status,_,raw=request('/oauth/token/',{**refreshed,'refresh_token':write_consent['refresh_token'],'scope':'db:read'},form=True);assert status==200 and json.loads(raw)['scope']=='db:read',raw
+            status,_,raw=request('/mcp/',{'jsonrpc':'2.0','id':8,'method':'tools/list'},write_auth);assert status==200 and len(json.loads(raw)['result']['tools'])==3
+            api('studio.mcp.disable',{})
             status,_,_=request('/mcp/',{'jsonrpc':'2.0','id':4,'method':'tools/list'},{'Authorization':'Bearer '+new['access_token']});assert status in (401,403)
             status,_,_=request('/oauth/token/',{**refreshed,'refresh_token':new['refresh_token']},form=True);assert status==400
-            print('Standalone MCP/OAuth HTTP flow verified: discovery, login/consent, CSRF, DCR, PKCE, tools, Origin, code replay, refresh and immediate disable. No third-party requests.')
+            print('Standalone MCP/OAuth HTTP flow verified: discovery, login/consent, CSRF, DCR, PKCE, tools, Origin, code replay, refresh, explicit read/write consent, scope narrowing and immediate disable. No third-party requests.')
         finally:
             server.terminate();server.wait(timeout=5)

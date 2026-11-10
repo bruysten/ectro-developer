@@ -21,7 +21,20 @@ The **MCP · Datenbank** tab is personal and independent of the currently edited
 3. Enable external access explicitly. It starts **off** for every user. Group permissions `agent_lab` and `mcp_external`, plus files/database access, apply on the server. Expired groups do not grant access; active groups contribute permissions additively.
 4. Use the same `/mcp/` endpoint in ChatGPT or Claude. Public HTTPS hosting is required for cloud clients. Localhost URLs are only usable in local tests.
 
-The MCP is stateless Streamable HTTP (JSON POST responses, initialized notifications return 202, GET returns 405), negotiates 2025-11-25 and 2025-06-18, and exposes only three read-only tools. `db.read_rows` compiles a fixed SELECT over allowed identifiers; it accepts no SQL. Pagination is bounded and explicitly reports `hasMore`; equal values or concurrent DB edits can affect ordering. Output is capped at 64 KB. Database contents remain untrusted data.
+The MCP is stateless Streamable HTTP (JSON POST responses, initialized notifications return 202, GET returns 405), negotiates 2025-11-25 and 2025-06-18, and always exposes three read-only tools. `db.read_rows` compiles a fixed SELECT over allowed identifiers; it accepts no SQL. Pagination is bounded and explicitly reports `hasMore`; equal values or concurrent DB edits can affect ordering. Output is capped at 64 KB. Database contents remain untrusted data.
+
+### Optional write access
+
+Write access starts empty, including after upgrading existing profiles. In the table selector, mark the exact writable columns and choose **Anlegen** (insert), **Ändern** (update), or both. Save the publication and reconnect the external client. The additional group capability `mcp_write` must be enabled. A read-only OAuth consent remains read-only even if the profile can write; the client must request `db:read db:write` and the user must explicitly check **Auch Schreibzugriff erlauben**. Refresh can narrow scopes, never enlarge them. Personal keys inherit the current published selection; changing that selection revokes previous keys.
+
+Two additional tools appear only with write permission:
+
+- `db.prepare_change` previews one insert/update using allowed columns and a complete primary key for updates. It does not modify MySQL. Drafts are encrypted, user/profile/connection bound and expire in ten minutes.
+- `db.apply_change` accepts the reviewed change ID and `confirm=true`. It locks the target row and rejects an outdated preview before updating. Completed change IDs return the same receipt; executing/uncertain outcomes are never automatically retried.
+
+Only InnoDB base tables with a fully readable primary key are supported. Generated/auto-increment columns cannot be marked writable, and primary keys cannot be updated. SQL runs through native prepared statements, with strict mode and a bounded lock timeout. No deletion, free SQL or bulk changes are exposed. Database constraints and the saved DB account's permissions still apply. Triggers and foreign-key cascades configured in the database retain their normal behavior. MCP annotations and the preview/confirm tool protocol guide clients; they do not guarantee that an external client presents a separate human dialog for every call.
+
+Successful drafts discard their encrypted row snapshots; encrypted receipts and failed/uncertain drafts are pruned after retention. Logs contain only tool/status/time/count metadata. The internal inspector continues to offer read-only probes; writes are exercised through the connected MCP client.
 
 ## ChatGPT and Claude authentication
 
@@ -31,7 +44,7 @@ OAuth discovery is served at `/.well-known/oauth-protected-resource/mcp` (and th
 
 **Claude alternative:** choose fixed request headers and use `Authorization: Bearer PERSONAL_KEY`. The lab generates an expiring key once, stores only its hash and supports rotation. It must not be distributed through a shared organizational connector: everyone using the same credential would reach the same personal data. Rotating this key does not invalidate existing OAuth grants.
 
-Saving MCP configuration invalidates all previous bearer keys and OAuth grants by changing the profile revision. Switching external access off revokes access immediately. Every remote request checks account activity/password version, group access periods/features, project access, profile revision, token expiry and the saved DB connection fingerprint. Responses are reauthorized after reads. Cookies and a forged admin-portal header cannot authenticate MCP requests. Logs retain at most 100 metadata entries per user and never store tokens or database contents.
+Changing MCP configuration invalidates all previous bearer keys and OAuth grants by changing the profile revision. Switching external access off revokes access immediately. Every remote request checks account activity/password version, group access periods/features, project access, profile revision, token expiry and the saved DB connection fingerprint. Responses are reauthorized after reads. Cookies and a forged admin-portal header cannot authenticate MCP requests. Logs retain at most 100 metadata entries per user and never store tokens or database contents.
 
 ## Deployment
 

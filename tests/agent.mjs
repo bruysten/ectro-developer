@@ -13,3 +13,5 @@ const guide=mcpConnectionGuide(publicProfile);assert.match(guide,/Customize → 
 assert.match(mcpConnectionGuide({enabled:true,endpoint:{public:false,url:'http://localhost:8104/mcp/'}}),/öffentliche Server-Adresse fehlt/);assert.doesNotMatch(mcpConnectionGuide({enabled:true,endpoint:{public:false,url:'http://localhost:8104/mcp/'}}),/http:\/\/localhost/);
 assert.equal(mcpPublishLabel({enabled:false},{enabled:true}),'Freigabe veröffentlichen');assert.equal(mcpPublishLabel({enabled:true},{enabled:false}),'Freigabe zurückziehen');assert.equal(mcpPublishLabel({enabled:true},{enabled:true}),'Veröffentlichung aktualisieren');
 const deployment=spawnSync('python3',['tests/mcp-deployment.py'],{encoding:'utf8'});assert.equal(deployment.status,0,deployment.stdout+deployment.stderr);process.stdout.write(deployment.stdout);
+
+const writes=spawnSync('php',['tests/agent-mcp-write-local.php'],{encoding:'utf8'});assert.equal(writes.status,0,writes.stdout+writes.stderr);process.stdout.write(writes.stdout);
