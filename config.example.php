@@ -2,6 +2,8 @@
 // Example only. scripts/prepare.php generates config.local.php with a unique encryption key.
 return [
     'environment' => 'production',
+    // Canonical public Academy origin; also configured by deployment or in the admin settings.
+    'public_url' => 'https://ectro-academy.de',
     'key' => 'BASE64_OF_32_RANDOM_BYTES',
     'setup_token' => 'YOUR_RANDOM_TOKEN_WITH_AT_LEAST_32_CHARACTERS',
     'db_allowed_hosts' => ['localhost', '127.0.0.1'],
