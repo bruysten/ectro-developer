@@ -35,9 +35,15 @@ Saving MCP configuration invalidates all previous bearer keys and OAuth grants b
 
 ## Deployment
 
+The MCP runs in PHP on the Academy server; a browser only configures it. External clients use `https://ectro-academy.de/mcp/` and Academy OAuth selects the personal profile. No user/group ID belongs in the URL; authentication, active-group permissions and selected columns are checked on each request. Closing the browser does not revoke a publication.
+
 Set a canonical HTTPS origin in **Administration → Freigaben → Systemeinstellungen → MCP für externe KI-Clients**, or `APP_PUBLIC_URL`/`config.local.php` `public_url` (environment/config takes precedence). Example: `https://academy.example.de`, without a path. The application must actually be reachable there; this field does not provision hosting or a tunnel. Configure HTTPS directly for the PHP host; forwarded headers are not trusted. Apache's public document root ships the `.well-known` and OAuth directories, and forwards Authorization to PHP through the existing rewrite module. Existing global security headers remain in force; OAuth consent forbids framing and external form actions.
 
-Official interoperability references (checked 2026-11-09):
+The deployment workflow passes `APP_URL` to `scripts/prepare.php` as `public_url`. Preparation also processes this input on upgrades and persists it in `settings.mcp_public_url`, without replacing encryption keys or existing private configuration. HTTPS health checks verify both OAuth discovery documents. Empty config overrides fall back to the admin setting; `Host` or `Forwarded` headers never choose the OAuth issuer.
+
+The interface uses **Freigabe veröffentlichen / Veröffentlichung aktualisieren / Freigabe zurückziehen** according to the saved/draft status, and provides a copyable server URL plus a three-step Claude guide. Unchanged saves preserve profile version, keys and OAuth grants; changed selections/settings still revoke previous access.
+
+Official interoperability references (Claude guidance rechecked 2026-11-10):
 
 - [OpenAI: authenticated MCP apps, discovery, PKCE, DCR and redirect handling](https://developers.openai.com/plugins/build/auth)
 - [OpenAI: add a custom MCP server in ChatGPT](https://developers.openai.com/api/docs/guides/custom-mcp-server)

@@ -96,6 +96,7 @@ jobs:
       DEPLOY_ROOT: ${{ secrets.HETZNER_APP_ROOT }}
       DEPLOY_PORT: ${{ secrets.HETZNER_SSH_PORT || '222' }}
       APP_SETUP_TOKEN: ${{ secrets.APP_SETUP_TOKEN }}
+      APP_URL: ${{ secrets.APP_URL }}
     steps:
       - uses: actions/checkout@v4
       - name: Check deployment configuration
@@ -142,7 +143,7 @@ jobs:
         if: steps.configuration.outputs.ready == 'true'
         run: |
           set -euo pipefail
-          python3 -c 'import json,os;print(json.dumps({"setup_token":os.environ["APP_SETUP_TOKEN"]}))' |
+          python3 -c 'import json,os;print(json.dumps({"setup_token":os.environ["APP_SETUP_TOKEN"],"public_url":os.environ["APP_URL"]}))' |
             ssh -p "$DEPLOY_PORT" -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" "bash '$DEPLOY_ROOT/releases/$GITHUB_SHA/scripts/deploy.sh' '$DEPLOY_ROOT' '$GITHUB_SHA'"
       - name: HTTPS health check
         if: steps.configuration.outputs.ready == 'true'
@@ -152,6 +153,10 @@ jobs:
           [[ "$APP_URL" =~ ^https://[a-zA-Z0-9.-]+/?$ ]]
           curl --fail --silent --show-error "${APP_URL%/}/api/?action=bootstrap" |
             python3 -c 'import json,sys;d=json.load(sys.stdin);assert "setup_required" in d and "csrf" in d;print("Application responds over HTTPS.")'
+          curl --fail --silent --show-error "${APP_URL%/}/.well-known/oauth-protected-resource/mcp" |
+            python3 -c 'import json,os,sys;d=json.load(sys.stdin);base=os.environ["APP_URL"].rstrip("/").lower();assert d["resource"]==base+"/mcp/" and d["authorization_servers"]==[base];print("Public MCP OAuth resource discovery responds over HTTPS.")'
+          curl --fail --silent --show-error "${APP_URL%/}/.well-known/oauth-authorization-server" |
+            python3 -c 'import json,os,sys;d=json.load(sys.stdin);base=os.environ["APP_URL"].rstrip("/").lower();assert d["issuer"]==base and d["authorization_endpoint"]==base+"/oauth/authorize/";print("Public MCP OAuth authorization discovery responds over HTTPS.")'
       - name: Clear SSH key
         if: always() && steps.configuration.outputs.ready == 'true'
         run: rm -f ~/.ssh/id_ed25519

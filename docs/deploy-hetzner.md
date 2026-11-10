@@ -50,7 +50,7 @@ Der Server braucht `php`, `python3`, `bash`, `rsync` und die üblichen Linux-Kom
 
 ## Weitere Releases und Rollback
 
-Ein weiterer Push auf `main` startet dasselbe Deployment. Daten und Schlüssel in `shared/` bleiben erhalten. Falls ein Preflight fehlschlägt, bleibt der vorherige Release aktiv. Der HTTPS-Check läuft nach Aktivierung; schlägt ausschließlich dieser Check fehl, meldet GitHub einen Fehler, rollt aber nicht automatisch zurück.
+Ein weiterer Push auf `main` startet dasselbe Deployment. Daten und Schlüssel in `shared/` bleiben erhalten. `APP_URL` wird bei jedem Deployment als öffentliche MCP-/OAuth-Basisadresse übernommen; die bestehende private Konfiguration und ihr Verschlüsselungsschlüssel werden dabei nicht ersetzt. Falls ein Preflight fehlschlägt, bleibt der vorherige Release aktiv. Der HTTPS-Check prüft nach Aktivierung neben dem Bootstrap auch die OAuth-Discovery für MCP; schlägt ausschließlich dieser Check fehl, meldet GitHub einen Fehler, rollt aber nicht automatisch zurück.
 
 Ein früherer Release kann per SSH über den `current`-Symlink wieder aktiviert werden. Beispielsweise aus dem Basisverzeichnis:
 
