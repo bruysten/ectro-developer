@@ -819,3 +819,51 @@ html[data-workspace-resizing] iframe { pointer-events:none!important; }
 @media(max-width:500px){.database-table-delete-dialog .dialog-foot{display:grid;grid-template-columns:minmax(0,1fr)}.database-table-delete-dialog .dialog-foot button{width:100%;min-width:0;white-space:normal}}
 .database-table-delete-dialog{overflow:hidden}.database-table-delete-dialog form{display:flex;flex-direction:column;max-height:calc(100dvh - 48px)}.database-table-delete-dialog .dialog-body{overflow:auto;min-height:0}.database-table-delete-dialog .dialog-head,.database-table-delete-dialog .dialog-foot{flex:none}
 .project-card .card-foot{flex-wrap:wrap;gap:12px}.project-card h3{overflow-wrap:anywhere}
+
+/* Shared responsive foundations for every workspace and both portals. */
+.content,.panel,.two-col>*,.stats-grid>*,.form-grid>*,.page-head>* { min-width:0; }
+.content :is(h1,h2,h3,h4),.panel :is(p,small),.notice { overflow-wrap:anywhere; }
+.field :is(input,select,textarea) { min-width:0;max-width:100%; }
+.table-wrap { max-width:100%;overscroll-behavior-inline:contain; }
+.table-scroll-hint { margin:10px 0 8px;font-size:11px;line-height:1.6;color:var(--text-muted); }
+.table-scroll-hint[hidden] { display:none!important; }
+.table-wrap:focus-visible { outline:2px solid var(--accent);outline-offset:3px; }
+.chat-room-head { position:relative; }
+.chat-members { position:static; }
+.chat-room .member-list { left:auto;right:12px;width:min(320px,calc(100% - 24px));max-width:none;overflow-wrap:anywhere; }
+.chat-groups button,.chat-room-head>.field,.chat-room-head>div { min-width:0;max-width:100%; }
+.chat-room-head>.field { flex:1 1 180px; }
+.chat-room .chat-compose>button { flex-shrink:0; }
+/* Bound long forms to the available height; do not strand their actions below it. */
+dialog { max-width:calc(100vw - 16px);max-height:calc(100dvh - 24px);overflow:hidden; }
+dialog>form { display:flex;flex-direction:column;max-height:calc(100dvh - 26px);min-height:0; }
+dialog .dialog-head,dialog .dialog-foot { flex:none; }
+dialog .dialog-head { gap:12px;align-items:flex-start; }
+dialog .dialog-head h2 { min-width:0;max-height:min(160px,24dvh);overflow:auto;overflow-wrap:anywhere; }
+dialog .dialog-head>.icon-btn { flex:none; }
+dialog .dialog-body { flex:1;min-height:0;overflow:auto;overscroll-behavior:contain; }
+dialog .dialog-foot { flex-wrap:wrap; }
+dialog .dialog-foot .es-btn { min-width:0;max-width:100%;height:auto;min-height:36px;padding-block:10px;white-space:normal;line-height:1.4; }
+@media(max-width:850px){
+ .two-col { grid-template-columns:minmax(0,1fr); }
+ .stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:700px){
+ .content .es-btn,dialog .es-btn { max-width:100%;height:auto;min-height:44px;padding-block:10px;white-space:normal;line-height:1.4; }
+ .es-btn>.icon { flex:none; }
+ .field :is(input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea),.chat-compose textarea { font-size:16px; }
+ dialog .dialog-head,dialog .dialog-body,dialog .dialog-foot { padding:16px; }
+ .chat-room .chat-compose { flex-wrap:wrap; }
+ .chat-room .compose-main { flex:1 1 140px; }
+}
+@media(max-width:850px) and (max-height:500px){
+ .sidebar { padding:12px 18px; }
+ .sidebar-heading { min-height:44px;padding-bottom:12px; }
+ .sidebar :is(.product-label,.nav-label) { display:none; }
+ .shell .sidebar-bottom { padding-top:8px; }
+ .sidebar .account { padding-top:8px; }
+ .sidebar .sidebar-close { top:12px;right:12px; }
+}
+@media(prefers-reduced-motion:reduce){
+ .shell,.shell .sidebar,.shell .main,dialog,.es-btn { transition:none!important; }
+}
