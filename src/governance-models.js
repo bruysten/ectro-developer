@@ -10,11 +10,11 @@ export const governanceAccountable=(c,a)=>!!governanceContribution(c,a.raci)?.ac
 export const QUALITY_LEVELS={unknown:'Noch nicht beurteilt',unfit:'Nicht geeignet',limited:'Bedingt geeignet',fit:'Geeignet'};
 export const LIFECYCLE_ACTIONS={collect:'Erheben',store:'Speichern',edit:'Verarbeiten',use:'Nutzen',share:'Weitergeben',archive:'Archivieren',delete:'Löschen'};
 export const AI_LEVELS={unknown:'Noch nicht beurteilt',none:'Noch nicht',planned:'Geplant',pilot:'Im Pilot',managed:'Im Betrieb',proven:'Nachweislich wirksam'};
-export const GOV_VIEWS={overview:'Überblick',roles:'Rollen',quality:'Qualität',rules:'Regeln',lifecycle:'Lebenszyklus',ai:'AI-Readiness'};
+export const GOV_VIEWS={overview:'Überblick',roles:'Rollen',quality:'Qualität',rules:'Regeln',legal:'Legal & Compliance',lifecycle:'Lebenszyklus',ai:'AI-Readiness'};
 export const GOVERNANCE_STATUSES={unknown:'Offen',good:'Im Ziel',warning:'Prüfen',bad:'Handlungsbedarf',stale:'Veraltet'};
 export const govId=()=>crypto.randomUUID();
 export const today=()=>new Date().toISOString().slice(0,10);
-export const emptyGovernance=()=>({schemaVersion:1,contributions:structuredClone(defaultContributions),organization:'',landscape:'',readiness:'',sandbox:null,stakeholders:[],roles:structuredClone(catalog.roles),assignments:[],quality:[],rules:[],lifecycles:[],journeyLinks:[],ai:{useCase:'',scope:'Gesamte Organisation',answers:{}}});
+export const emptyGovernance=()=>({schemaVersion:1,contributions:structuredClone(defaultContributions),organization:'',landscape:'',readiness:'',sandbox:null,stakeholders:[],roles:structuredClone(catalog.roles),assignments:[],quality:[],rules:[],legal:[],lifecycles:[],journeyLinks:[],ai:{useCase:'',scope:'Gesamte Organisation',answers:{}}});
 export function govScopeKey(scope){return scope.type+':'+scope.id;}
 export function govResources(l){return [{type:'organization',id:'',name:'Gesamte Organisation'},...(l?.systems||[]).map(s=>({type:'system',id:s.id,name:s.name})),...(l?.stores||[]).map(s=>({type:'store',id:s.id,name:s.name})),...(l?.flows||[]).map(s=>({type:'flow',id:s.id,name:s.name}))];}
 export function govScopeName(scope,l){return govResources(l).find(r=>r.type===scope.type&&r.id===scope.id)?.name||'Verweis nicht mehr verfügbar';}
