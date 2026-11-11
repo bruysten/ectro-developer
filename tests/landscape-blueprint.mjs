@@ -1,6 +1,6 @@
 import {landscapeMapSystems} from '../src/landscape-map.js';
 import assert from 'node:assert/strict';import {spawnSync} from 'node:child_process';
-import {landscapeExample,newSystem,removeSystem,removeStore,landscapeImpact,landscapeIssues,landscapeFilter,landscapeRows,SYSTEM_SECTIONS} from '../src/landscape-models.js';
+import {landscapeExample,newSystem,removeSystem,removeStore,landscapeImpact,landscapeIssues,landscapeFilter,landscapeRows,SYSTEM_SECTIONS,flowExchangeSummary,flowExchangeLabel} from '../src/landscape-models.js';
 import {blueprintExample,blueprintImpact,reconcileBlueprint,copyBlueprintStage,blueprintRows} from '../src/blueprint-models.js';
 import {journeyExample} from '../src/studio-models.js';
 const l=landscapeExample(),original=structuredClone(l),j=journeyExample();j.blueprint=blueprintExample(j.stages);
@@ -33,3 +33,14 @@ console.log('Landscape: all 12 direction/access combinations, legacy defaults, d
 const hosting=structuredClone(l);hosting.systems[0].deployment='on_premises';assert.deepEqual([...landscapeFilter(hosting,{query:'On-Premises'})],['system-0']);assert.equal(landscapeRows(hosting,'systems')[0].betriebsmodell,'On-Premises');assert.equal(newSystem().deployment,'unknown');
 
 const regulatory=structuredClone(l);regulatory.systems[0].regulatory={ai_act:'relevant',dsa:'not_relevant',dma:'not_assessed',gdpr:'relevant'};const exported=landscapeRows(regulatory,'systems')[0];assert.equal(exported['AI Act relevance'],'Relevant');assert.equal(exported['DSA relevance'],'Not relevant');assert.equal(exported['DMA relevance'],'Not assessed');assert(!Object.hasOwn(exported,'regulatory'));const firstSystem=newSystem(),secondSystem=newSystem();firstSystem.regulatory.gdpr='relevant';assert.equal(secondSystem.regulatory.gdpr,'not_assessed');
+
+// Transport remains independent from direction and read/write semantics. Legacy
+// text stays intact; an unspecified format is never inferred from a method.
+const exchange={...newFlow('system-0','system-1'),format:'JSON',method:'API / HTTPS',frequency:'Bei Vertragsabschluss',volume:'5.000 Datensätze je Lauf'};
+const exchangeCopy=structuredClone(exchange);assert.equal(flowExchangeSummary(exchange),'JSON · API / HTTPS · Bei Vertragsabschluss');assert(flowExchangeSummary(exchange,{volume:true}).endsWith('5.000 Datensätze je Lauf'));assert.deepEqual(exchange,exchangeCopy);
+assert.equal(flowExchangeSummary(newFlow()),'Datenaustausch noch offen');assert(flowExchangeSummary({method:'CSV-Export'},{missing:true}).includes('Format offen'),'A legacy CSV export label does not silently establish the payload format');
+assert(flowExchangeLabel({...exchange,format:'X'.repeat(500)}).length<=38);
+const exportedExchange=landscapeRows({...l,flows:[exchange]},'flows')[0];assert.equal(exportedExchange.format,exchange.format);assert.equal(exportedExchange.frequency,exchange.frequency);assert.equal(exportedExchange.volume,exchange.volume);assert.equal(landscapeFilter({...l,flows:[exchange]},{query:'Vertragsabschluss'}).size,2);
+assert.equal(landscapeIssues({...l,flows:[exchange]}).find(x=>x.key==='exchange').ids.length,0);assert.deepEqual(landscapeIssues({...l,flows:[{...exchange,format:''}]}).find(x=>x.key==='exchange').ids,[exchange.id]);
+
+assert(flowExchangeLabel({...exchange,format:'X'.repeat(500),frequency:'Täglich'}).includes('Täglich'),'Long formats never crowd frequency out of the map label');

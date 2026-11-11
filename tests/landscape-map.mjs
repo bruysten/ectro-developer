@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {arrangeLandscape,landscapePositions} from '../src/landscape-layout.js';
+import {landscapePortTransform} from '../src/landscape-map.js';
 import {bindLandscapeDrag} from '../src/landscape-map-drag.js';
 import {industryLandscape} from '../src/landscape-examples.js';
 
@@ -37,3 +38,5 @@ handlers.keydown(event(0,0,{key:'ArrowUp',shiftKey:true}));assert.equal(graph.no
 handlers.keydown(event(0,0,{key:'Enter'}));assert.equal(choices,2);
 const beforeDispose={...graph.nodes[0]};handlers.pointerdown(event(80,50));handlers.pointermove(event(120,140));drag.dispose();assert.deepEqual(graph.nodes[0],beforeDispose);assert.equal(Object.keys(handlers).length,0);assert.equal(saves,3);assert.equal(cancels,4);
 console.log('Landscape placement: four industry layouts, 2,000 nodes, saved coordinates, stable changes, scaled pointer dragging, cancel/dispose and keyboard movement verified.');
+
+for(const zoom of [.05,.1,.25,1,4]){const transform=landscapePortTransform({x:0,y:-50},zoom),[x,y,scale]=transform.match(/-?\d+(?:\.\d+)?/g).map(Number);assert(Math.abs(scale*zoom-1)<1e-9);assert((x-11*scale)*zoom>0,'The connection hit area never covers its own system centre');assert.equal(y,-50);assert.equal(44*scale*zoom,44);}
