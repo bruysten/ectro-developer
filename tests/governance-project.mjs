@@ -1,7 +1,7 @@
 import {journeyReferencesHtml,landscapeDetailRelations,mountGovernanceBridge,mountLandscapeJourneys} from '../src/governance-bridge.js';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {GOVERNANCE,emptyGovernance,governanceExample,qualityResult,flowQuality,ruleResult,aiGovernanceReport,sampleQuality,lifecycleTrace,deletionSimulation,ageDays,saveGovernanceAssignment,lifecycleName,lifecycleFromStore} from '../src/governance-models.js';
+import {GOVERNANCE,emptyGovernance,governanceExample,qualityResult,flowQuality,ruleResult,aiGovernanceReport,sampleQuality,lifecycleTrace,deletionSimulation,ageDays,saveGovernanceAssignment,governanceContributions,governanceContributionLabel,governanceFindings,lifecycleName,lifecycleFromStore} from '../src/governance-models.js';
 import {emptyProjectPlan,stateDifference,projectSchedule,projectStakeholders} from '../src/projectplan-models.js';
 import {landscapeJourneyReferences} from '../src/landscape-journey-links.js';
 import {industryPair} from '../src/journey-industry-examples.js';
@@ -41,7 +41,7 @@ const existing=saveGovernanceAssignment(board,{...assignment,id:'consulted',raci
 assert.throws(()=>saveGovernanceAssignment(board,{...assignment,raci:'C'},assignment.id),/bereits/);assert.equal(assignment.raci,'R');assert.equal(existing.raci,'C');
 assert.throws(()=>saveGovernanceAssignment(board,{...assignment,role:''}),/Rolle wählen/);
 assert.throws(()=>saveGovernanceAssignment(board,{...assignment,stakeholder:'missing'}),/Stakeholder/);
-assert.throws(()=>saveGovernanceAssignment(board,{...assignment,raci:'invalid'},assignment.id),/RACI/);
+assert.throws(()=>saveGovernanceAssignment(board,{...assignment,raci:'invalid'},assignment.id),/Beitragsbereich/);
 assert.throws(()=>saveGovernanceAssignment(board,{...assignment},'deleted'),/nicht mehr vorhanden/);
 assert.deepEqual(board.assignments.map(a=>a.id),['move','other','consulted']);
 // The lifecycle follows an actual Landscape store. A graph neighbour is not
@@ -56,3 +56,12 @@ const flowRelations=landscapeDetailRelations({flags:{governance_lab:true},info:{
 const run=spawnSync('php',['tests/governance-project.php'],{input:JSON.stringify({landscape:l,journey:j,governance:c,rollout:emptyProjectPlan()}),encoding:'utf8'});assert.equal(run.status,0,run.stdout+run.stderr);process.stdout.write(run.stdout);console.log('Governance/Project models: quality provenance and freshness, explicit lifecycle routes, holds, honest coverage, immutable comparisons, DAG scheduling and reverse Journey associations verified.');
 
 const migration=spawnSync('php',['tests/governance-migration.php'],{encoding:'utf8'});assert.equal(migration.status,0,migration.stdout+migration.stderr);process.stdout.write(migration.stdout);
+
+// Visible labels are editable; stable area IDs keep role/card references intact.
+const custom=structuredClone(c);custom.contributions=governanceContributions(c).map(x=>({...x,code:x.id==='A'?'D':x.code,label:x.id==='A'?'Entscheidet':x.label}));
+assert.equal(governanceContributionLabel(custom,'A'),'D · Entscheidet');
+custom.contributions.push({id:'approves',code:'S',label:'Gibt frei',description:'Freigabe',accountable:false});
+const movedCustom=saveGovernanceAssignment(custom,{...custom.assignments[0],raci:'approves'},custom.assignments[0].id);assert.equal(movedCustom.raci,'approves');assert.equal(movedCustom.note,c.assignments[0].note);
+assert(stateDifference(govState,{...govState,content:custom}).items.some(x=>x.title==='Beitragsbereiche & Gesamtverantwortung'));
+const legacy=structuredClone(govState);delete legacy.content.contributions;assert(stateDifference(legacy,govState).items.every(x=>x.change==='Beibehalten'));
+custom.contributions=custom.contributions.map(x=>({...x,accountable:false}));assert.equal(governanceFindings(custom,l).filter(x=>x.type==='roles').length,1,'No invented per-store owner counts without an accountable definition');

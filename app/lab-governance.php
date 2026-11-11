@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/lab-governance-contributions.php';
 function governanceCatalog():array {static $c;return $c??=json_decode(file_get_contents(__DIR__.'/governance-catalog.json'),true,32,JSON_THROW_ON_ERROR);}
 function govDate(mixed $v,bool $optional=true):string {$v=studioText($v??'',10);if($optional&&$v==='')return '';if(!preg_match('/^\d{4}-\d{2}-\d{2}$/D',$v)||!checkdate((int)substr($v,5,2),(int)substr($v,8,2),(int)substr($v,0,4)))fail(422,'Bitte ein gültiges Datum verwenden.');return $v;}
 function govNumber(mixed $v,float $min,float $max,bool $nullable=false):int|float|null {if($nullable&&$v===null)return null;if((!is_int($v)&&!is_float($v))||!is_finite((float)$v)||$v<$min||$v>$max)fail(422,'Zahl außerhalb des zulässigen Bereichs.');return $v;}
@@ -8,13 +9,13 @@ function govUniqueRows(mixed $raw,int $limit):array {$rows=labList($raw??[],$lim
 function govOptionalId(mixed $v):string {return $v===''||$v===null?'':labName($v);}
 function governanceValidate(mixed $raw):array {
  $c=studioRecord($raw);$source=studioText($c['landscape']??'',32);if($source!==''&&!preg_match('/^[a-f0-9]{32}$/D',$source))fail(422,'Ungültige Landschaftsreferenz.');
- $out=['schemaVersion'=>1,'organization'=>studioText($c['organization']??'',180),'landscape'=>$source,'readiness'=>studioText($c['readiness']??'',32),'sandbox'=>null,'stakeholders'=>[],'roles'=>[],'assignments'=>[],'quality'=>[],'rules'=>[],'lifecycles'=>[],'journeyLinks'=>[],'ai'=>['useCase'=>'','scope'=>'','answers'=>[]]];
+ $out=['schemaVersion'=>1,'organization'=>studioText($c['organization']??'',180),'landscape'=>$source,'readiness'=>studioText($c['readiness']??'',32),'sandbox'=>null,'contributions'=>governanceContributionsValidate($c['contributions']??governanceDefaultContributions()),'stakeholders'=>[],'roles'=>[],'assignments'=>[],'quality'=>[],'rules'=>[],'lifecycles'=>[],'journeyLinks'=>[],'ai'=>['useCase'=>'','scope'=>'','answers'=>[]]];
  if($out['readiness']!==''&&!preg_match('/^[a-f0-9]{32}$/D',$out['readiness']))fail(422,'Ungültiger Readiness-Verweis.');
  if($source===''&&isset($c['sandbox']))$out['sandbox']=landscapeValidate($c['sandbox']);
  $people=[];foreach(govUniqueRows($c['stakeholders']??[],200) as $p){$id=labName($p['id']);$people[$id]=true;$out['stakeholders'][]=['id'=>$id,'name'=>labName($p['name']??null,180),'department'=>studioText($p['department']??'',180),'kind'=>studioEnum($p['kind']??'person',['person','team','external'])];}
  $roles=[];foreach(govUniqueRows($c['roles']??governanceCatalog()['roles'],100) as $r){$id=labName($r['id']);$roles[$id]=true;$out['roles'][]=['id'=>$id,'name'=>labName($r['name']??null,180),'purpose'=>studioText($r['purpose']??'',1500),'family'=>studioText($r['family']??'Eigene Rolle',100)];}
  $person=function($id)use($people){$id=govOptionalId($id);if($id!==''&&!isset($people[$id]))fail(422,'Stakeholder nicht vorhanden.');return $id;};
- $assignmentKeys=[];foreach(govUniqueRows($c['assignments']??[],1000) as $a){$role=labName($a['role']??null);if(!isset($roles[$role]))fail(422,'Governance-Rolle fehlt.');$v=['id'=>$a['id'],'role'=>$role,'stakeholder'=>$person($a['stakeholder']??''),'scope'=>govScope($a['scope']??null),'raci'=>studioEnum($a['raci']??null,['A','R','C','I']),'state'=>studioEnum($a['state']??'active',['active','planned']),'note'=>studioText($a['note']??'',1500)];if(!$v['stakeholder'])fail(422,'Zuerst einen Stakeholder wählen.');$key=json_encode([$v['role'],$v['stakeholder'],$v['scope'],$v['raci']]);if(isset($assignmentKeys[$key]))fail(422,'Diese Zuordnung besteht bereits.');$assignmentKeys[$key]=true;$out['assignments'][]=$v;}
+ $assignmentKeys=[];foreach(govUniqueRows($c['assignments']??[],1000) as $a){$role=labName($a['role']??null);if(!isset($roles[$role]))fail(422,'Governance-Rolle fehlt.');$v=['id'=>$a['id'],'role'=>$role,'stakeholder'=>$person($a['stakeholder']??''),'scope'=>govScope($a['scope']??null),'raci'=>studioEnum($a['raci']??null,array_column($out['contributions'],'id')),'state'=>studioEnum($a['state']??'active',['active','planned']),'note'=>studioText($a['note']??'',1500)];if(!$v['stakeholder'])fail(422,'Zuerst einen Stakeholder wählen.');$key=json_encode([$v['role'],$v['stakeholder'],$v['scope'],$v['raci']]);if(isset($assignmentKeys[$key]))fail(422,'Diese Zuordnung besteht bereits.');$assignmentKeys[$key]=true;$out['assignments'][]=$v;}
  $dimensions=array_keys(governanceCatalog()['dimensions']);$pairs=[];
  foreach(govUniqueRows($c['quality']??[],600) as $q){$flow=labName($q['flow']??null);$dimension=studioEnum($q['dimension']??null,$dimensions);$key=$flow.'|'.$dimension;if(isset($pairs[$key]))fail(422,'Je Datenfluss und Dimension eine aktuelle Messung pflegen.');$pairs[$key]=true;
   $passed=govNumber($q['passed']??null,0,1e8,true);$total=govNumber($q['total']??null,0,1e8,true);if(($passed!==null&&!is_int($passed))||($total!==null&&!is_int($total)))fail(422,'Fallzahlen in ganzen Zahlen angeben.');if(($passed===null)!==($total===null)||($total!==null&&($total<=0||$passed>$total)))fail(422,'Messung als passende Anzahl von höchstens allen geprüften Fällen angeben.');
@@ -41,6 +42,7 @@ function governanceRefs(array $c):array {
  ksort($refs);return $refs;
 }
 function governanceSourceAccess(array $u,string $pid,array &$c,?array $old=null):void {
+ $items=governanceProjectContributions($pid)['items'];$ids=array_column($items,'id');foreach($c['assignments'] as $a)if(!in_array($a['raci'],$ids,true))fail(409,'Die Beitragsbereiche dieses Projekts wurden geändert. Bitte die Arbeit neu laden und die Zuordnung prüfen.');$c['contributions']=$items;
  if(($c['readiness']??'')!==''&&($old['readiness']??'')!==$c['readiness']){labAccess($u,$pid,'readiness');$readiness=one('SELECT id FROM lab_objects WHERE id=? AND project_id=? AND kind="readiness"',[$c['readiness'],$pid]);if(!$readiness)fail(422,'Readiness-Arbeit gehört nicht zu diesem Projekt.');}
  $source=null;$available=true;$same=$old&&($old['landscape']??'')===$c['landscape'];$before=$same?governanceRefs($old):[];
  if($c['landscape']!==''){try{labAccess($u,$pid,'landscape');$source=one('SELECT * FROM lab_objects WHERE id=? AND project_id=? AND kind="landscape"',[$c['landscape'],$pid]);if(!$source)throw new ApiError(422,'Landschaft nicht verfügbar.');$source=json_decode($source['content'],true);}catch(ApiError $e){$available=false;if(!$same)throw $e;}}
@@ -54,7 +56,7 @@ function governanceSourceAccess(array $u,string $pid,array &$c,?array $old=null)
 function governanceContext(array $u,array $d):array {
  $pid=textField($d,'project',32);labAccess($u,$pid,'governance');$landscapes=[];$journeys=[];$readiness=[];
  foreach(['landscape','journey','readiness'] as $kind){try{labAccess($u,$pid,$kind);foreach(all('SELECT id,name,version FROM lab_objects WHERE project_id=? AND kind=? ORDER BY name,id',[$pid,$kind]) as $o){$o['version']=(int)$o['version'];if($kind==='landscape')$landscapes[]=$o;elseif($kind==='readiness')$readiness[]=$o;else{$o['content']=labObject($u,$o['id'])['content'];$journeys[]=$o;}}}catch(ApiError){}}
- return ['landscapes'=>$landscapes,'journeys'=>$journeys,'readiness'=>$readiness];
+ return ['landscapes'=>$landscapes,'journeys'=>$journeys,'readiness'=>$readiness,'contributions'=>governanceContributionContext($pid)];
 }
 function governanceOverlay(array $u,array $d):array {
  $pid=textField($d,'project',32);labAccess($u,$pid,'governance');$landscape=textField($d,'landscape',32,false);$journey=textField($d,'journey',32,false);

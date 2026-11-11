@@ -15,6 +15,7 @@ function labDispatch(array $u,string $action,array $data): never {
         case 'lab.dataset.read': jsonOut(datasetDatabaseRead($u,$data));
         case 'lab.object': jsonOut(['object'=>labObject($u,textField($data,'id',32))]);
         case 'lab.validate': if(($data['kind']??'')==='conversation'&&(is_array($data['content']??null)&&array_key_exists('loop',$data['content'])))needFeature($u,'loop_lab');if(($data['kind']??'')==='journey'&&isset($data['content']['blueprint']))needFeature($u,'blueprint_lab');labAccess($u,textField($data,'project',32),textField($data,'kind',20));$checked=labValidate($data['kind'],$data['content']??null);if($data['kind']==='journey'&&isset($checked['infrastructure'])){needFeature($u,'landscape_lab');journeyInfrastructureAccess($u,$data['project'],$checked['infrastructure']);}if($data['kind']==='governance')governanceSourceAccess($u,$data['project'],$checked);if($data['kind']==='rollout')projectPlanStateAccess($u,$data['project'],$checked);jsonOut(['content'=>labStructuredContent($data['kind'],$checked)]);
+        case 'lab.governance.contributions.save': jsonOut(governanceContributionsSave($u,$data));
         case 'lab.governance.context': jsonOut(governanceContext($u,$data));
         case 'lab.governance.overlay': jsonOut(governanceOverlay($u,$data));
         case 'lab.landscape.journeys': jsonOut(landscapeJourneys($u,$data));
@@ -25,7 +26,7 @@ function labDispatch(array $u,string $action,array $data): never {
         case 'lab.delete': transaction(function()use($u,$data){$o=labObject($u,textField($data,'id',32));if(($data['version']??null)!==$o['version'])fail(409,'Inzwischen geändert. Bitte neu laden.');query('DELETE FROM lab_objects WHERE id=?',[$o['id']]);audit($u['id'],'lab.delete',['project'=>$o['project_id']]);});jsonOut(['ok'=>true]);
         case 'lab.rpc': rateLimit('lab.rpc.'.$u['id'],300,60);jsonOut(labRpc($u,$data));
         case 'lab.project.save':
-            if(!in_array($u['role'],['teacher','admin'],true))fail(403,'Dozentenfunktion.');$pid=textField($data,'project',32);labAccess($u,$pid);$c=labConfigInput($data['config']??null);transaction(function()use($u,$pid,$c){labAccess($u,$pid);query('INSERT INTO lab_project_config VALUES(?,?) ON CONFLICT(project_id) DO UPDATE SET config=excluded.config',[$pid,labJson(['tools'=>$c['tools'],'entry'=>$c['entry']])]);});jsonOut(['ok'=>true]);
+            if(!in_array($u['role'],['teacher','admin'],true))fail(403,'Dozentenfunktion.');$pid=textField($data,'project',32);labAccess($u,$pid);$c=labConfigInput($data['config']??null);transaction(function()use($u,$pid,$c){labAccess($u,$pid);$existing=json_decode(one('SELECT config FROM lab_project_config WHERE project_id=?',[$pid])['config']??'{}',true);query('INSERT INTO lab_project_config VALUES(?,?) ON CONFLICT(project_id) DO UPDATE SET config=excluded.config',[$pid,labJson([...$existing,'tools'=>$c['tools'],'entry'=>$c['entry']])]);});jsonOut(['ok'=>true]);
         case 'presence.touch': rateLimit('presence.'.$u['id'],20,60);learningContext($u,$data);jsonOut(['ok'=>true]);
         case 'presence.open':
             $uid=textField($data,'user',32);$gid=textField($data,'group',32);chatAccess($u,$gid,true);$context=learningLocation($u,$uid,$gid);if(!$context)fail(404,'Diese Ansicht ist nicht mehr verfügbar.');jsonOut(['context'=>$context,'participant'=>$uid,'group'=>$gid]);

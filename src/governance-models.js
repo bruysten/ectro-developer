@@ -1,7 +1,12 @@
+import defaultContributions from '../app/governance-contributions.json' with {type:'json'};
 import catalog from '../app/governance-catalog.json' with {type:'json'};
 import {flowDirection} from './landscape-models.js';
 export const GOVERNANCE=catalog;
-export const RACI={A:'Verantwortet',R:'Setzt um',C:'Wird konsultiert',I:'Wird informiert'};
+export const RACI=Object.fromEntries(defaultContributions.map(x=>[x.id,x.label]));
+export const governanceContributions=c=>c.contributions||defaultContributions;
+export const governanceContribution=(c,id)=>governanceContributions(c).find(x=>x.id===id);
+export const governanceContributionLabel=(c,id)=>{const x=governanceContribution(c,id);return x?x.code+' · '+x.label:'Bereich nicht mehr verfügbar';};
+export const governanceAccountable=(c,a)=>!!governanceContribution(c,a.raci)?.accountable;
 export const QUALITY_LEVELS={unknown:'Noch nicht beurteilt',unfit:'Nicht geeignet',limited:'Bedingt geeignet',fit:'Geeignet'};
 export const LIFECYCLE_ACTIONS={collect:'Erheben',store:'Speichern',edit:'Verarbeiten',use:'Nutzen',share:'Weitergeben',archive:'Archivieren',delete:'Löschen'};
 export const AI_LEVELS={unknown:'Noch nicht beurteilt',none:'Noch nicht',planned:'Geplant',pilot:'Im Pilot',managed:'Im Betrieb',proven:'Nachweislich wirksam'};
@@ -9,7 +14,7 @@ export const GOV_VIEWS={overview:'Überblick',roles:'Rollen',quality:'Qualität'
 export const GOVERNANCE_STATUSES={unknown:'Offen',good:'Im Ziel',warning:'Prüfen',bad:'Handlungsbedarf',stale:'Veraltet'};
 export const govId=()=>crypto.randomUUID();
 export const today=()=>new Date().toISOString().slice(0,10);
-export const emptyGovernance=()=>({schemaVersion:1,organization:'',landscape:'',readiness:'',sandbox:null,stakeholders:[],roles:structuredClone(catalog.roles),assignments:[],quality:[],rules:[],lifecycles:[],journeyLinks:[],ai:{useCase:'',scope:'Gesamte Organisation',answers:{}}});
+export const emptyGovernance=()=>({schemaVersion:1,contributions:structuredClone(defaultContributions),organization:'',landscape:'',readiness:'',sandbox:null,stakeholders:[],roles:structuredClone(catalog.roles),assignments:[],quality:[],rules:[],lifecycles:[],journeyLinks:[],ai:{useCase:'',scope:'Gesamte Organisation',answers:{}}});
 export function govScopeKey(scope){return scope.type+':'+scope.id;}
 export function govResources(l){return [{type:'organization',id:'',name:'Gesamte Organisation'},...(l?.systems||[]).map(s=>({type:'system',id:s.id,name:s.name})),...(l?.stores||[]).map(s=>({type:'store',id:s.id,name:s.name})),...(l?.flows||[]).map(s=>({type:'flow',id:s.id,name:s.name}))];}
 export function govScopeName(scope,l){return govResources(l).find(r=>r.type===scope.type&&r.id===scope.id)?.name||'Verweis nicht mehr verfügbar';}
@@ -35,7 +40,7 @@ export function saveGovernanceAssignment(c,next,existingId=''){
  if(existingId&&!current)throw Error('Diese Zuordnung ist nicht mehr vorhanden.');
  if(!c.stakeholders.some(p=>p.id===next.stakeholder))throw Error('Stakeholder wählen.');
  if(!c.roles.some(r=>r.id===next.role))throw Error('Bitte eine Rolle wählen.');
- if(!Object.hasOwn(RACI,next.raci))throw Error('Einen gültigen RACI-Beitrag wählen.');
+ if(!governanceContribution(c,next.raci))throw Error('Einen gültigen Beitragsbereich wählen.');
  if(!['active','planned'].includes(next.state))throw Error('Einen gültigen Planungsstand wählen.');
  if(!next.scope||!['organization','system','store','flow'].includes(next.scope.type)||typeof next.scope.id!=='string')throw Error('Verantwortungsbereich wählen.');
  if(c.assignments.some(a=>a!==current&&a.stakeholder===next.stakeholder&&a.role===next.role&&govScopeKey(a.scope)===govScopeKey(next.scope)&&a.raci===next.raci))throw Error('Diese Person ist mit dieser Rolle hier bereits zugeordnet.');
@@ -45,7 +50,7 @@ export function saveGovernanceAssignment(c,next,existingId=''){
 }
 export function governanceAssignments(c,scope){return c.assignments.filter(a=>a.scope.type===scope.type&&a.scope.id===scope.id);}
 export function governanceFindings(c,l,at=today()){
- const findings=[];for(const r of govResources(l).filter(r=>r.type==='store')){const owners=governanceAssignments(c,r).filter(a=>a.raci==='A'&&a.state==='active');if(owners.length!==1)findings.push({type:'roles',scope:r,title:r.name,detail:owners.length?'Mehrere verantwortliche Stellen · Entscheidung klären':'Verantwortung noch nicht zugeordnet'});}
+ const findings=[];if(!governanceContributions(c).some(x=>x.accountable))findings.push({type:'roles',scope:{type:'organization',id:''},title:'Gesamtverantwortung nicht definiert',detail:'Unter „Beiträge anpassen“ festlegen, welcher Bereich die Gesamtverantwortung trägt.'});for(const r of govResources(l).filter(r=>r.type==='store'&&governanceContributions(c).some(x=>x.accountable))){const owners=governanceAssignments(c,r).filter(a=>governanceAccountable(c,a)&&a.state==='active');if(owners.length!==1)findings.push({type:'roles',scope:r,title:r.name,detail:owners.length?'Mehrere verantwortliche Stellen · Entscheidung klären':'Verantwortung noch nicht zugeordnet'});}
  for(const q of c.quality){const r=qualityResult(q,at);if(r.status!=='good')findings.push({type:'quality',scope:{type:'flow',id:q.flow},title:govScopeName({type:'flow',id:q.flow},l),detail:GOVERNANCE.dimensions[q.dimension].name+' · '+r.label});}
  for(const r of c.rules){if(r.state==='retired')continue;const result=ruleResult(c,r,at);if(result.status!=='good')findings.push({type:'rules',scope:r.scope,title:r.title,detail:result.label});}
  for(const a of c.lifecycles)for(const step of a.steps)if(!step.owner||!step.evidence||step.action==='delete'&&step.state!=='verified')findings.push({type:'lifecycle',scope:{type:'system',id:step.system},title:lifecycleName(a,l),detail:LIFECYCLE_ACTIONS[step.action]+' · '+(!step.owner?'Zuständigkeit fehlt':!step.evidence?'Beleg fehlt':'Löschschritt noch nicht belegt')});
