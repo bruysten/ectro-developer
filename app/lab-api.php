@@ -35,6 +35,8 @@ function labDispatch(array $u,string $action,array $data): never {
             $uid=textField($data,'user',32);$gid=textField($data,'group',32);chatAccess($u,$gid,true);$context=learningLocation($u,$uid,$gid);if(!$context)fail(404,'Diese Ansicht ist nicht mehr verfügbar.');jsonOut(['context'=>$context,'participant'=>$uid,'group'=>$gid]);
         case 'ai.connections': needFeature($u,'ai');jsonOut(['connections'=>array_map('aiPublic',all('SELECT * FROM ai_connections WHERE user_id=? AND (provider<>"daimon" OR ?="admin") ORDER BY name',[$u['id'],$u['role']]))]);
         case 'ai.connection.save': jsonOut(['connection'=>aiConnectionSave($u,$data)]);
+        case 'ai.embedding.create': jsonOut(['connection'=>aiEmbeddingCreate($u,$data)]);
+        case 'admin.ai.embedding.create': jsonOut(['connection'=>aiEmbeddingCreate($u,$data,true)]);
         case 'ai.connection.delete': aiConnectionDelete($u,$data);jsonOut(['ok'=>true]);
         case 'admin.ai.connection.save': jsonOut(['connection'=>aiConnectionSave($u,$data,true)]);
         case 'admin.ai.connection.delete': aiConnectionDelete($u,$data,true);jsonOut(['ok'=>true]);

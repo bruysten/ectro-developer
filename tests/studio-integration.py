@@ -76,6 +76,15 @@ with tempfile.TemporaryDirectory(prefix='ectro-studio-http-') as private:
         admin.ok('admin.ai.group.save',{'group':gid,'connection':connection['id'],'version':group_grant['version'],'remove':True})
         check(not alice.ok('lab.info',project=pid)['connections'],'Revoking both access paths removes the connection')
         # The project dialog reads actual grants and saves tools + multiple capabilities atomically.
+        provisioning={'source':connection['id'],'version':connection['version'],'model':'text-embedding-3-small'}
+        check(admin.call('admin.ai.embedding.create',provisioning,csrf=False)[0]==403,'Embedding provisioning requires CSRF')
+        check(admin.call('admin.ai.embedding.create')[0]==405,'Embedding provisioning rejects GET')
+        check(alice.call('admin.ai.embedding.create',provisioning)[0]==403,'Learners cannot use admin provisioning')
+        check(alice.call('ai.embedding.create',provisioning)[0]==404,'Personal provisioning cannot reuse another account key')
+        provided_embedding=admin.ok('admin.ai.embedding.create',provisioning)['connection']
+        check('secret' not in provided_embedding and provided_embedding['capability']=='embedding','Provisioned embedding exposes no key')
+        check(not alice.ok('lab.info',project=pid)['connections'],'Provisioning alone creates no access for learners')
+        admin.ok('admin.ai.connection.delete',{'id':provided_embedding['id'],'version':provided_embedding['version']})
         embedding=admin.ok('admin.ai.connection.save',{**conn_data,'name':'Synthetic embeddings','provider':'daimon','base_url':'https://synthetic.daimon.intelligence-gmbh.com/vllm/embedding/v1','capability':'embedding'})['connection']
         check(alice.call('lab.project.settings',project=pid)[0]==403,'Learners cannot inspect grant management metadata')
         state=admin.ok('lab.project.settings',project=pid)
