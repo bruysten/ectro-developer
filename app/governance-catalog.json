@@ -1,0 +1,52 @@
+{
+  "roles": [
+    {"id":"sponsor","name":"Executive Sponsor / CDO","purpose":"Prioritäten, Budget und Eskalationen organisationsweit entscheiden.","family":"Steuerung"},
+    {"id":"council","name":"Data Governance Council","purpose":"Domänenübergreifende Regeln, Zielkonflikte und Ausnahmen entscheiden.","family":"Steuerung"},
+    {"id":"governance_lead","name":"Data Governance Lead","purpose":"Das Betriebsmodell, Richtlinien und die Zusammenarbeit koordinieren.","family":"Steuerung"},
+    {"id":"domain_owner","name":"Domain Owner","purpose":"Geschäftliche Ziele und Datenprodukte einer Domäne verantworten.","family":"Fachlichkeit"},
+    {"id":"data_owner","name":"Data Owner","purpose":"Zweck, Zugänge, Qualität und Lebenszyklus eines Datenbestands verantworten.","family":"Fachlichkeit"},
+    {"id":"business_steward","name":"Business Data Steward","purpose":"Definitionen, fachliche Regeln und Qualitätsprobleme im Alltag betreuen.","family":"Fachlichkeit"},
+    {"id":"technical_steward","name":"Technical Data Steward","purpose":"Metadaten, Schnittstellen, Herkunft und technische Qualitätsregeln pflegen.","family":"Technik"},
+    {"id":"custodian","name":"Data Custodian","purpose":"Speicherung, Sicherung, Bereitstellung und technische Löschung umsetzen.","family":"Technik"},
+    {"id":"system_owner","name":"System Owner","purpose":"Betrieb, Änderungen und Verfügbarkeit eines Systems verantworten.","family":"Technik"},
+    {"id":"architect","name":"Data Architect","purpose":"Datenmodelle, Integrationsmuster und Architekturstandards gestalten.","family":"Technik"},
+    {"id":"engineer","name":"Data Engineer","purpose":"Datenflüsse bauen, überwachen und Verarbeitungsschritte nachvollziehbar machen.","family":"Technik"},
+    {"id":"quality_manager","name":"Data Quality Manager","purpose":"Qualitätsziele, Messverfahren und Verbesserungsmaßnahmen koordinieren.","family":"Qualität"},
+    {"id":"data_producer","name":"Data Producer","purpose":"Daten am Entstehungsort nach vereinbarten Vorgaben erfassen.","family":"Nutzung"},
+    {"id":"data_consumer","name":"Data Consumer / Analyst","purpose":"Eignung für den eigenen Anwendungsfall prüfen und Probleme zurückmelden.","family":"Nutzung"},
+    {"id":"product_owner","name":"Data Product Owner","purpose":"Nutzen, Nutzeranforderungen und Serviceziele eines Datenprodukts steuern.","family":"Nutzung"},
+    {"id":"dpo","name":"Data Protection Officer","purpose":"Datenschutz unabhängig beraten und überwachen; keine operative Freigabe ersetzen.","family":"Kontrolle"},
+    {"id":"security","name":"Information Security Officer","purpose":"Schutzbedarf, Sicherheitsanforderungen und Informationsrisiken betreuen.","family":"Kontrolle"},
+    {"id":"compliance","name":"Legal / Compliance","purpose":"Anwendbarkeit von Pflichten, Vertragsbedingungen und Ausnahmen prüfen.","family":"Kontrolle"},
+    {"id":"records","name":"Records / Retention Manager","purpose":"Aufbewahrung, Archivierung, Löschkonzepte und Sperrgründe koordinieren.","family":"Kontrolle"},
+    {"id":"ai_owner","name":"AI System / Model Owner","purpose":"Zweck, Datenanforderungen, Bewertung und menschliche Aufsicht einer KI-Anwendung verantworten.","family":"KI"},
+    {"id":"risk","name":"AI / Model Risk Manager","purpose":"Risiken, Grenzen und Kontrollen von KI-Anwendungen unabhängig hinterfragen.","family":"KI"},
+    {"id":"audit","name":"Internal Audit","purpose":"Wirksamkeit und Nachvollziehbarkeit unabhängig prüfen.","family":"Kontrolle"}
+  ],
+  "dimensions": {
+    "completeness":{"name":"Vollständigkeit","question":"Sind die benötigten Werte vorhanden?"},
+    "uniqueness":{"name":"Eindeutigkeit","question":"Ist jeder Datensatz nur einmal vorhanden?"},
+    "consistency":{"name":"Konsistenz","question":"Passen Werte und Darstellungen zusammen?"},
+    "timeliness":{"name":"Aktualität","question":"Sind die Daten für den Verwendungszweck rechtzeitig und aktuell?"},
+    "validity":{"name":"Gültigkeit","question":"Entsprechen die Werte dem erwarteten Format und Wertebereich?"},
+    "accuracy":{"name":"Richtigkeit","question":"Stimmen die Daten mit einer belastbaren Referenz überein?"}
+  },
+  "ai": [
+    {"id":"purpose","name":"Zweck & Nutzen","question":"Sind konkrete KI-Anwendungsfälle, Erfolgskriterien und Grenzen festgelegt?"},
+    {"id":"ownership","name":"Verantwortung & Aufsicht","question":"Sind Entscheidungen, Eskalationen und menschliche Aufsicht klar zugeordnet?"},
+    {"id":"data","name":"Datenqualität & Herkunft","question":"Werden Eignung, Repräsentativität, Herkunft und Aktualität der benötigten Daten geprüft?"},
+    {"id":"rights","name":"Rechte & Schutz","question":"Sind Nutzungsrechte, Datenschutz, Schutzbedarf und zulässige Zwecke geklärt?"},
+    {"id":"access","name":"Zugang & Infrastruktur","question":"Sind kontrollierte Zugänge, Integration und sichere Betriebswege vorhanden?"},
+    {"id":"people","name":"Kompetenzen & Zusammenarbeit","question":"Können Fachbereiche, Technik und Kontrollfunktionen die Anwendung gemeinsam betreuen?"},
+    {"id":"evaluation","name":"Tests & Beobachtung","question":"Gibt es Referenzfälle, Fehlermessung und laufende Überwachung?"},
+    {"id":"response","name":"Änderung & Vorfälle","question":"Sind Änderungen, Rücknahme, Vorfälle und Abschaltung erprobt?"}
+  ],
+  "sources": [
+    {"title":"Data ownership model · GOV.UK","url":"https://www.gov.uk/government/publications/data-ownership-in-government/data-ownership-model"},
+    {"title":"Government Data Quality Framework","url":"https://www.gov.uk/government/publications/the-government-data-quality-framework/the-government-data-quality-framework"},
+    {"title":"NIST AI RMF · Govern, Map, Measure, Manage","url":"https://airc.nist.gov/airmf-resources/airmf/5-sec-core/"},
+    {"title":"GDPR · insbesondere Art. 5, 6, 17, 19, 30 und 39","url":"https://eur-lex.europa.eu/eli/reg/2016/679/oj/eng/"},
+    {"title":"EU AI Act · Art. 10, Daten-Governance für Hochrisiko-KI","url":"https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-10"}
+  ],
+  "reviewed":"2026-11-11"
+}

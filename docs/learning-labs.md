@@ -188,3 +188,7 @@ Zeilengrenzen, SQL-Bezeichner, persönliche und Projektverbindungen,
 versionierte Speicherung und unveränderte Quelldaten. Im lokalen Browser sind
 Spalten hinzufügen/entfernen, Abbrechen, Speichern/Neuladen, der Einstieg ohne
 Verbindung und 320/768/1440 Pixel ohne Seitenüberlauf geprüft.
+
+## Governance und Vorhabenplanung
+
+Das [Governance und Project Lab](governance-project-labs.md) ergänzt Rollen/RACI, nachweisbare Datenqualität, Regeln, Datenlebenszyklen und AI-Readiness sowie die Planung vom eingefrorenen Ausgangs- zum Zielbild. Beide Labs besitzen eigene Gruppenfreigaben und Projektwerkzeuge. Landscape kann unabhängig davon Journey-/Persona-Bezüge optional in Karte, Listen und Details anzeigen. Governance-Kontexte und Projekt-Einstiege erscheinen nur bei entsprechender Freigabe.
