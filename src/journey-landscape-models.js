@@ -15,11 +15,11 @@ export function copyInfrastructure(c,from,to,itemMap=new Map()){
  c.infrastructure.bindings.push(...copies);
 }
 export function bindingSystems(binding,landscape){
- const ids=new Set(binding.systems);for(const id of binding.stores){const s=landscape.stores.find(s=>s.id===id);if(s)ids.add(s.system);}return ids;
+ const ids=new Set(binding.systems);for(const id of binding.stores){const s=landscape.stores.find(s=>s.id===id);if(s)ids.add(s.system);}for(const id of binding.flows||[]){const f=landscape.flows.find(f=>f.id===id);if(f){ids.add(f.from);ids.add(f.to);}}return ids;
 }
 export function phaseDependencies(c,stage,landscape){
- const systems=new Set(),stores=new Set();for(const b of c.infrastructure?.bindings||[])if(b.stage===stage){for(const id of bindingSystems(b,landscape))systems.add(id);for(const id of b.stores)stores.add(id);}return {systems,stores};
+ const systems=new Set(),stores=new Set(),flows=new Set();for(const b of c.infrastructure?.bindings||[])if(b.stage===stage){for(const id of bindingSystems(b,landscape))systems.add(id);for(const id of b.stores)stores.add(id);for(const id of b.flows||[])flows.add(id);}return {systems,stores,flows};
 }
 export function missingDependencies(c,landscape){
- const systems=new Set(landscape.systems.map(s=>s.id)),stores=new Set(landscape.stores.map(s=>s.id));return (c.infrastructure?.bindings||[]).flatMap(b=>[...b.systems.filter(id=>!systems.has(id)).map(id=>({binding:b,id,type:'System'})),...b.stores.filter(id=>!stores.has(id)).map(id=>({binding:b,id,type:'Datenbestand'}))]);
+ const systems=new Set(landscape.systems.map(s=>s.id)),stores=new Set(landscape.stores.map(s=>s.id)),flows=new Set(landscape.flows.map(f=>f.id));return (c.infrastructure?.bindings||[]).flatMap(b=>[...b.systems.filter(id=>!systems.has(id)).map(id=>({binding:b,id,type:'System'})),...b.stores.filter(id=>!stores.has(id)).map(id=>({binding:b,id,type:'Datenbestand'})),...(b.flows||[]).filter(id=>!flows.has(id)).map(id=>({binding:b,id,type:'Datenfluss'}))]);
 }

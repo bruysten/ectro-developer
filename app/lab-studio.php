@@ -3,6 +3,8 @@ declare(strict_types=1);
 require_once __DIR__.'/lab-personas.php';
 require_once __DIR__.'/lab-pipeline.php';
 require_once __DIR__.'/lab-landscape.php';
+require_once __DIR__.'/lab-governance.php';
+require_once __DIR__.'/lab-projectplan.php';
 require_once __DIR__.'/journey-landscape.php';
 require_once __DIR__.'/lab-readiness.php';
 require_once __DIR__.'/lab-statistics.php';
@@ -14,7 +16,7 @@ require_once __DIR__.'/lab-loop.php';
 require_once __DIR__.'/agent-mcp.php';
 require_once __DIR__.'/lab-source-tables.php';
 
-const STUDIO_KINDS = ['conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics','geo','agent','archive','pipeline'];
+const STUDIO_KINDS = ['conversation','assistant','evaluation','reasoning','visualization','journey','landscape','readiness','statistics','geo','agent','archive','pipeline','governance','rollout'];
 const STUDIO_VIEWS = ['table','bar','column','stacked','line','area','scatter','histogram','boxplot','heatmap','donut','treemap','kpi','network','strategy','hyperbolic','star','columns','sunburst','icicle'];
 
 function studioText(mixed $v,int $max=4000): string {
@@ -116,6 +118,8 @@ function studioValidate(string $kind,array $c): array {
     if ($kind==='geo')return geoValidate($c);
     if ($kind==='statistics')return statisticsValidate($c);
     if ($kind==='readiness')return readinessValidate($c);
+    if ($kind==='governance')return governanceValidate($c);
+    if ($kind==='rollout')return projectPlanValidate($c);
     if ($kind==='landscape')return landscapeValidate($c);
     if ($kind==='journey') {
         $persona=studioRecord($c['persona']??[]);$p=[];foreach(['name'=>180,'goal'=>2000,'context'=>2000] as $key=>$max)$p[$key]=studioText($persona[$key]??'',$max);

@@ -1,3 +1,4 @@
+import './governance-project.mjs';
 import './pipeline.mjs';
 import './materials.mjs';
 import './archive-ocr.mjs';

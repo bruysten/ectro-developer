@@ -1,0 +1,8 @@
+import {escapeHtml as e} from './studio-charts.js';
+export const govField=(title,name,value='',options={})=>`<label class="field ${options.wide?'gov-wide':''}"><span>${e(title)}</span>${options.area?`<textarea name="${name}" rows="3" maxlength="${options.max||3000}">${e(value??'')}</textarea>`:`<input name="${name}" type="${options.type||'text'}" value="${e(value??'')}" ${options.required?'required':''} ${options.type==='number'?`min="${options.min??0}" max="${options.max??100000000}" step="${options.step||'any'}"`:`maxlength="${options.max||180}"`}>`}</label>`;
+export const govSelect=(title,name,options,value='',extra='')=>`<label class="field"><span>${e(title)}</span><select name="${name}" ${extra}>${Object.entries(options).map(([k,v])=>`<option value="${e(k)}" ${String(value)===k?'selected':''}>${e(v)}</option>`).join('')}</select></label>`;
+export const govBadge=(status,text)=>`<span class="gov-badge gov-status-${status}">${e(text)}</span>`;
+export const govEmpty=(title,text,button='')=>`<div class="gov-empty"><h3>${e(title)}</h3><p>${e(text)}</p>${button}</div>`;
+export const govButton=(key,label,icon='',primary=false)=>`<button type="button" class="es-btn es-btn--sm es-btn--${primary?'primary':'secondary'}" data-gov-action="${key}">${icon}${e(label)}</button>`;
+export const govHead=(title,actions='',caption='')=>`<header class="gov-section-head"><div><h2>${e(title)}</h2>${caption?`<p>${e(caption)}</p>`:''}</div><div class="toolbar">${actions}</div></header>`;
+export function downloadGovernance(c,name){const blob=new Blob([JSON.stringify(c,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),0);}
