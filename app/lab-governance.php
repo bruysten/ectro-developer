@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/lab-governance-contributions.php';
+require_once __DIR__.'/lab-governance-ai.php';
 function governanceCatalog():array {static $c;return $c??=json_decode(file_get_contents(__DIR__.'/governance-catalog.json'),true,32,JSON_THROW_ON_ERROR);}
 function govDate(mixed $v,bool $optional=true):string {$v=studioText($v??'',10);if($optional&&$v==='')return '';if(!preg_match('/^\d{4}-\d{2}-\d{2}$/D',$v)||!checkdate((int)substr($v,5,2),(int)substr($v,8,2),(int)substr($v,0,4)))fail(422,'Bitte ein gültiges Datum verwenden.');return $v;}
 function govNumber(mixed $v,float $min,float $max,bool $nullable=false):int|float|null {if($nullable&&$v===null)return null;if((!is_int($v)&&!is_float($v))||!is_finite((float)$v)||$v<$min||$v>$max)fail(422,'Zahl außerhalb des zulässigen Bereichs.');return $v;}
@@ -29,7 +30,7 @@ function governanceValidate(mixed $raw):array {
   foreach(govUniqueRows($a['steps']??[],200) as $s){$hold=$s['hold']??false;if(!is_bool($hold))fail(422,'Aufbewahrungssperre als Ja/Nein angeben.');$days=govNumber($s['retentionDays']??null,0,365000,true);if($days!==null&&!is_int($days))fail(422,'Frist in ganzen Tagen angeben.');$step=['id'=>$s['id'],'system'=>labName($s['system']??null),'action'=>studioEnum($s['action']??null,['collect','store','edit','use','share','archive','delete']),'owner'=>$person($s['owner']??''),'state'=>studioEnum($s['state']??'planned',['planned','implemented','verified']),'retentionDays'=>$days,'hold'=>$hold,'holdReason'=>studioText($s['holdReason']??'',2000),'evidence'=>studioText($s['evidence']??'',3000)];if($hold&&trim($step['holdReason'])==='')fail(422,'Einen Aufbewahrungsgrund angeben.');if($step['state']==='verified'&&(!$step['owner']||!trim($step['evidence'])))fail(422,'Belegte Lebenszyklusschritte benötigen Zuständigkeit und Nachweis.');$v['steps'][]=$step;}$out['lifecycles'][]=$v;
  }
  foreach(govUniqueRows($c['journeyLinks']??[],300) as $j){$v=['id'=>$j['id'],'journey'=>studioText($j['journey']??'',32),'stage'=>labName($j['stage']??null),'element'=>studioEnum($j['element']??'phase',['phase','touchpoint','action','goal','channel']),'flows'=>labList($j['flows']??[],100)];if(!preg_match('/^[a-f0-9]{32}$/D',$v['journey'])||!$v['flows'])fail(422,'Eine Journey-Zuordnung benötigt eine Journey und Datenflüsse.');foreach($v['flows'] as $id)labName($id);if(count(array_unique($v['flows']))!==count($v['flows']))fail(422,'Datenfluss doppelt gewählt.');$out['journeyLinks'][]=$v;}
- $ai=studioRecord($c['ai']??[]);$out['ai']['useCase']=studioText($ai['useCase']??'',1000);$out['ai']['scope']=studioText($ai['scope']??'Gesamte Organisation',500);$answers=studioRecord($ai['answers']??[]);$aiIds=array_column(governanceCatalog()['ai'],'id');if(array_diff(array_keys($answers),$aiIds))fail(422,'Unbekannte AI-Readiness-Frage.');foreach($answers as $key=>$a){$a=studioRecord($a);$out['ai']['answers'][$key]=['level'=>studioEnum($a['level']??'unknown',['unknown','none','planned','pilot','managed','proven']),'evidence'=>studioText($a['evidence']??'',2000),'reviewedOn'=>govDate($a['reviewedOn']??'')];if($out['ai']['answers'][$key]['level']==='proven'&&(!trim($out['ai']['answers'][$key]['evidence'])||!$out['ai']['answers'][$key]['reviewedOn']))fail(422,'Nachweisliche Wirksamkeit benötigt einen Beleg und ein Datum.');if($out['ai']['answers'][$key]['reviewedOn']>gmdate('Y-m-d'))fail(422,'Bewertungsdatum liegt in der Zukunft.');}
+ $ai=studioRecord($c['ai']??[]);$out['ai']['useCase']=studioText($ai['useCase']??'',1000);$out['ai']['scope']=studioText($ai['scope']??'Gesamte Organisation',500);$out['ai']['answers']=governanceAiAnswers($ai['answers']??[]);
  return $out;
 }
 // Stable reference keys allow unrelated edits after source deletion/revocation, never new dangling links.
@@ -39,6 +40,7 @@ function governanceRefs(array $c):array {
  foreach($c['quality']??[] as $r)$add('quality:'.$r['id'],'flow',$r['flow']);
  foreach($c['lifecycles']??[] as $a){$add('asset:'.$a['id'],'store',$a['sourceStore']);foreach($a['flows'] as $id)$add('asset:'.$a['id'].':flow:'.$id,'flow',$id);foreach($a['steps'] as $s)$add('asset:'.$a['id'].':step:'.$s['id'],'system',$s['system']);}
  foreach($c['journeyLinks']??[] as $j){$add('journey:'.$j['id'],'journey',$j['journey']);$refs['journey-stage:'.$j['id']]=['stage',$j['journey'].'|'.$j['stage']];foreach($j['flows'] as $id)$add('journey:'.$j['id'].':flow:'.$id,'flow',$id);}
+ foreach($c['ai']['answers']??[] as $key=>$a)foreach($a['assessments']??[] as $r)$add('ai:'.$key.':'.$r['id'],$r['scope']['type'],$r['scope']['id']);
  ksort($refs);return $refs;
 }
 function governanceSourceAccess(array $u,string $pid,array &$c,?array $old=null):void {
@@ -51,7 +53,8 @@ function governanceSourceAccess(array $u,string $pid,array &$c,?array $old=null)
  foreach(governanceRefs($c) as $key=>[$type,$id]){if(($before[$key]??null)===[$type,$id])continue;if(!$available)fail(403,'Neue Zuordnungen benötigen Zugriff auf die Landschaft.');if(isset($valid[$type])&&!in_array($id,$valid[$type],true))fail(422,'Das gewählte System, der Datenbestand oder Datenfluss fehlt.');if($type==='journey'||$type==='stage'){labAccess($u,$pid,'journey');$jid=$type==='stage'?explode('|',$id,2)[0]:$id;$j=one('SELECT content FROM lab_objects WHERE id=? AND project_id=? AND kind="journey"',[$jid,$pid]);if(!$j)fail(422,'Journey im Projekt nicht verfügbar.');$jc=json_decode($j['content'],true);if($type==='stage'&&!in_array(explode('|',$id,2)[1],array_column($jc['stages'],'id'),true))fail(422,'Journey-Phase nicht mehr vorhanden.');if(($jc['infrastructure']['landscape']??'')!==$c['landscape']||$c['landscape']==='')fail(422,'Die Journey benötigt dieselbe verknüpfte Landschaft.');}}
  // Source-owned titles come from authorized metadata, never a client-supplied alias.
  if($available&&$source){$stores=array_column($source['stores']??[],null,'id');foreach($c['lifecycles'] as &$asset)if(($asset['nameFromSource']??false)&&isset($stores[$asset['sourceStore']]))$asset['name']=$stores[$asset['sourceStore']]['name'];unset($asset);}
-
+ $names=['system'=>array_column($source['systems']??[],'name','id'),'store'=>array_column($source['stores']??[],'name','id'),'flow'=>array_column($source['flows']??[],'name','id')];
+ foreach($c['ai']['answers'] as $key=>&$answer)foreach($answer['assessments']??[] as $index=>$r){$label=$names[$r['scope']['type']][$r['scope']['id']]??null;if($label===null){$prior=array_values(array_filter($old['ai']['answers'][$key]['assessments']??[],fn($x)=>$x['id']===$r['id']&&$x['scope']===$r['scope']));$label=$prior[0]['label']??'';}$answer['assessments'][$index]['label']=$label;}unset($answer);
 }
 function governanceContext(array $u,array $d):array {
  $pid=textField($d,'project',32);labAccess($u,$pid,'governance');$landscapes=[];$journeys=[];$readiness=[];

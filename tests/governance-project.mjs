@@ -1,7 +1,7 @@
 import {journeyReferencesHtml,landscapeDetailRelations,mountGovernanceBridge,mountLandscapeJourneys} from '../src/governance-bridge.js';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {GOVERNANCE,emptyGovernance,governanceExample,qualityResult,flowQuality,ruleResult,aiGovernanceReport,sampleQuality,lifecycleTrace,deletionSimulation,ageDays,saveGovernanceAssignment,governanceContributions,governanceContributionLabel,governanceFindings,lifecycleName,lifecycleFromStore} from '../src/governance-models.js';
+import {GOVERNANCE,emptyGovernance,governanceExample,qualityResult,flowQuality,ruleResult,aiGovernanceReport,aiDimensionReport,aiAssessmentFlows,sampleQuality,lifecycleTrace,deletionSimulation,ageDays,saveGovernanceAssignment,governanceContributions,governanceContributionLabel,governanceFindings,lifecycleName,lifecycleFromStore} from '../src/governance-models.js';
 import {emptyProjectPlan,stateDifference,projectSchedule,projectStakeholders} from '../src/projectplan-models.js';
 import {landscapeJourneyReferences} from '../src/landscape-journey-links.js';
 import {industryPair} from '../src/journey-industry-examples.js';
@@ -65,3 +65,12 @@ const movedCustom=saveGovernanceAssignment(custom,{...custom.assignments[0],raci
 assert(stateDifference(govState,{...govState,content:custom}).items.some(x=>x.title==='Beitragsbereiche & Gesamtverantwortung'));
 const legacy=structuredClone(govState);delete legacy.content.contributions;assert(stateDifference(legacy,govState).items.every(x=>x.change==='Beibehalten'));
 custom.contributions=custom.contributions.map(x=>({...x,accountable:false}));assert.equal(governanceFindings(custom,l).filter(x=>x.type==='roles').length,1,'No invented per-store owner counts without an accountable definition');
+
+// Resource mode is explicit: an old optimistic overall rating cannot mask open data.
+const concrete=emptyGovernance(),scope={type:'store',id:l.stores[0].id};concrete.ai.answers.data={basis:'resources',level:'proven',evidence:'Old overall',reviewedOn:'2026-11-01',assessments:[{id:'a',scope,level:'managed',evidence:'Sample',reviewedOn:'2026-11-01'},{id:'b',scope:{type:'flow',id:l.flows[0].id},level:'unknown',evidence:'',reviewedOn:''}]};
+let dr=aiDimensionReport(concrete.ai.answers.data,l);assert.equal(dr.value,.375);assert.equal(dr.known,1);assert.equal(dr.complete,false);assert.equal(dr.evidenced,1);assert.equal(aiGovernanceReport(concrete,l).score,5);
+assert.equal(aiDimensionReport({...concrete.ai.answers.data,assessments:[]},l).value,0,'Removing last selected resource never resurrects overall rating');assert.equal(aiDimensionReport({...concrete.ai.answers.data,basis:'overall'},l).value,1,'Overall is only used after an explicit switch');
+assert.equal(aiDimensionReport(concrete.ai.answers.data,{...l,stores:[]}).value,0,'Missing selected resource contributes zero');
+concrete.ai.answers.rights={basis:'resources',assessments:Array.from({length:100},(_,i)=>({id:String(i),scope,level:i?'proven':'none',evidence:'Reviewed',reviewedOn:'2026-11-01'}))};assert(aiGovernanceReport(concrete,l).critical.some(x=>x.id==='rights'),'One critical gap remains visible at 99 percent');
+assert.deepEqual(aiAssessmentFlows({scope},{...l,flows:[{id:'explicit',stores:[scope.id]},{id:'only-same-system',from:l.stores[0].system,to:'elsewhere'}]}).map(f=>f.id),['explicit'],'Do not infer a store flow from a shared system alone');
+const resourceChange=structuredClone(govState);resourceChange.content.ai.answers.data=concrete.ai.answers.data;assert(stateDifference(govState,resourceChange).items.some(x=>x.title==='Datenqualität & Herkunft'),'Project comparisons include concrete ratings');

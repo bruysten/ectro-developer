@@ -104,3 +104,38 @@ eigene Konfliktprüfung. Project-Lab-Momentaufnahmen speichern ihr damaliges
 Beitragsmodell unveränderlich mit; bestehende Momentaufnahmen ohne Modell verwenden
 weiterhin das ursprüngliche A/R/C/I-Modell. Landscape-, Journey- und Readiness-
 Governance-Einblendungen zeigen dieselben projektweiten Bezeichnungen.
+
+### AI-Readiness mit konkreten Ressourcen
+
+Jede der acht Dimensionen bietet neben der bisherigen Gesamtbewertung die
+Grundlage **Konkrete Ressourcen**. Aus der verknüpften Landscape (oder dem eigenen
+Lernmodell) lassen sich Datenbestände, Datenflüsse und Systeme anhand einer
+Such- und Typauswahl hinzufügen. Jede Ressource hat eine eigene Einschätzung,
+einen Nachweis und ein Datum. Die aktive Grundlage wird explizit gespeichert;
+eine alte Gesamtbewertung bleibt beim Wechsel erhalten, wird im Ressourcenmodus
+aber nicht zur Berechnung verwendet. Auch das Entfernen des letzten Bezugs
+aktiviert die alte Gesamtbewertung nicht automatisch wieder.
+
+„Datenqualität & Herkunft“ zeigt vorhandene Qualitätsmessungen der konkret
+zugeordneten Datenflüsse im Bewertungsdialog. Bestandsbezüge folgen ausschließlich
+expliziten `flow.stores`-Verweisen, niemals einer vermuteten Verbindung über dasselbe
+System. Messungen unterstützen die fachliche Einschätzung; Herkunft,
+Repräsentativität und Eignung für den KI-Anwendungsfall sind gesondert zu prüfen.
+
+Pro Dimension zählt der Mittelwert aller ausgewählten Ressourcen, offene und
+aktuell nicht verfügbare Ressourcen mit null. Die acht Dimensionen behalten ihr
+bisheriges gleiches Gewicht. Vollständig eingeschätzt ist eine Dimension erst,
+wenn alle ausgewählten Ressourcen verfügbar und bewertet sind. Die Oberfläche
+zeigt den ausgewählten Umfang und seine Nachweisabdeckung ausdrücklich an;
+nicht ausgewählte Ressourcen werden nicht als geprüft dargestellt. Einzelne
+Lücken in Verantwortung, Rechten und Evaluation bleiben trotz hohem Mittelwert
+als kritischer Hinweis sichtbar. Die Bewertung bleibt ein Lern- und Arbeitsmodell,
+kein standardisiertes Audit oder automatisch erzeugter Compliance-Nachweis.
+
+Neue Referenzen werden serverseitig gegen die autorisierte Landscape geprüft.
+Nach Quellenlöschung oder Rechteentzug bleiben bestehende Bezüge mit dem zuletzt
+aufgelösten Titel erhalten; neue oder umgebogene Referenzen sind gesperrt.
+Beim explizit bestätigten Wechsel der Landscape werden ihre Einzelbewertungen
+geleert. Project-Lab-Momentaufnahmen frieren Einzelbewertungen und damalige
+Ressourcentitel mit ein; Zustandsvergleiche erkennen Änderungen der Bezüge und
+Bewertungen auch ohne Änderung der alten Gesamtbewertungsfelder.
