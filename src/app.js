@@ -1,3 +1,4 @@
+import {watchTableOverflow} from './table-overflow.js';
 import {mountMaterials} from './materials.js';
 import {removeDatabaseTable} from './database-table-delete.js';
 import {mountReadinessAdmin} from './readiness-admin.js';
@@ -101,7 +102,7 @@ async function openSqlBuilder(){
     loadColumns();
   }});
 }
-let disposeTraining=null,disposeTeam=null,disposeLabs=null,presenceTimer=null,labObjectId=null,labView={},adminTableObservers=[],adminTableSequence=0;
+let disposeTraining=null,disposeTeam=null,disposeLabs=null,presenceTimer=null,labObjectId=null,labView={},disposeTables=null;
 let collaboration=null,disposeLayout=null,dbTimer=null,dbListSequence=0,dbRowSequence=0,dbTables=[];
 let dbProject=null;
 let accessTimer=null,accessScreen=false,accessRefreshPending=false,accessChecking=false,accessCheckQueued=false;
@@ -145,7 +146,7 @@ function modal(title,body,onSubmit,label='Speichern',options={}) {
 }
 async function confirm(title,copy,label='Löschen'){return modal(title,`<p>${esc(copy)}</p>`,async()=>{},label);}
 async function leaveDirty(){if(dirty&&collaboration)try{await collaboration.flush();}catch{}return !dirty||await confirm('Ungespeicherte Änderungen',ui('Ihre letzten Änderungen sind noch nicht gespeichert. Möchten Sie diesen Bereich trotzdem verlassen?'),'Verlassen');}
-function resetWorkspace(){adminTableObservers.forEach(observer=>observer.disconnect());adminTableObservers=[];disposeLabs?.();disposeLabs=null;labObjectId=null;labView={};disposeTeam?.();disposeTeam=null;clearTimeout(colorHelperTimer);colorHelperTimer=null;++sqlHelperSeq;disposeTraining?.();disposeTraining=null;clearInterval(dbTimer);dbTimer=null;++dbListSequence;++dbRowSequence;disposeLayout?.();disposeLayout=null;collaboration?.destroy();collaboration=null;++runVersion;++openVersion;editor?.destroy();editor=null;activeFile=null;dirty=false;runJob?.stop();runJob=null;}
+function resetWorkspace(){disposeTables?.();disposeTables=null;disposeLabs?.();disposeLabs=null;labObjectId=null;labView={};disposeTeam?.();disposeTeam=null;clearTimeout(colorHelperTimer);colorHelperTimer=null;++sqlHelperSeq;disposeTraining?.();disposeTraining=null;clearInterval(dbTimer);dbTimer=null;++dbListSequence;++dbRowSequence;disposeLayout?.();disposeLayout=null;collaboration?.destroy();collaboration=null;++runVersion;++openVersion;editor?.destroy();editor=null;activeFile=null;dirty=false;runJob?.stop();runJob=null;}
 function armAccessWindow(){
   clearTimeout(accessTimer);const delays=[accessWindowDelay(user?.access),...(!admin?[accessWindowDelay(user?.address),document.hidden?60000:WORKSPACE_ACCESS_POLL_MS]:[])].filter(Number.isFinite);if(delays.length)accessTimer=setTimeout(checkAccessWindow,Math.min(...delays));
 }
@@ -274,17 +275,9 @@ async function route(){
   const allowed=admin?{dashboard:adminOverview,users:adminUsers,groups:adminGroups,templates:adminTemplates,features:adminFeatures,system:adminSystemSettings,labs:adminLabs,readiness:adminReadiness,materials:materialsPage,mail:adminMail,statistics:adminStatistics}:{dashboard,projects:flags.files&&projectOverview,files:flags.files&&fileManager,editor:flags.editor&&programming,database:flags.database&&database,'sql-training':flags.database&&sqlTraining,graph:flags.graph&&labsPage,'data-lab':(dataLabAccess(flags).datasets||flags.converter)&&labsPage,'ai-lab':(flags.ai||flags.rag||flags.neural)&&labsPage,labs:studioHub,materials:materialsPage,...Object.fromEntries(Object.values(STUDIO_LABS).map(l=>[l.route,flags.files&&flags[l.feature]&&studioPage])),chat:flags.chat&&chat,team:flags.team&&team};
   const fn=allowed[name]||allowed.dashboard;try{await fn(version);if(!admin)publishPresence();}catch(e){if(version===routeVersion)$('#view').innerHTML=`<div class="content">${empty('Dieser Bereich ist gerade nicht verfügbar',esc(e.message),'info',button('Erneut versuchen','retry'))}</div>`;bind('retry',()=>route());}
 }
-function render(html,version){if(version!==routeVersion)return false;$('#view').innerHTML=html;enhanceAdminTables($('#view'));return true;}
-function enhanceAdminTables(root){
-  if(!admin)return;
-  for(const wrap of root.querySelectorAll('.table-wrap:not(.users-table-wrap)')){
-    const table=wrap.querySelector('table');if(!table||wrap.dataset.adminTable)continue;wrap.dataset.adminTable='true';
-    const hint=document.createElement('p');hint.className='admin-table-hint';hint.id='admin-table-scroll-'+(++adminTableSequence);hint.textContent='Tabelle seitlich scrollen';hint.hidden=true;wrap.before(hint);
-    const label=wrap.closest('section')?.querySelector('h2,h3')?.textContent.trim()||'Tabelle';
-    const update=()=>{const scrolls=wrap.scrollWidth>wrap.clientWidth+1;hint.hidden=!scrolls;wrap.tabIndex=scrolls?0:-1;if(scrolls){wrap.setAttribute('role','region');wrap.setAttribute('aria-label',label);wrap.setAttribute('aria-describedby',hint.id);}else{wrap.removeAttribute('role');wrap.removeAttribute('aria-label');wrap.removeAttribute('aria-describedby');}};
-    const observer=new ResizeObserver(update);observer.observe(wrap);observer.observe(table);adminTableObservers.push(observer);update();
-  }
-  for(const column of root.querySelectorAll('.chart-column')){const day=column.querySelector('span')?.textContent,count=column.querySelector('b')?.textContent;if(day&&count){column.setAttribute('role','img');column.setAttribute('aria-label',day+': '+count+' Aktivitäten');column.title=day+': '+count+' Aktivitäten';}}
+function render(html,version){if(version!==routeVersion)return false;$('#view').innerHTML=html;disposeTables?.();disposeTables=watchTableOverflow($('#view'));
+  if(admin)for(const column of $('#view').querySelectorAll('.chart-column')){const day=column.querySelector('span')?.textContent,count=column.querySelector('b')?.textContent;if(day&&count){column.setAttribute('role','img');column.setAttribute('aria-label',day+': '+count+' Aktivitäten');column.title=day+': '+count+' Aktivitäten';}}
+  return true;
 }
 function stats(items){return `<div class="stats-grid">${items.map(([label,value,copy])=>`<div class="stat"><div class="meta">${label}</div><strong>${value}</strong><small>${copy}</small></div>`).join('')}</div>`;}
 function projectPreferenceKey(){return 'entrosphere:last-project:'+user.id;}
@@ -920,7 +913,7 @@ async function labsPage(version){
   if(version===routeVersion)disposeLabs=dispose;else dispose();
 }
 async function adminReadiness(version){if(!render('<div id="readiness-admin"></div>',version))return;const dispose=await mountReadinessAdmin($('#readiness-admin'),{get,esc,toast});if(version===routeVersion)disposeLabs=dispose;else dispose();}
-async function adminLabs(version){if(!render('<div id="lab-admin"></div>',version))return;const dispose=await mountLabAdmin($('#lab-admin'),{api,get,esc,toast,modal,confirm,user});if(version===routeVersion){disposeLabs=dispose;enhanceAdminTables($('#lab-admin'));}else dispose();}
+async function adminLabs(version){if(!render('<div id="lab-admin"></div>',version))return;const dispose=await mountLabAdmin($('#lab-admin'),{api,get,esc,toast,modal,confirm,user});if(version===routeVersion){disposeLabs=dispose;}else dispose();}
 async function connectionDialog(){let cleanup,wantsProfile=false,closed=false;try{await modal(ui('Ihr Profil'),`${profileNavigation('ai')}<div id="personal-connections"><p class="muted" role="status">KI-Zugänge werden geladen …</p></div>`,()=>{},'Schließen',{className:'profile-dialog connections-dialog',after:dialog=>{$('[data-action="close-modal"]',dialog.querySelector('.dialog-foot')).hidden=true;bind('back-profile',()=>{wantsProfile=true;$('[data-action="close-modal"]',dialog).click();},dialog);mountConnections($('#personal-connections',dialog),{api,get,esc,modal,confirm,toast,user}).then(fn=>{if(closed)fn?.();else cleanup=fn;}).catch(e=>{if(closed)return;const host=$('#personal-connections',dialog);host.setAttribute('role','alert');host.textContent=e.message;toast(e.message,true);});}});}finally{closed=true;cleanup?.();}if(wantsProfile)await profileDialog();}
 
 function publishPresence(){if(admin||!user||user.access?.allowed===false||document.hidden||user.must_change_password)return;const route=location.hash.slice(1).split('?')[0]||'dashboard';const project=['database','sql-training'].includes(route)?dbProject:['editor','files','graph','data-lab','ai-lab',...Object.values(STUDIO_LABS).map(l=>l.route)].includes(route)?activeProject:null;api('presence.touch',{route,project:project||'',file:route==='editor'?activeFile?.path||'':'',object:labObjectId||'',...labView,table:route==='database'?selectedTable||'':route==='sql-training'?$('#training-table')?.value||'':'',mode:route==='sql-training'?$('#training-mode')?.value||'practice':undefined}).catch(()=>{});}
