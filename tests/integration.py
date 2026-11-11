@@ -1,6 +1,7 @@
 """Integration/security checks against an isolated PHP server and disposable SQLite DB."""
 import base64
 import http.cookiejar
+import hashlib
 import json
 import os
 import pathlib
@@ -59,6 +60,14 @@ with tempfile.TemporaryDirectory(prefix='ectro-test-') as private:
         for attempt in range(40):
             try: admin.ok('bootstrap'); break
             except urllib.error.URLError: time.sleep(.1)
+        # Deployment must change stylesheet/module URLs whenever their contents change.
+        for portal in ['/', '/admin/']:
+            page=urllib.request.urlopen(base+portal)
+            html=page.read().decode()
+            check(page.headers.get('Cache-Control')=='no-store','Application shell is never reused from HTTP cache')
+            for asset in ['app.css','app.js']:
+                fingerprint=hashlib.sha256((ROOT/'public/assets'/asset).read_bytes()).hexdigest()[:16]
+                check('/assets/'+asset+'?v='+fingerprint in html,'Portal loads content-versioned '+asset)
         status, _ = admin.call('setup', {'token': env['APP_SETUP_TOKEN'], 'name':'Admin', 'email':'admin@test.invalid','password':'secure-test-password'},csrf=False)
         check(status == 403, 'Setup requires CSRF')
         admin.ok('setup', {'token':env['APP_SETUP_TOKEN'],'name':'Admin','email':'admin@test.invalid','password':'secure-test-password'})
