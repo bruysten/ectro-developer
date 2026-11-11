@@ -921,3 +921,14 @@ body.landscape-focus-open{overflow:hidden}
 @media(max-width:480px){.gov-asset-context{grid-template-columns:minmax(0,1fr)}.gov-asset-context>.link{grid-column:1;grid-row:auto}}
 .studio-form-dialog :is(.field,.gov-asset-flows,.gov-asset-options)[hidden]{display:none}
 .gov-lifecycle-heading{margin:22px 0 10px!important}
+/* Data exchange is a first-class part of the flow, separate from access rights. */
+.landscape-flow-exchange{min-width:0;border:1px solid var(--border-strong);padding:16px;background:var(--surface-card)}
+.landscape-flow-exchange h3{font-size:15px;line-height:1.4;margin:0 0 14px}
+.landscape-exchange-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:16px}
+.landscape-flow-dialog .landscape-exchange-fields>.field{margin:0!important;min-width:0;align-self:start}
+.landscape-exchange-fields input{width:100%;min-width:0}
+.landscape-flow-dialog [data-flow-exchange-summary]{font-size:12px;line-height:1.6;color:var(--text-strong);margin-top:7px}
+.landscape-related .landscape-related-exchange{font-size:11px;color:var(--text-strong);line-height:1.5}
+.landscape-exchange-format{font-weight:600;font-size:12px}
+@media(max-width:500px){.landscape-exchange-fields{grid-template-columns:minmax(0,1fr);gap:14px}.landscape-flow-exchange{padding:14px}}
+.landscape-map-actions [data-map-exchange][aria-pressed=true]{color:var(--accent);background:var(--surface-accent-soft)}

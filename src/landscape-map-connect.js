@@ -1,7 +1,7 @@
 // A transient connection gesture never changes nodes or flows. Only a valid pair
 // is handed to the existing, validated flow editor after pointer capture ends.
-export function landscapeConnectionPath(source,point,target=null){
- const start={x:source.x+35,y:source.y},dx=point.x-start.x,dy=point.y-start.y,length=Math.hypot(dx,dy)||1,ux=dx/length,uy=dy/length;
+export function landscapeConnectionPath(source,point,target=null,origin=null){
+ const start=origin||{x:source.x+35,y:source.y},dx=point.x-start.x,dy=point.y-start.y,length=Math.hypot(dx,dy)||1,ux=dx/length,uy=dy/length;
  const end=target?{x:target.x-ux*35,y:target.y-uy*35}:point,bend=Math.min(120,Math.max(35,Math.abs(end.x-start.x)*.35));
  return `M${start.x} ${start.y} C${start.x+bend} ${start.y} ${end.x-ux*bend} ${end.y-uy*bend} ${end.x} ${end.y}`;
 }
@@ -13,7 +13,7 @@ export function bindLandscapeConnect(svg,graph,{onConnect,onError=()=>{},canStar
  const point=ev=>{const p=svg.createSVGPoint();p.x=ev.clientX;p.y=ev.clientY;return p.matrixTransform(svg.getScreenCTM().inverse());};
  const targetAt=ev=>{const id=elementId(doc.elementFromPoint(ev.clientX,ev.clientY));return id&&id!==gesture?.source&&nodes.has(id)?id:null;};
  function clearTarget(){if(gesture?.target)node(gesture.target)?.classList.remove('is-connect-target');if(gesture)gesture.target=null;}
- function paint(p,target=null){if(!gesture)return;clearTarget();gesture.target=target;node(target)?.classList.add('is-connect-target');gesture.preview.setAttribute('d',landscapeConnectionPath(nodes.get(gesture.source),target?nodes.get(target):p,target?nodes.get(target):null));gesture.preview.style.display='';}
+ function paint(p,target=null){if(!gesture)return;clearTarget();gesture.target=target;node(target)?.classList.add('is-connect-target');const matrix=port(gesture.source)?.getScreenCTM?.(),origin=matrix?point({clientX:matrix.e,clientY:matrix.f}):null;gesture.preview.setAttribute('d',landscapeConnectionPath(nodes.get(gesture.source),target?nodes.get(target):p,target?nodes.get(target):null,origin));gesture.preview.style.display='';}
  function release(){if(!gesture)return;const id=gesture.pointer;gesture.pointer=null;if(id!==null&&svg.hasPointerCapture(id))svg.releasePointerCapture(id);}
  function finish(){if(!gesture)return null;const old=gesture;release();clearTarget();gesture=null;old.preview.remove();port(old.source)?.setAttribute('aria-pressed','false');node(old.source)?.classList.remove('is-connect-source');svg.classList.remove('is-connecting-system');return old;}
  function cancel(focus=false){const old=finish();if(!old)return;if(focus)port(old.source)?.focus({preventScroll:true});onStatus('Verbindung abgebrochen.');}

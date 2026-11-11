@@ -41,5 +41,6 @@ for(const escape of ['outside-click','focus-leave']){
  const f=fixture();f.fire('keydown',{key:'Enter'});if(escape==='outside-click')f.doc.fire('pointerdown',{target:{}});else f.fire('focusout',{relatedTarget:{}});assert(!f.controller.active);await flush();assert.equal(f.calls.length,0);f.controller.dispose();
 }
 {const f=fixture(1);f.fire('keydown',{key:'Enter'});assert(!f.controller.active,'A single visible system cannot start a self connection');f.controller.dispose();}
+assert(landscapeConnectionPath({x:0,y:0},{x:120,y:0},null,{x:42,y:0}).startsWith('M42 0 C'),'Preview follows the actual docked port, including its screen-space offset');
 assert(!landscapeConnectionPath({x:0,y:0},{x:35,y:0}).includes('NaN'));
 console.log('Landscape connections: mouse/touch/pen, inverse SVG coordinates, docked preview, click/keyboard alternatives, reverse/repeated pairs, cancellation, same-system/outside rejection and disposal verified.');
