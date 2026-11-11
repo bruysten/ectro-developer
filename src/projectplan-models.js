@@ -1,4 +1,4 @@
-import {GOVERNANCE,AI_LEVELS,aiGovernanceReport,govScopeName} from './governance-models.js';
+import {GOVERNANCE,AI_LEVELS,aiGovernanceReport,govScopeName,governanceContributions} from './governance-models.js';
 import {READINESS,READINESS_ANSWERS,readinessReport} from './readiness-models.js';
 export const PROJECT_TRACKS={it:'IT & Systeme',digital:'Prozesse & Fähigkeiten',ai:'KI & Automatisierung',change:'Menschen & Veränderung'};
 export const PROJECT_PHASES={discover:'Klären',pilot:'Pilot',validate:'Prüfen',rollout:'Ausrollen',operate:'Verankern'};
@@ -18,6 +18,7 @@ export function stateDifference(start,target){
  if(start.kind==='landscape'){for(const key of ['systems','stores','flows'])records(key,x=>x.name,semanticRecord);items.push(...companionDifferences(start,target));return {available:true,items};}
  if(start.kind==='governance'){
   for(const q of GOVERNANCE.ai){const old=a.ai.answers[q.id]?.level||'unknown',next=b.ai.answers[q.id]?.level||'unknown';if(old!==next)items.push({title:q.name,change:AI_LEVELS[old]+' → '+AI_LEVELS[next],type:'ai'});}
+  if(JSON.stringify(governanceContributions(a))!==JSON.stringify(governanceContributions(b)))items.push({title:'Beitragsbereiche & Gesamtverantwortung',change:'Ändern',type:'assignments'});
   for(const key of ['stakeholders','roles','assignments','quality','rules','lifecycles'])records(key,(x,doc)=>key==='assignments'?(doc.roles.find(r=>r.id===x.role)?.name||'Rolle')+' · '+(doc.stakeholders.find(p=>p.id===x.stakeholder)?.name||'Stakeholder'):key==='quality'?GOVERNANCE.dimensions[x.dimension].name+' · '+(target.companions?.find(o=>o.kind==='landscape')?.content.flows.find(f=>f.id===x.flow)?.name||'Datenfluss'):x.name||x.title,key==='lifecycles'?x=>({...x,nameFromSource:x.nameFromSource??false}):x=>x);
   return {available:true,items,score:[aiGovernanceReport(a).score,aiGovernanceReport(b).score]};
  }

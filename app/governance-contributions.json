@@ -1,0 +1,6 @@
+[
+  {"id":"A","code":"A","label":"Verantwortet","description":"Verantwortung","accountable":true},
+  {"id":"R","code":"R","label":"Setzt um","description":"Umsetzung","accountable":false},
+  {"id":"C","code":"C","label":"Wird konsultiert","description":"Beratung","accountable":false},
+  {"id":"I","code":"I","label":"Wird informiert","description":"Information","accountable":false}
+]

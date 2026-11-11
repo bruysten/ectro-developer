@@ -79,3 +79,28 @@ Browserprüfung mit synthetischem Projekt: alle sechs Governance-Ansichten und a
 Austauschformat, Übertragungsweg, Frequenz/Auslöser und Datenmenge stehen sichtbar im Hauptteil des Datenfluss-Dialogs. Vorschläge ergänzen die bisherigen Freitextfelder; bestehende Werte und das Speicherschema bleiben erhalten. Das Bestandsformat einer Quelle ist ein eigener Hinweis und wird nicht als Austauschformat unterstellt. Technische Änderungen eines dokumentierten Austauschs setzen die Grundlage zur erneuten Prüfung auf „Annahme“, ohne den bisherigen Beleg zu löschen.
 
 Liste, Systemdetails, Kartentitel und Governance-Datenwege verwenden dieselbe Austausch-Zusammenfassung. Zusatzbeschriftungen der Karte sind einblendbar und verändern keine Projektdaten. Die Vollständigkeitshinweise führen zu Datenflüssen mit fehlendem Format, Übertragungsweg oder Takt; sie ersetzen keine Qualitätsprüfung. Angedockte Plus-Anschlüsse behalten eine große Ziehfläche, die auch bei kleinem Zoom den anklickbaren Mittelpunkt des Systems freilässt.
+
+### Projektweite Beitragsbereiche
+
+Unter **Governance Lab → Rollen → Beiträge anpassen** lassen sich Kürzel,
+Bezeichnung, Erklärung und Reihenfolge der bisherigen A/R/C/I-Bereiche ändern.
+Pro Projekt sind 1–12 Bereiche möglich. Die optionale Bedeutung
+„Zählt als Gesamtverantwortung“ steuert die Verantwortungsprüfung unabhängig vom
+sichtbaren Kürzel. Ohne diese Bedeutung wird die fehlende Definition offen
+angezeigt; es wird keine Gesamtverantwortung aus dem Kürzel geraten.
+
+Das Modell liegt versioniert in `lab_project_config.governanceContributions`.
+Projektmitglieder mit Governance-Freigabe können es bearbeiten; es ändert keine
+technischen Zugriffsrechte. Bestehende IDs bleiben bei Umbenennungen stabil.
+Beim Entfernen belegter Bereiche ist ein explizites neues Ziel erforderlich.
+Alle Governance-Arbeiten eines Projekts werden gemeinsam in einer Transaktion
+aktualisiert. Würden doppelte Zuordnungen entstehen, wird der gesamte Vorgang
+abgelehnt. Personen, Rollen, Planungsstände und Notizen werden nie stillschweigend
+zusammengeführt oder gelöscht. Die offene Arbeit wird vor der Änderung gespeichert.
+
+Jede betroffene Arbeit erhält eine neue Version, damit parallele alte Entwürfe
+keine gelöschten Bereiche zurückschreiben. Die Konfiguration hat zusätzlich eine
+eigene Konfliktprüfung. Project-Lab-Momentaufnahmen speichern ihr damaliges
+Beitragsmodell unveränderlich mit; bestehende Momentaufnahmen ohne Modell verwenden
+weiterhin das ursprüngliche A/R/C/I-Modell. Landscape-, Journey- und Readiness-
+Governance-Einblendungen zeigen dieselben projektweiten Bezeichnungen.
