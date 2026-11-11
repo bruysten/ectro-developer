@@ -15,6 +15,7 @@ import './readiness.mjs';
 import './journey-navigation.mjs';
 import './landscape-blueprint.mjs';
 import './landscape-map.mjs';
+import './landscape-connect.mjs';
 import './journey-landscape.mjs';
 import {spawnSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';

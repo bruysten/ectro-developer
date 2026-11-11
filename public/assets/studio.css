@@ -888,3 +888,16 @@ body.landscape-focus-open{overflow:hidden}
 @media(pointer:coarse){.gov-workspace .gov-person-card>.gov-person-grip{width:44px;min-height:44px}}
 @media(max-width:480px){.gov-raci-board{grid-template-columns:minmax(0,1fr)}.gov-stakeholders>.gov-person-card{flex:1 1 100%;max-width:none}}
 @media(prefers-reduced-motion:reduce){.gov-person-card,.gov-raci-board>section{transition:none}}
+/* A docked, constant-size port draws connections without moving the system. */
+.landscape-map-port{cursor:crosshair;touch-action:none;outline:none}
+.landscape-connect-hit{fill:transparent;stroke:none}
+.landscape-connect-disc{fill:var(--surface-card);stroke:var(--accent);stroke-width:1.5px;filter:drop-shadow(0 1px 2px #0002)}
+.landscape-map-port path{fill:none;stroke:var(--accent);stroke-width:1.5px;stroke-linecap:round;pointer-events:none}
+.landscape-map-port:hover .landscape-connect-disc,.landscape-map-port:focus-visible .landscape-connect-disc,.landscape-map-port[aria-pressed=true] .landscape-connect-disc{fill:var(--accent);stroke:var(--accent)}
+.landscape-map-port:hover path,.landscape-map-port:focus-visible path,.landscape-map-port[aria-pressed=true] path{stroke:#fff}
+.landscape-map-port:focus-visible .landscape-connect-hit{stroke:var(--accent);stroke-width:1px;stroke-dasharray:2 3}
+.landscape-map-system.is-connect-source>circle{stroke:var(--accent)}
+.landscape-map-system.is-connect-target>circle{stroke:var(--accent);stroke-width:6px;filter:drop-shadow(0 0 5px #b2026c44)}
+.landscape-map.is-connecting-system,.landscape-map.is-connecting-system .landscape-map-system{cursor:crosshair}
+.landscape-connect-preview{fill:none;stroke:var(--accent);stroke-width:2px;stroke-dasharray:6 4;vector-effect:non-scaling-stroke;pointer-events:none}
+.landscape-map-port[aria-disabled=true]{opacity:.4;cursor:default}
