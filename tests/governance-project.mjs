@@ -1,7 +1,7 @@
 import {journeyReferencesHtml,mountGovernanceBridge,mountLandscapeJourneys} from '../src/governance-bridge.js';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {GOVERNANCE,emptyGovernance,governanceExample,qualityResult,flowQuality,ruleResult,aiGovernanceReport,sampleQuality,lifecycleTrace,deletionSimulation,ageDays,saveGovernanceAssignment} from '../src/governance-models.js';
+import {GOVERNANCE,emptyGovernance,governanceExample,qualityResult,flowQuality,ruleResult,aiGovernanceReport,sampleQuality,lifecycleTrace,deletionSimulation,ageDays,saveGovernanceAssignment,lifecycleName,lifecycleFromStore} from '../src/governance-models.js';
 import {emptyProjectPlan,stateDifference,projectSchedule,projectStakeholders} from '../src/projectplan-models.js';
 import {landscapeJourneyReferences} from '../src/landscape-journey-links.js';
 import {industryPair} from '../src/journey-industry-examples.js';
@@ -44,6 +44,12 @@ assert.throws(()=>saveGovernanceAssignment(board,{...assignment,stakeholder:'mis
 assert.throws(()=>saveGovernanceAssignment(board,{...assignment,raci:'invalid'},assignment.id),/RACI/);
 assert.throws(()=>saveGovernanceAssignment(board,{...assignment},'deleted'),/nicht mehr vorhanden/);
 assert.deepEqual(board.assignments.map(a=>a.id),['move','other','consulted']);
+// The lifecycle follows an actual Landscape store. A graph neighbour is not
+// evidence that the same data travels there; only explicit store links seed it.
+const lifecycleLandscape={systems:[{id:'crm',name:'CRM'},{id:'erp',name:'ERP'},{id:'bi',name:'BI'}],stores:[{id:'customers',system:'crm',name:'Kundenkontakte',purpose:'Kundenbetreuung'},{id:'orders',system:'erp',name:'Aufträge'}],flows:[{id:'known',from:'crm',to:'erp',stores:['customers']},{id:'adjacent',from:'erp',to:'bi',stores:['orders']},{id:'unclassified',from:'crm',to:'bi',stores:[]}]};
+const tracked=lifecycleFromStore(lifecycleLandscape,'customers');assert.equal(tracked.sourceStore,'customers');assert.equal(tracked.name,'Kundenkontakte');assert.equal(tracked.nameFromSource,true);assert.equal(tracked.purpose,'Kundenbetreuung');assert.deepEqual(tracked.flows,['known']);assert.deepEqual(tracked.steps,[],'No lifecycle actions or evidence are invented from metadata');
+const renamedLandscape=structuredClone(lifecycleLandscape);renamedLandscape.stores[0].name='Kontakte & Einwilligungen';assert.equal(lifecycleName(tracked,renamedLandscape),'Kontakte & Einwilligungen');assert.equal(lifecycleName(tracked,{stores:[]}),'Kundenkontakte','Missing sources retain the saved label');assert.equal(lifecycleName({...tracked,nameFromSource:false,name:'DSAR-Prozess'},renamedLandscape),'DSAR-Prozess');assert.equal(lifecycleName({name:'Legacy',sourceStore:'customers'},renamedLandscape),'Legacy','Old custom names are never silently replaced');assert.throws(()=>lifecycleFromStore(lifecycleLandscape,'missing'),/Datenbestand/);
+const legacyLife=emptyGovernance();legacyLife.lifecycles=[{...tracked,nameFromSource:undefined}];const normalizedLife=structuredClone(legacyLife);normalizedLife.lifecycles[0].nameFromSource=false;assert.equal(stateDifference({available:true,kind:'governance',content:legacyLife},{available:true,kind:'governance',content:normalizedLife}).items.find(x=>x.type==='lifecycles').change,'Beibehalten','The default name flag does not invent a legacy rollout change');
 const run=spawnSync('php',['tests/governance-project.php'],{input:JSON.stringify({landscape:l,journey:j,governance:c,rollout:emptyProjectPlan()}),encoding:'utf8'});assert.equal(run.status,0,run.stdout+run.stderr);process.stdout.write(run.stdout);console.log('Governance/Project models: quality provenance and freshness, explicit lifecycle routes, holds, honest coverage, immutable comparisons, DAG scheduling and reverse Journey associations verified.');
 
 const migration=spawnSync('php',['tests/governance-migration.php'],{encoding:'utf8'});assert.equal(migration.status,0,migration.stdout+migration.stderr);process.stdout.write(migration.stdout);
