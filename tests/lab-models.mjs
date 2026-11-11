@@ -1,3 +1,5 @@
+import './ai-lab-navigation.mjs';
+import './rag-embeddings.mjs';
 import './governance-project.mjs';
 import './pipeline.mjs';
 import './materials.mjs';

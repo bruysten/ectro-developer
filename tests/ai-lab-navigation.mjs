@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {chooseAiSection} from '../src/ai-lab-navigation.js';
+const objects=[{id:'p',kind:'prompt'},{id:'r',kind:'rag'},{id:'r2',kind:'rag'},{id:'n',kind:'network'}],base={kinds:['prompt','rag','network'],objects};
+assert.equal(chooseAiSection({...base,entry:'rag'}).object.id,'r');
+assert.equal(chooseAiSection({...base,entry:'prompt',requested:'n'}).kind,'network');
+assert.equal(chooseAiSection({...base,current:'rag',remembered:{rag:'r2'}}).object.id,'r2');
+assert.equal(chooseAiSection({...base,current:'network',requested:'n',tools:['rag']}).object.id,'r');
+assert.equal(chooseAiSection({...base,current:'network',objects:objects.filter(o=>o.kind!=='network')}).object,null);
+assert.deepEqual(chooseAiSection({...base,tools:[]}),{allowed:[],kind:'',object:null});
+assert.equal(chooseAiSection({...base,current:'rag',remembered:{rag:'p'}}).object.id,'r');
+console.log('AI section selection, deep links, project restrictions and empty workspaces passed.');

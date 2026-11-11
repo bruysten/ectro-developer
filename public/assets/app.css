@@ -867,3 +867,11 @@ dialog .dialog-foot .es-btn { min-width:0;max-width:100%;height:auto;min-height:
 @media(prefers-reduced-motion:reduce){
  .shell,.shell .sidebar,.shell .main,dialog,.es-btn { transition:none!important; }
 }
+
+/* Small, stable navigation between the three AI workspaces. */
+.ai-lab-sections{display:flex;align-items:stretch;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line,#ddd);margin:0 0 16px;min-width:0}
+.ai-lab-sections button{appearance:none;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--muted,#666);padding:10px 14px;font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+.ai-lab-sections button[aria-pressed=true]{border-bottom-color:var(--accent,#b2026c);color:var(--accent,#b2026c)}
+.ai-lab-sections button:hover{background:#faf3f7}.ai-lab-sections button:focus-visible{outline:2px solid var(--accent,#b2026c);outline-offset:-3px}
+.lab-project-settings-dialog{width:min(680px,calc(100vw - 24px))}.lab-project-settings{gap:20px}.lab-project-ai{min-width:0}.lab-project-ai h3{margin:0 0 8px}.lab-project-grant{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:16px;align-items:start;padding:16px 0;border-top:1px solid #e5e5e5}.lab-project-grant .lab-check{align-items:flex-start;margin:0;min-width:0}.lab-project-grant strong,.lab-project-grant small{display:block;overflow-wrap:anywhere}.lab-project-grant strong{font-weight:600}.lab-project-grant .lab-check small{margin-top:4px;color:#666;font-size:12px}.lab-project-grant .field{margin:0}.lab-project-grant [hidden]{display:none}.lab-project-tools summary{cursor:pointer;padding:10px 0}.lab-project-tools fieldset{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;border:0;padding:12px 0}.rag-connection-hint{padding:12px 0}.rag-connection-hint p{margin:0 0 12px;max-width:65ch}
+@media(max-width:540px){.ai-lab-sections{gap:0}.ai-lab-sections button{flex:1;padding:10px 8px;font-size:12px;min-height:44px}.lab-project-grant{grid-template-columns:minmax(0,1fr);gap:12px}.lab-project-grant .field{padding-left:28px}.lab-project-tools fieldset{grid-template-columns:minmax(0,1fr)}}

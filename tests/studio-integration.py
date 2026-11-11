@@ -75,6 +75,37 @@ with tempfile.TemporaryDirectory(prefix='ectro-studio-http-') as private:
         check(not any(g['project_id']==pid and g['connection_id']==connection['id'] for g in admin.ok('admin.labs')['grants']),'Revoked project pair disappears from admin overview')
         admin.ok('admin.ai.group.save',{'group':gid,'connection':connection['id'],'version':group_grant['version'],'remove':True})
         check(not alice.ok('lab.info',project=pid)['connections'],'Revoking both access paths removes the connection')
+        # The project dialog reads actual grants and saves tools + multiple capabilities atomically.
+        embedding=admin.ok('admin.ai.connection.save',{**conn_data,'name':'Synthetic embeddings','provider':'daimon','base_url':'https://synthetic.daimon.intelligence-gmbh.com/vllm/embedding/v1','capability':'embedding'})['connection']
+        check(alice.call('lab.project.settings',project=pid)[0]==403,'Learners cannot inspect grant management metadata')
+        state=admin.ok('lab.project.settings',project=pid)
+        check(not any(set(c).intersection(['secret','key','base_url','user_id']) for c in state['connections']),'Project dialog returns safe connection metadata only')
+        config={'tools':['prompt','rag','network'],'entry':'rag'}
+        change={'project':pid,'revision':state['revision'],'config':config,'grants':[{'connection':connection['id'],'max_calls':11},{'connection':embedding['id'],'max_calls':15}]}
+        check(admin.call('lab.project.settings.save',change,csrf=False)[0]==403,'Atomic project save requires CSRF')
+        check(admin.call('lab.project.settings.save')[0]==405,'Atomic project save rejects GET')
+        check(alice.call('lab.project.settings.save',change)[0]==403,'Learners cannot change project grants')
+        state=admin.ok('lab.project.settings.save',change)
+        reopened=admin.ok('lab.project.settings',project=pid)
+        check(state['revision']==reopened['revision'] and len(reopened['grants'])==2,'Dialog reopening returns saved grants and stable revision')
+        check({g['connection_id']:g['max_calls'] for g in reopened['grants']}=={connection['id']:11,embedding['id']:15},'Both capability budgets persist')
+        available=alice.ok('lab.info',project=pid)['connections']
+        check({c['capability'] for c in available}=={'chat','embedding'},'Granted embedding and chat connections both reach learner RAG')
+        check(not bob.ok('lab.info',project=personal)['connections'],'Atomic grant stays inside its project')
+        check(admin.call('lab.project.settings.save',change)[0]==409,'Stale dialog cannot overwrite current settings')
+        bad={**change,'revision':state['revision'],'config':{**config,'entry':'prompt'},'grants':[{'connection':connection['id'],'max_calls':3},{'connection':'f'*32,'max_calls':9}]}
+        check(admin.call('lab.project.settings.save',bad)[0]==403,'Unauthorized connection aborts the entire save')
+        after=admin.ok('lab.project.settings',project=pid)
+        check(after['revision']==state['revision'] and after['config']['entry']=='rag','Failed grant rolls back config and preceding grant mutations')
+        for invalid in [-1,10001,1.5,'5']:
+            check(admin.call('lab.project.settings.save',{**change,'revision':state['revision'],'grants':[{'connection':embedding['id'],'max_calls':invalid}]})[0]==422,'Atomic budgets require bounded integers')
+        admin.ok('admin.ai.connection.save',{**conn_data,'id':embedding['id'],'version':embedding['version'],'provider':'daimon','base_url':'https://synthetic.daimon.intelligence-gmbh.com/vllm/embedding/v1','capability':'embedding','active':False})
+        check(admin.call('lab.project.settings.save',{**change,'revision':state['revision']})[0]==409,'Connection changes invalidate the open dialog')
+        state=admin.ok('lab.project.settings',project=pid)
+        check(admin.call('lab.project.settings.save',{**change,'revision':state['revision'],'grants':[{'connection':embedding['id'],'max_calls':20}]})[0]==422,'Inactive connection cannot receive a new grant')
+        check(all(c['capability']!='embedding' for c in alice.ok('lab.info',project=pid)['connections']),'Disabled embedding is unavailable to learners')
+        admin.ok('lab.project.settings.save',{**change,'revision':state['revision'],'config':{'tools':list(json.loads(subprocess.check_output(['php','-r',"require 'app/bootstrap.php'; require 'app/labs.php'; echo json_encode(LAB_KINDS);"],cwd=ROOT,env=env))),'entry':'editor'},'grants':[{'connection':connection['id'],'max_calls':0},{'connection':embedding['id'],'max_calls':0}]})
+        check(not admin.ok('lab.project.settings',project=pid)['grants'],'Project grants can be explicitly revoked')
         admin.ok('admin.ai.connection.delete',{'id':connection['id'],'version':connection['version']})
         readiness={'schemaVersion':1,'organization':'Self-check company','scope':'organization','area':'','baseline':'connected','answers':{},'screen':'questions','step':0,'completedAt':''}
         assessment=alice.ok('lab.save',{'project':pid,'kind':'readiness','name':'Self-check','content':readiness})['object']
