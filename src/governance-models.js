@@ -48,7 +48,7 @@ export function governanceFindings(c,l,at=today()){
  const findings=[];for(const r of govResources(l).filter(r=>r.type==='store')){const owners=governanceAssignments(c,r).filter(a=>a.raci==='A'&&a.state==='active');if(owners.length!==1)findings.push({type:'roles',scope:r,title:r.name,detail:owners.length?'Mehrere verantwortliche Stellen · Entscheidung klären':'Verantwortung noch nicht zugeordnet'});}
  for(const q of c.quality){const r=qualityResult(q,at);if(r.status!=='good')findings.push({type:'quality',scope:{type:'flow',id:q.flow},title:govScopeName({type:'flow',id:q.flow},l),detail:GOVERNANCE.dimensions[q.dimension].name+' · '+r.label});}
  for(const r of c.rules){if(r.state==='retired')continue;const result=ruleResult(c,r,at);if(result.status!=='good')findings.push({type:'rules',scope:r.scope,title:r.title,detail:result.label});}
- for(const a of c.lifecycles)for(const step of a.steps)if(!step.owner||!step.evidence||step.action==='delete'&&step.state!=='verified')findings.push({type:'lifecycle',scope:{type:'system',id:step.system},title:a.name,detail:LIFECYCLE_ACTIONS[step.action]+' · '+(!step.owner?'Zuständigkeit fehlt':!step.evidence?'Beleg fehlt':'Löschschritt noch nicht belegt')});
+ for(const a of c.lifecycles)for(const step of a.steps)if(!step.owner||!step.evidence||step.action==='delete'&&step.state!=='verified')findings.push({type:'lifecycle',scope:{type:'system',id:step.system},title:lifecycleName(a,l),detail:LIFECYCLE_ACTIONS[step.action]+' · '+(!step.owner?'Zuständigkeit fehlt':!step.evidence?'Beleg fehlt':'Löschschritt noch nicht belegt')});
  return findings;
 }
 export function ruleResult(c,r,at=today()){
@@ -74,6 +74,13 @@ export function sampleQuality(rows,field,test,{at=today(),maxAgeDays=30}={}){
   if(ok)passed++;return {index,value:v,ok};
  });return {passed,total:rows.length,results,dimension:test==='unique'?'uniqueness':test==='complete'?'completeness':test==='fresh'?'timeliness':'validity'};
 }
+export function lifecycleName(asset,landscape){
+ return asset.nameFromSource?(landscape?.stores||[]).find(s=>s.id===asset.sourceStore)?.name||asset.name:asset.name;
+}
+export function lifecycleFromStore(landscape,storeId){
+ const store=landscape?.stores?.find(s=>s.id===storeId);if(!store)throw Error('Einen vorhandenen Datenbestand wählen.');
+ return {id:govId(),name:store.name,nameFromSource:true,purpose:store.purpose||'',sourceStore:store.id,flows:(landscape.flows||[]).filter(f=>(f.stores||[]).includes(store.id)).map(f=>f.id),steps:[]};
+}
 export function lifecycleTrace(asset,l){
  const systems=new Map((l?.systems||[]).map(s=>[s.id,s])),selected=(l?.flows||[]).filter(f=>asset.flows.includes(f.id));const arcs=selected.flatMap(f=>flowDirection(f)==='both'?[{from:f.from,to:f.to,flow:f},{from:f.to,to:f.from,flow:f}]:[{from:flowDirection(f)==='reverse'?f.to:f.from,to:flowDirection(f)==='reverse'?f.from:f.to,flow:f}]);
  const source=(l?.stores||[]).find(s=>s.id===asset.sourceStore)?.system||asset.steps.find(s=>s.action==='collect')?.system||asset.steps[0]?.system;
@@ -89,7 +96,7 @@ export function governanceExample(l,landscape=''){
  c.assignments=[{id:'owner-org',role:'sponsor',stakeholder:'business',raci:'A',scope:{type:'organization',id:''},state:'active',note:''},...(store?[{id:'owner-data',role:'data_owner',stakeholder:'business',raci:'A',scope:{type:'store',id:store.id},state:'active',note:''},{id:'custodian-data',role:'custodian',stakeholder:'operations',raci:'R',scope:{type:'store',id:store.id},state:'active',note:''}]:[])];
  if(flow)c.quality=[{id:'sample-complete',flow:flow.id,dimension:'completeness',passed:92,total:100,target:98,suitability:'limited',measuredOn:today(),maxAgeDays:30,method:'Synthetische Stichprobe · 100 Datensätze',evidence:'Lernfall: Acht Datensätze enthalten keinen Pflichtwert. Keine Messung echter Unternehmensdaten.',note:'Für den operativen Versand fehlen benötigte Angaben.'}];
  c.rules=[{id:'retention-example',title:'Aufbewahrung und Löschung nachvollziehbar regeln',framework:'GDPR',reference:'Art. 5 Abs. 1 lit. e; Art. 17 · Anwendbarkeit im Einzelfall prüfen',scope:store?{type:'store',id:store.id}:{type:'organization',id:''},control:'manual',dimension:'completeness',threshold:98,applicability:'unknown',reason:'',state:'draft',owner:'control',evidence:'',reviewedOn:'',nextReview:'',test:'unknown',description:'Zweck, Auslöser, Fristen und mögliche Aufbewahrungsgründe festhalten. Keine pauschale gesetzliche Frist voraussetzen.'}];
- if(system)c.lifecycles=[{id:'lifecycle-example',name:store?.name||'Beispieldaten',purpose:'Den Weg eines ausgewählten Datenbestands untersuchen.',sourceStore:store?.id||'',flows:flow?[flow.id]:[],steps:[{id:'collect-example',system:store?.system||system.id,action:'collect',owner:'business',state:'planned',retentionDays:null,hold:false,holdReason:'',evidence:''},{id:'store-example',system:store?.system||system.id,action:'store',owner:'operations',state:'planned',retentionDays:90,hold:false,holdReason:'',evidence:'Synthetische Annahme, keine gesetzliche Aufbewahrungsfrist.'}]}];
+ if(system)c.lifecycles=[{id:'lifecycle-example',name:store?.name||'Beispieldaten',nameFromSource:!!store,purpose:'Den Weg eines ausgewählten Datenbestands untersuchen.',sourceStore:store?.id||'',flows:flow?[flow.id]:[],steps:[{id:'collect-example',system:store?.system||system.id,action:'collect',owner:'business',state:'planned',retentionDays:null,hold:false,holdReason:'',evidence:''},{id:'store-example',system:store?.system||system.id,action:'store',owner:'operations',state:'planned',retentionDays:90,hold:false,holdReason:'',evidence:'Synthetische Annahme, keine gesetzliche Aufbewahrungsfrist.'}]}];
  c.ai.useCase='Interner Wissensassistent · synthetischer Lernfall';c.ai.answers={purpose:{level:'pilot',evidence:'Lernfall: Ein Fachbereich erprobt Suchfragen.',reviewedOn:today()},data:{level:'planned',evidence:'Lernfall: Erste Qualitätsprüfung liegt vor; weitere Daten fehlen.',reviewedOn:today()}};
  return c;
 }
