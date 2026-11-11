@@ -68,7 +68,19 @@ export function ruleResult(c,r,at=today()){
  }
  return {status:r.test==='passed'?'good':r.test==='failed'?'bad':'unknown',label:r.test==='passed'?'Prüfung mit Beleg dokumentiert':r.test==='failed'?'Kontrolle nicht erfüllt':'Wirksamkeit noch nicht geprüft'};
 }
-export function aiGovernanceReport(c){const values={none:0,planned:.25,pilot:.5,managed:.75,proven:1},answers=GOVERNANCE.ai.map(q=>({...q,...c.ai.answers[q.id],value:values[c.ai.answers[q.id]?.level]??0})),known=answers.filter(a=>Object.hasOwn(values,a.level)).length,evidenced=answers.filter(a=>a.evidence?.trim()&&a.reviewedOn).length;return {score:Math.round(answers.reduce((n,a)=>n+a.value,0)/answers.length*100),known,evidenced,total:answers.length,answers,critical:answers.filter(a=>['rights','ownership','evaluation'].includes(a.id)&&a.value<.75)};}
+const AI_VALUES={none:0,planned:.25,pilot:.5,managed:.75,proven:1};
+export const aiAssessmentBasis=a=>a?.basis||'overall';
+export function aiDimensionReport(a={},landscape=undefined){
+ const resourceBased=aiAssessmentBasis(a)==='resources',rows=resourceBased?(a.assessments||[]):[a],total=rows.length;
+ const available=r=>!resourceBased||landscape===undefined||!!aiAssessmentResource(r,landscape);
+ const known=rows.filter(r=>available(r)&&Object.hasOwn(AI_VALUES,r.level)).length,evidenced=rows.filter(r=>available(r)&&Object.hasOwn(AI_VALUES,r.level)&&r.level!=='unknown'&&r.evidence?.trim()&&r.reviewedOn).length;
+ return {resourceBased,value:total?rows.reduce((n,r)=>n+(available(r)?AI_VALUES[r.level]??0:0),0)/total:0,known,evidenced,total,complete:total>0&&known===total,documented:total>0&&evidenced===total,weak:!total||rows.some(r=>!available(r)||(AI_VALUES[r.level]??0)<.75)};
+}
+export function aiGovernanceReport(c,landscape=undefined){const answers=GOVERNANCE.ai.map(q=>({...q,...c.ai.answers[q.id],...aiDimensionReport(c.ai.answers[q.id],landscape)}));return {score:Math.round(answers.reduce((n,a)=>n+a.value,0)/answers.length*100),known:answers.filter(a=>a.complete).length,evidenced:answers.filter(a=>a.documented).length,total:answers.length,answers,critical:answers.filter(a=>['rights','ownership','evaluation'].includes(a.id)&&a.weak)};}
+export function aiAssessmentResource(r,l){return govResources(l).find(x=>x.type===r.scope.type&&x.id===r.scope.id);}
+// Quality facts only follow explicit store/flow references, never a guessed relationship.
+export function aiAssessmentFlows(r,l){return (l?.flows||[]).filter(f=>r.scope.type==='flow'?f.id===r.scope.id:r.scope.type==='store'?(f.stores||[]).includes(r.scope.id):f.from===r.scope.id||f.to===r.scope.id);}
+
 export function sampleQuality(rows,field,test,{at=today(),maxAgeDays=30}={}){
  let passed=0;const seen=new Map();if(test==='unique')for(const row of rows){const v=row[field];if(v!==null&&v!==undefined&&String(v).trim()!=='')seen.set(JSON.stringify(v),(seen.get(JSON.stringify(v))||0)+1);}
  const results=rows.map((row,index)=>{const v=row[field],present=v!==null&&v!==undefined&&String(v).trim()!=='';let ok=false;
