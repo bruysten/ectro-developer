@@ -1,0 +1,1582 @@
+{
+  "version": 1,
+  "reviewed": "2026-11-11",
+  "notice": "Geführte Selbsteinschätzung des dokumentierten Falls. „Prüfliste belegt“ bestätigt die hinterlegten Antworten und Nachweise, keine umfassende Rechtskonformität.",
+  "frameworks": {
+    "gdpr": {
+      "name": "GDPR",
+      "title": "Datenschutz",
+      "intro": "Personenbezug, Verarbeitung, Zweck und Rolle bestimmen den Check. Pseudonymisierte Daten bleiben grundsätzlich personenbezogen; eine bloße Kennnummer ist keine Anonymisierung.",
+      "source": "https://eur-lex.europa.eu/eli/reg/2016/679/oj/eng",
+      "guides": [
+        "https://www.edpb.europa.eu/sme/learn-the-basics/data-protection-basics_en",
+        "https://www.edpb.europa.eu/sme/be-compliant/process-personal-data-lawfully_en",
+        "https://www.edpb.europa.eu/sme/learn-the-basics/data-controller-or-data-processor_en",
+        "https://www.edpb.europa.eu/sme/be-compliant/respect-individuals-rights_en",
+        "https://www.edpb.europa.eu/sme/be-compliant/be-compliant_en"
+      ],
+      "facts": [
+        {
+          "id": "personal",
+          "title": "Werden personenbezogene Daten verarbeitet?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "hint": "Auch Kundenkennungen, Beschäftigtendaten oder rückführbare Pseudonyme berücksichtigen."
+        },
+        {
+          "id": "eu",
+          "title": "Liegt die Verarbeitung im räumlichen Anwendungsbereich der GDPR?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "hint": "EU-/EWR-Niederlassung oder einschlägiger Bezug zu Personen in der EU; nicht allein nach dem Serverstandort urteilen."
+        },
+        {
+          "id": "role",
+          "title": "Welche Rolle hat die eigene Organisation?",
+          "options": {
+            "unknown": "Noch offen",
+            "controller": "Verantwortlicher",
+            "processor": "Auftragsverarbeiter",
+            "joint": "Gemeinsam verantwortlich",
+            "both": "Mehrere Rollen"
+          },
+          "when": {
+            "personal": [
+              "yes"
+            ],
+            "eu": [
+              "yes"
+            ]
+          }
+        },
+        {
+          "id": "sensitive",
+          "title": "Sind besondere Kategorien nach Art. 9 betroffen?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "personal": [
+              "yes"
+            ],
+            "eu": [
+              "yes"
+            ]
+          }
+        },
+        {
+          "id": "criminal",
+          "title": "Sind Daten nach Art. 10 betroffen?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "personal": [
+              "yes"
+            ],
+            "eu": [
+              "yes"
+            ]
+          }
+        },
+        {
+          "id": "processors",
+          "title": "Werden Auftragsverarbeiter / Unterauftragsverarbeiter eingesetzt?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "personal": [
+              "yes"
+            ],
+            "eu": [
+              "yes"
+            ]
+          }
+        },
+        {
+          "id": "transfers",
+          "title": "Gibt es Übermittlungen oder relevante Zugriffe außerhalb des EWR?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "personal": [
+              "yes"
+            ],
+            "eu": [
+              "yes"
+            ]
+          }
+        },
+        {
+          "id": "highRisk",
+          "title": "Ist voraussichtlich ein hohes Risiko für betroffene Personen gegeben?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "personal": [
+              "yes"
+            ],
+            "eu": [
+              "yes"
+            ]
+          }
+        },
+        {
+          "id": "automated",
+          "title": "Gibt es ausschließlich automatisierte Entscheidungen mit erheblicher Wirkung?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "personal": [
+              "yes"
+            ],
+            "eu": [
+              "yes"
+            ]
+          }
+        }
+      ],
+      "controls": [
+        {
+          "id": "basis",
+          "title": "Zweck & Rechtsgrundlage",
+          "detail": "Zwecke und geeignete Rechtsgrundlage je Verarbeitung dokumentieren; Einwilligung ist nur eine mögliche Grundlage.",
+          "article": "Art. 5–6",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "controller",
+                "joint",
+                "both"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "instructions",
+          "title": "Verarbeitung im Auftrag",
+          "detail": "Weisungen, Aufgaben, Vertraulichkeit, Unterstützung und zulässige Unteraufträge anhand der Vereinbarung prüfen.",
+          "article": "Art. 28–29",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "processor",
+                "both"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "principles",
+          "title": "Daten begrenzen & aktuell halten",
+          "detail": "Erforderlichkeit, Zweckbindung, Richtigkeit und Aufbewahrung am konkreten Datenweg prüfen.",
+          "article": "Art. 5",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty"
+        },
+        {
+          "id": "information",
+          "title": "Information & Betroffenenrechte",
+          "detail": "Informationen und den Ablauf für Auskunft, Berichtigung, Löschung und weitere einschlägige Rechte nachweisen.",
+          "article": "Art. 12–22",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "controller",
+                "joint",
+                "both"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "joint",
+          "title": "Gemeinsame Verantwortung",
+          "detail": "Zuständigkeiten und die Information betroffener Personen für die gemeinsame Verarbeitung festhalten.",
+          "article": "Art. 26",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "joint",
+                "both"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "contracts",
+          "title": "Verträge & Empfänger",
+          "detail": "Auftragsverarbeitung, Unteraufträge und Empfänger mit den tatsächlich beteiligten Stellen abgleichen.",
+          "article": "Art. 28",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "processors": [
+                "yes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "security",
+          "title": "Schutz & Datenschutzvorfälle",
+          "detail": "Angemessene technische/organisatorische Maßnahmen und Melde-/Unterstützungswege anhand eines Vorfalls testen.",
+          "article": "Art. 25, 32–34",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty"
+        },
+        {
+          "id": "records",
+          "title": "Verarbeitung dokumentieren",
+          "detail": "Verzeichnis der Verarbeitungstätigkeiten prüfen und eine einschlägige Ausnahme konkret begründen.",
+          "article": "Art. 30",
+          "priority": "medium",
+          "allowExclusion": true,
+          "kind": "duty"
+        },
+        {
+          "id": "sensitive",
+          "title": "Besonders geschützte Daten",
+          "detail": "Zusätzliche Voraussetzungen, Schutzmaßnahmen und die konkrete Ausnahme vom Verarbeitungsverbot prüfen.",
+          "article": "Art. 9",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "sensitive": [
+                "yes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "criminal",
+          "title": "Strafrechtliche Daten",
+          "detail": "Spezielle gesetzliche Grundlage, behördliche Aufsicht oder zulässige nationale Regelung prüfen.",
+          "article": "Art. 10",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "criminal": [
+                "yes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "transfer",
+          "title": "Drittlandübermittlung",
+          "detail": "Empfänger, Übermittlungsinstrument und erforderliche ergänzende Maßnahmen für den konkreten Transfer prüfen.",
+          "article": "Art. 44–49",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "transfers": [
+                "yes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "dpia",
+          "title": "Folgenabschätzung",
+          "detail": "DSFA durchführen und erforderliche Konsultation klären; Maßnahmen und verbleibende Risiken dokumentieren.",
+          "article": "Art. 35–36",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "highRisk": [
+                "yes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "decisions",
+          "title": "Automatisierte Entscheidungen",
+          "detail": "Zulässigkeit, Information und einschlägige Schutzrechte bei erheblichen automatisierten Entscheidungen prüfen.",
+          "article": "Art. 22",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "automated": [
+                "yes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "dpo",
+          "title": "Datenschutz-Zuständigkeit & DPO",
+          "detail": "Prüfen, ob ein Datenschutzbeauftragter erforderlich ist; ggf. Benennung, Aufgaben und unabhängige Arbeitsweise nachweisen.",
+          "article": "Art. 37–39",
+          "priority": "medium",
+          "allowExclusion": true,
+          "kind": "duty"
+        }
+      ]
+    },
+    "dma": {
+      "name": "DMA",
+      "title": "Digitale Märkte",
+      "intro": "Gatekeeper-Pflichten beziehen sich auf die benannte Organisation und den jeweiligen Plattformdienst. Die Nutzung einer großen Plattform macht die eigene Organisation nicht zum Gatekeeper.",
+      "source": "https://eur-lex.europa.eu/eli/reg/2022/1925/oj/eng",
+      "guides": [
+        "https://digital-markets-act.ec.europa.eu/about-dma_en",
+        "https://competition-cases.ec.europa.eu/gatekeepers"
+      ],
+      "facts": [
+        {
+          "id": "eu",
+          "title": "Besteht ein einschlägiger Bezug zum EU-Binnenmarkt?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          }
+        },
+        {
+          "id": "role",
+          "title": "Welche Rolle hat die eigene Organisation?",
+          "options": {
+            "unknown": "Noch offen",
+            "gatekeeper": "Benannter Gatekeeper",
+            "provider": "Anbieter eines möglichen zentralen Plattformdienstes",
+            "business_user": "Gewerblicher Nutzer einer Plattform",
+            "none": "Kein solcher Bezug"
+          }
+        },
+        {
+          "id": "designated",
+          "title": "Ist der konkrete zentrale Plattformdienst förmlich benannt?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "role": [
+              "gatekeeper",
+              "provider",
+              "business_user"
+            ]
+          }
+        },
+        {
+          "id": "thresholds",
+          "title": "Sind Meldepflicht / Schwellenwerte fachlich geprüft und einschlägig?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "role": [
+              "provider"
+            ]
+          }
+        },
+        {
+          "id": "combine",
+          "title": "Werden personenbezogene Daten dienstübergreifend kombiniert?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "role": [
+              "gatekeeper",
+              "provider"
+            ]
+          }
+        },
+        {
+          "id": "ads",
+          "title": "Betrifft der Datenweg Online-Werbung / Werbemessung?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "role": [
+              "gatekeeper",
+              "provider",
+              "business_user"
+            ]
+          }
+        },
+        {
+          "id": "niics",
+          "title": "Ist ein benannter nummernunabhängiger Kommunikationsdienst betroffen?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "role": [
+              "gatekeeper",
+              "provider"
+            ]
+          }
+        }
+      ],
+      "controls": [
+        {
+          "id": "designation",
+          "title": "Benennung & Fristen",
+          "detail": "Den Kommissionsbeschluss, den betroffenen Dienst und die dafür geltenden Pflichten und Fristen zuordnen.",
+          "article": "Art. 3",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "gatekeeper",
+                "provider"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "notification",
+          "title": "Meldepflicht klären",
+          "detail": "Schwellenwerte, erforderliche Mitteilung und das Verfahren mit der zuständigen Fachstelle prüfen.",
+          "article": "Art. 3 Abs. 3",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "provider"
+              ],
+              "thresholds": [
+                "yes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "combination",
+          "title": "Datenkombination & Einwilligung",
+          "detail": "Kombination, dienstübergreifende Nutzung und einschlägige wirksame Einwilligungen prüfen.",
+          "article": "Art. 5 Abs. 2",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "gatekeeper",
+                "provider"
+              ],
+              "designated": [
+                "yes"
+              ],
+              "combine": [
+                "yes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "access",
+          "title": "Datenzugang & Portabilität",
+          "detail": "Vorgesehene Zugänge für End- und Geschäftsnutzer am betroffenen Dienst nachweisen.",
+          "article": "Art. 6 Abs. 9–10",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "gatekeeper",
+                "provider"
+              ],
+              "designated": [
+                "yes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "competition",
+          "title": "Datenverwendung & faire Bedingungen",
+          "detail": "Nutzung nicht öffentlicher Geschäftsnutzerdaten sowie Bedingungen, Ranking und Ausweichmöglichkeiten prüfen.",
+          "article": "Art. 5–6",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "gatekeeper",
+                "provider"
+              ],
+              "designated": [
+                "yes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "advertising",
+          "title": "Werbung nachvollziehbar machen",
+          "detail": "Einschlägige Preis-, Leistungs- und Messinformationen für Werbetreibende und Publisher bereitstellen.",
+          "article": "Art. 5 Abs. 9–10; Art. 6 Abs. 8",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "gatekeeper",
+                "provider"
+              ],
+              "designated": [
+                "yes"
+              ],
+              "ads": [
+                "yes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "interoperability",
+          "title": "Kommunikationsdienst interoperabel gestalten",
+          "detail": "Die dienstspezifische Interoperabilität und Schutzanforderungen anhand der geltenden Fristen prüfen.",
+          "article": "Art. 7",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "gatekeeper",
+                "provider"
+              ],
+              "designated": [
+                "yes"
+              ],
+              "niics": [
+                "yes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "reporting",
+          "title": "Compliance nachweisen",
+          "detail": "Compliance-Funktion, Berichte, Dokumentation und dienstspezifische Maßnahmen prüfen.",
+          "article": "Art. 8, 11, 28",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "gatekeeper",
+                "provider"
+              ],
+              "designated": [
+                "yes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "user_access",
+          "title": "Eigene Datenrechte nutzen",
+          "detail": "Als Geschäftsnutzer prüfen, welche Datenzugänge und Portabilitätsangebote des Gatekeepers den Datenweg unterstützen.",
+          "article": "Art. 6 Abs. 9–10",
+          "priority": "medium",
+          "allowExclusion": false,
+          "kind": "practical",
+          "when": [
+            {
+              "role": [
+                "business_user"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "user_ads",
+          "title": "Werbemessung einfordern",
+          "detail": "Verfügbare Werbe- und Messinformationen des Gatekeepers für die eigene Prüfung nutzen.",
+          "article": "Art. 6 Abs. 8",
+          "priority": "medium",
+          "allowExclusion": false,
+          "kind": "practical",
+          "when": [
+            {
+              "role": [
+                "business_user"
+              ],
+              "ads": [
+                "yes"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "dsa": {
+      "name": "DSA",
+      "title": "Digitale Dienste",
+      "intro": "Pflichten richten sich nach Vermittlungsdienst, Rolle und Größe. Ein eigener Webauftritt oder der Verkauf eigener Inhalte allein ist nicht automatisch eine Online-Plattform im Sinne des DSA.",
+      "source": "https://eur-lex.europa.eu/eli/reg/2022/2065/oj/eng",
+      "guides": [
+        "https://digital-strategy.ec.europa.eu/en/policies/digital-services-act",
+        "https://www.eurojust.europa.eu/sites/default/files/assets/eurojust-digital-services-act-factsheet-2024-en.pdf"
+      ],
+      "facts": [
+        {
+          "id": "eu",
+          "title": "Wird der betreffende Dienst Empfängern in der EU angeboten?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          }
+        },
+        {
+          "id": "role",
+          "title": "Welche Rolle hat die eigene Organisation?",
+          "options": {
+            "unknown": "Noch offen",
+            "provider": "Anbieter des Dienstes",
+            "user": "Nutzer eines fremden Dienstes",
+            "none": "Kein solcher Dienstbezug"
+          }
+        },
+        {
+          "id": "service",
+          "title": "Welcher eigene Dienst ist betroffen?",
+          "options": {
+            "unknown": "Noch offen",
+            "intermediary": "Durchleitung / Caching",
+            "hosting": "Hosting",
+            "platform": "Online-Plattform",
+            "marketplace": "Online-Marktplatz",
+            "vlop": "Förmlich benannte VLOP",
+            "vlose": "Förmlich benannte VLOSE",
+            "none": "Kein erfasster Vermittlungsdienst"
+          },
+          "when": {
+            "role": [
+              "provider"
+            ]
+          }
+        },
+        {
+          "id": "small",
+          "title": "Greift die einschlägige Ausnahme für Kleinst-/Kleinunternehmen?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "role": [
+              "provider"
+            ],
+            "service": [
+              "intermediary",
+              "hosting",
+              "platform",
+              "marketplace"
+            ]
+          }
+        },
+        {
+          "id": "ads",
+          "title": "Wird Werbung auf der Plattform angezeigt?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "role": [
+              "provider"
+            ],
+            "service": [
+              "platform",
+              "marketplace",
+              "vlop"
+            ]
+          }
+        },
+        {
+          "id": "recommender",
+          "title": "Wird ein Empfehlungssystem eingesetzt?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "role": [
+              "provider"
+            ],
+            "service": [
+              "platform",
+              "marketplace",
+              "vlop"
+            ]
+          }
+        },
+        {
+          "id": "minors",
+          "title": "Ist die Plattform für Minderjährige zugänglich?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "role": [
+              "provider"
+            ],
+            "service": [
+              "platform",
+              "marketplace",
+              "vlop"
+            ]
+          }
+        }
+      ],
+      "controls": [
+        {
+          "id": "contact",
+          "title": "Kontakt & Nutzungsbedingungen",
+          "detail": "Behörden- und Nutzerkontakte sowie verständliche Regeln zur Moderation und Nutzung dokumentieren.",
+          "article": "Art. 11–14",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "provider"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "reports",
+          "title": "Transparenzberichte",
+          "detail": "Erforderliche Transparenzberichte und die einschlägige Größen-Ausnahme prüfen.",
+          "article": "Art. 15",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "provider"
+              ],
+              "small": [
+                "no"
+              ]
+            },
+            {
+              "role": [
+                "provider"
+              ],
+              "service": [
+                "vlop",
+                "vlose"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "notice",
+          "title": "Meldungen & Begründungen",
+          "detail": "Meldungen rechtswidriger Inhalte bearbeiten und einschlägige Moderationsentscheidungen nachvollziehbar begründen.",
+          "article": "Art. 16–18",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "provider"
+              ],
+              "service": [
+                "hosting",
+                "platform",
+                "marketplace",
+                "vlop"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "complaints",
+          "title": "Beschwerden & Streitbeilegung",
+          "detail": "Internen Beschwerdeweg und einschlägige außergerichtliche Streitbeilegung nachweisen.",
+          "article": "Art. 20–21",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "provider"
+              ],
+              "service": [
+                "platform",
+                "marketplace",
+                "vlop"
+              ],
+              "small": [
+                "no"
+              ]
+            },
+            {
+              "role": [
+                "provider"
+              ],
+              "service": [
+                "vlop"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ads",
+          "title": "Werbetransparenz",
+          "detail": "Werbung kennzeichnen und einschlägige Grenzen für Profiling-Werbung prüfen.",
+          "article": "Art. 26, 28",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "provider"
+              ],
+              "service": [
+                "platform",
+                "marketplace",
+                "vlop"
+              ],
+              "small": [
+                "no"
+              ],
+              "ads": [
+                "yes"
+              ]
+            },
+            {
+              "role": [
+                "provider"
+              ],
+              "service": [
+                "vlop"
+              ],
+              "ads": [
+                "yes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "recommender",
+          "title": "Empfehlungen erklären",
+          "detail": "Die erforderlichen Informationen zu Empfehlungsparametern und Wahlmöglichkeiten dokumentieren.",
+          "article": "Art. 27",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "provider"
+              ],
+              "service": [
+                "platform",
+                "marketplace",
+                "vlop"
+              ],
+              "small": [
+                "no"
+              ],
+              "recommender": [
+                "yes"
+              ]
+            },
+            {
+              "role": [
+                "provider"
+              ],
+              "service": [
+                "vlop"
+              ],
+              "recommender": [
+                "yes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "minors",
+          "title": "Minderjährige schützen",
+          "detail": "Angemessene Schutzmaßnahmen und Grenzen profilbasierter Werbung gegenüber Minderjährigen prüfen.",
+          "article": "Art. 28",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "provider"
+              ],
+              "service": [
+                "platform",
+                "marketplace",
+                "vlop"
+              ],
+              "small": [
+                "no"
+              ],
+              "minors": [
+                "yes"
+              ]
+            },
+            {
+              "role": [
+                "provider"
+              ],
+              "service": [
+                "vlop"
+              ],
+              "minors": [
+                "yes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "traders",
+          "title": "Händler & Marktplatz",
+          "detail": "Nachverfolgbarkeit gewerblicher Anbieter und einschlägige Gestaltung des Marktplatzes prüfen.",
+          "article": "Art. 30–32",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "provider"
+              ],
+              "service": [
+                "marketplace"
+              ],
+              "small": [
+                "no"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "systemic",
+          "title": "Benennung, Risiken & unabhängige Prüfung",
+          "detail": "Benennung, systemische Risikobewertung, Abhilfe, Audit, Datenzugänge und weitere spezielle Pflichten zuordnen.",
+          "article": "Art. 33–43",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "provider"
+              ],
+              "service": [
+                "vlop",
+                "vlose"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "user_remedy",
+          "title": "Rechte gegenüber dem Dienst nutzen",
+          "detail": "Als Nutzer passende Meldungs-, Beschwerde- und Informationsmöglichkeiten des fremden Dienstes zuordnen.",
+          "article": "Art. 16, 20–21",
+          "priority": "medium",
+          "allowExclusion": false,
+          "kind": "practical",
+          "when": [
+            {
+              "role": [
+                "user"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "interface",
+          "title": "Faire Oberfläche & Moderation",
+          "detail": "Gestaltung und Moderationsabläufe auf einschlägige Täuschungs- und Manipulationsverbote sowie Überschneidungen mit anderen Vorschriften prüfen.",
+          "article": "Art. 25",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "provider"
+              ],
+              "service": [
+                "platform",
+                "marketplace",
+                "vlop"
+              ],
+              "small": [
+                "no"
+              ]
+            },
+            {
+              "role": [
+                "provider"
+              ],
+              "service": [
+                "vlop"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "notices",
+          "title": "Priorisierte Meldungen & Missbrauch",
+          "detail": "Einschlägige Abläufe für vertrauenswürdige Hinweisgeber, Missbrauch sowie ergänzende Transparenzinformationen nachweisen.",
+          "article": "Art. 22–24",
+          "priority": "medium",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "provider"
+              ],
+              "service": [
+                "platform",
+                "marketplace",
+                "vlop"
+              ],
+              "small": [
+                "no"
+              ]
+            },
+            {
+              "role": [
+                "provider"
+              ],
+              "service": [
+                "vlop"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "ai_act": {
+      "name": "AI Act",
+      "title": "KI-Systeme",
+      "intro": "Rolle, Verwendungszweck, Risikoklasse und zeitliche Geltung gemeinsam prüfen. Hochrisiko-Datenpflichten gelten nicht pauschal für jede KI-Nutzung.",
+      "source": "https://eur-lex.europa.eu/eli/reg/2024/1689/oj/eng",
+      "guides": [
+        "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-2",
+        "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-4",
+        "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-5",
+        "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-6",
+        "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-10",
+        "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-26",
+        "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-50",
+        "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-53",
+        "https://ai-act-service-desk.ec.europa.eu/en/ai-act/article-113",
+        "https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai"
+      ],
+      "facts": [
+        {
+          "id": "ai",
+          "title": "Ist der Datenweg Teil der Entwicklung, Bereitstellung oder Nutzung eines KI-Systems / GPAI-Modells?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          }
+        },
+        {
+          "id": "eu",
+          "title": "Liegt ein einschlägiger EU-Bezug vor?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          }
+        },
+        {
+          "id": "role",
+          "title": "Welche Rolle hat die eigene Organisation?",
+          "options": {
+            "unknown": "Noch offen",
+            "deployer": "Betreiber",
+            "provider": "Anbieter",
+            "both": "Anbieter & Betreiber",
+            "gpai": "Anbieter eines GPAI-Modells",
+            "importer": "Einführer / Händler"
+          },
+          "when": {
+            "ai": [
+              "yes"
+            ],
+            "eu": [
+              "yes"
+            ]
+          }
+        },
+        {
+          "id": "risk",
+          "title": "Wie ist der konkrete Einsatz fachlich eingeordnet?",
+          "options": {
+            "unknown": "Noch offen",
+            "prohibited": "Möglicherweise verbotener Einsatz",
+            "high_annex3": "Hochrisiko · Anhang III",
+            "high_product": "Hochrisiko · reguliertes Produkt",
+            "other": "Anderer Einsatz"
+          },
+          "when": {
+            "ai": [
+              "yes"
+            ],
+            "eu": [
+              "yes"
+            ]
+          }
+        },
+        {
+          "id": "transparency",
+          "title": "Sind besondere Transparenzpflichten einschlägig, z. B. Chatbot, Deepfake oder bestimmte veröffentlichte KI-Inhalte?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "ai": [
+              "yes"
+            ],
+            "eu": [
+              "yes"
+            ]
+          }
+        },
+        {
+          "id": "inputControl",
+          "title": "Kontrolliert die eigene Organisation die Eingabedaten?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "ai": [
+              "yes"
+            ],
+            "eu": [
+              "yes"
+            ],
+            "role": [
+              "deployer",
+              "both"
+            ],
+            "risk": [
+              "high_annex3",
+              "high_product"
+            ]
+          }
+        },
+        {
+          "id": "fria",
+          "title": "Ist eine Grundrechte-Folgenabschätzung nach Art. 27 erforderlich?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "ai": [
+              "yes"
+            ],
+            "eu": [
+              "yes"
+            ],
+            "role": [
+              "deployer",
+              "both"
+            ],
+            "risk": [
+              "high_annex3",
+              "high_product"
+            ]
+          }
+        },
+        {
+          "id": "systemic",
+          "title": "Liegt ein GPAI-Modell mit systemischem Risiko vor?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "ai": [
+              "yes"
+            ],
+            "eu": [
+              "yes"
+            ],
+            "role": [
+              "gpai"
+            ]
+          }
+        },
+        {
+          "id": "transition",
+          "title": "Sind besondere Übergangs- oder Bestandsregeln einschlägig?",
+          "options": {
+            "unknown": "Noch offen",
+            "yes": "Ja",
+            "no": "Nein"
+          },
+          "when": {
+            "ai": [
+              "yes"
+            ],
+            "eu": [
+              "yes"
+            ]
+          },
+          "hint": "Eine Ausnahme nur für die tatsächlich erfassten Pflichten anwenden; nicht pauschal für das gesamte System."
+        }
+      ],
+      "controls": [
+        {
+          "id": "classification",
+          "title": "Rolle, Risiko & Geltungsbeginn",
+          "detail": "Einordnung und aktuelle Übergangs-/Bestandsregeln am konkreten Einsatz belegen; Rechtsänderungen berücksichtigen.",
+          "article": "Art. 2–3, 6, 25, 111, 113",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty"
+        },
+        {
+          "id": "prohibitions",
+          "title": "Verbotene Praktiken ausschließen",
+          "detail": "Den Einsatz auf verbotene Praktiken und einschlägige Ausnahmen prüfen; kritische Befunde vor Einsatz fachlich klären.",
+          "article": "Art. 5",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty"
+        },
+        {
+          "id": "literacy",
+          "title": "KI-Kompetenz & Verantwortung",
+          "detail": "Die erforderlichen Kenntnisse der beteiligten Personen und Verantwortungen für den Einsatz organisieren.",
+          "article": "Art. 4",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "provider",
+                "deployer",
+                "both"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "transparency",
+          "title": "Transparenz & Kennzeichnung",
+          "detail": "Rollenabhängige Information, maschinenlesbare Kennzeichnung und Offenlegung samt einschlägigen Ausnahmen prüfen.",
+          "article": "Art. 50",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "transparency": [
+                "yes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "provider_data",
+          "title": "Hochrisiko-Datengovernance",
+          "detail": "Herkunft, Aufbereitung, Eignung, Repräsentativität, Bias-Prüfung und Grenzen der Datensätze dokumentieren.",
+          "article": "Art. 10",
+          "priority": "high",
+          "allowExclusion": true,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "provider",
+                "both"
+              ],
+              "risk": [
+                "high_annex3",
+                "high_product"
+              ]
+            }
+          ],
+          "effectiveByRisk": {
+            "high_annex3": "2027-12-02",
+            "high_product": "2028-08-02"
+          }
+        },
+        {
+          "id": "provider_system",
+          "title": "Hochrisiko-System absichern",
+          "detail": "Risiko- und Qualitätsmanagement, Dokumentation, Logging, Aufsicht, Tests und erforderliche Konformitätsschritte nachweisen.",
+          "article": "Art. 9–17, 43, 47–49",
+          "priority": "high",
+          "allowExclusion": true,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "provider",
+                "both"
+              ],
+              "risk": [
+                "high_annex3",
+                "high_product"
+              ]
+            }
+          ],
+          "effectiveByRisk": {
+            "high_annex3": "2027-12-02",
+            "high_product": "2028-08-02"
+          }
+        },
+        {
+          "id": "deployer",
+          "title": "Hochrisiko-Betrieb überwachen",
+          "detail": "Anleitung, menschliche Aufsicht, Monitoring, Logs und Vorfallswege für den Betrieb prüfen.",
+          "article": "Art. 26",
+          "priority": "high",
+          "allowExclusion": true,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "deployer",
+                "both"
+              ],
+              "risk": [
+                "high_annex3",
+                "high_product"
+              ]
+            }
+          ],
+          "effectiveByRisk": {
+            "high_annex3": "2027-12-02",
+            "high_product": "2028-08-02"
+          }
+        },
+        {
+          "id": "input",
+          "title": "Kontrollierte Eingabedaten prüfen",
+          "detail": "Soweit die Eingaben kontrolliert werden: Relevanz und hinreichende Repräsentativität für den Zweck nachweisen.",
+          "article": "Art. 26 Abs. 4",
+          "priority": "high",
+          "allowExclusion": true,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "deployer",
+                "both"
+              ],
+              "risk": [
+                "high_annex3",
+                "high_product"
+              ],
+              "inputControl": [
+                "yes"
+              ]
+            }
+          ],
+          "effectiveByRisk": {
+            "high_annex3": "2027-12-02",
+            "high_product": "2028-08-02"
+          }
+        },
+        {
+          "id": "fria",
+          "title": "Grundrechte-Folgenabschätzung",
+          "detail": "Die einschlägige Grundrechte-Folgenabschätzung vor dem Einsatz durchführen und Folgemaßnahmen festlegen.",
+          "article": "Art. 27",
+          "priority": "high",
+          "allowExclusion": true,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "deployer",
+                "both"
+              ],
+              "risk": [
+                "high_annex3",
+                "high_product"
+              ],
+              "fria": [
+                "yes"
+              ]
+            }
+          ],
+          "effectiveByRisk": {
+            "high_annex3": "2027-12-02",
+            "high_product": "2028-08-02"
+          }
+        },
+        {
+          "id": "gpai",
+          "title": "GPAI-Anbieterpflichten",
+          "detail": "Dokumentation, Informationen für nachgelagerte Anbieter, Urheberrechtsstrategie und Trainingsdatenzusammenfassung prüfen.",
+          "article": "Art. 53",
+          "priority": "high",
+          "allowExclusion": true,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "gpai"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "systemic",
+          "title": "GPAI-Risiken behandeln",
+          "detail": "Spezielle Evaluierung, Risikominderung, Vorfallsmeldung und Cybersecurity bei systemischem Risiko prüfen.",
+          "article": "Art. 55",
+          "priority": "high",
+          "allowExclusion": true,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "gpai"
+              ],
+              "systemic": [
+                "yes"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "importer",
+          "title": "Einführer-/Händlerpflichten",
+          "detail": "Die rollenabhängigen Prüf- und Mitwirkungspflichten anhand der Lieferkette und Geltung klären.",
+          "article": "Art. 23–24",
+          "priority": "high",
+          "allowExclusion": true,
+          "kind": "duty",
+          "when": [
+            {
+              "role": [
+                "importer"
+              ],
+              "risk": [
+                "high_annex3",
+                "high_product"
+              ]
+            }
+          ],
+          "effectiveByRisk": {
+            "high_annex3": "2027-12-02",
+            "high_product": "2028-08-02"
+          }
+        },
+        {
+          "id": "transition",
+          "title": "Übergangs-/Bestandsregeln abgrenzen",
+          "detail": "Rechtsgrund, betroffene Pflichten und verbleibende Anforderungen dokumentieren; Ausnahmen je Prüfschritt begründen.",
+          "article": "Art. 111, 113",
+          "priority": "high",
+          "allowExclusion": false,
+          "kind": "duty",
+          "when": [
+            {
+              "transition": [
+                "yes"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import './governance-legal.mjs';
 import {journeyReferencesHtml,landscapeDetailRelations,mountGovernanceBridge,mountLandscapeJourneys} from '../src/governance-bridge.js';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
