@@ -3,6 +3,7 @@ declare(strict_types=1);
 require_once __DIR__.'/labs.php';
 require_once __DIR__.'/lab-ai.php';
 require_once __DIR__.'/lab-database.php';
+require_once __DIR__.'/lab-project-settings.php';
 function labDispatch(array $u,string $action,array $data): never {
     switch($action){
         case 'lab.projects':
@@ -25,6 +26,8 @@ function labDispatch(array $u,string $action,array $data): never {
         case 'lab.save': jsonOut(['object'=>labSave($u,$data)]);
         case 'lab.delete': transaction(function()use($u,$data){$o=labObject($u,textField($data,'id',32));if(($data['version']??null)!==$o['version'])fail(409,'Inzwischen geändert. Bitte neu laden.');query('DELETE FROM lab_objects WHERE id=?',[$o['id']]);audit($u['id'],'lab.delete',['project'=>$o['project_id']]);});jsonOut(['ok'=>true]);
         case 'lab.rpc': rateLimit('lab.rpc.'.$u['id'],300,60);jsonOut(labRpc($u,$data));
+        case 'lab.project.settings': jsonOut(labProjectSettings($u,textField($data,'project',32)));
+        case 'lab.project.settings.save': jsonOut(labProjectSettingsSave($u,$data));
         case 'lab.project.save':
             if(!in_array($u['role'],['teacher','admin'],true))fail(403,'Dozentenfunktion.');$pid=textField($data,'project',32);labAccess($u,$pid);$c=labConfigInput($data['config']??null);transaction(function()use($u,$pid,$c){labAccess($u,$pid);$existing=json_decode(one('SELECT config FROM lab_project_config WHERE project_id=?',[$pid])['config']??'{}',true);query('INSERT INTO lab_project_config VALUES(?,?) ON CONFLICT(project_id) DO UPDATE SET config=excluded.config',[$pid,labJson([...$existing,'tools'=>$c['tools'],'entry'=>$c['entry']])]);});jsonOut(['ok'=>true]);
         case 'presence.touch': rateLimit('presence.'.$u['id'],20,60);learningContext($u,$data);jsonOut(['ok'=>true]);
@@ -32,6 +35,8 @@ function labDispatch(array $u,string $action,array $data): never {
             $uid=textField($data,'user',32);$gid=textField($data,'group',32);chatAccess($u,$gid,true);$context=learningLocation($u,$uid,$gid);if(!$context)fail(404,'Diese Ansicht ist nicht mehr verfügbar.');jsonOut(['context'=>$context,'participant'=>$uid,'group'=>$gid]);
         case 'ai.connections': needFeature($u,'ai');jsonOut(['connections'=>array_map('aiPublic',all('SELECT * FROM ai_connections WHERE user_id=? AND (provider<>"daimon" OR ?="admin") ORDER BY name',[$u['id'],$u['role']]))]);
         case 'ai.connection.save': jsonOut(['connection'=>aiConnectionSave($u,$data)]);
+        case 'ai.embedding.create': jsonOut(['connection'=>aiEmbeddingCreate($u,$data)]);
+        case 'admin.ai.embedding.create': jsonOut(['connection'=>aiEmbeddingCreate($u,$data,true)]);
         case 'ai.connection.delete': aiConnectionDelete($u,$data);jsonOut(['ok'=>true]);
         case 'admin.ai.connection.save': jsonOut(['connection'=>aiConnectionSave($u,$data,true)]);
         case 'admin.ai.connection.delete': aiConnectionDelete($u,$data,true);jsonOut(['ok'=>true]);

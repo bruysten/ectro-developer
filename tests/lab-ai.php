@@ -38,3 +38,22 @@ query('INSERT INTO ai_grants VALUES(?,?,?)',[$pid,$chat['id'],1]);expectAi(403,f
 query('UPDATE ai_connections SET active=0 WHERE id=?',[$chat['id']]);expectAi(403,fn()=>aiRun($u,['project'=>$pid,'connection'=>$chat['id'],'request'=>id(),'operation'=>'chat','prompt'=>'test'],$transport));
 query('UPDATE lab_project_config SET config=? WHERE project_id=?',[json_encode(['tools'=>['graph']]),$pid]);expectAi(403,fn()=>aiRun($u,['project'=>$pid,'connection'=>$connections[2]['id'],'request'=>id(),'operation'=>'chat','prompt'=>'test'],$transport));
 echo "$checks provider-contract, replay, queue, budget and revocation checks passed (synthetic transport, no external requests).\n";
+
+// Atomic project dialog: shared providers stay restricted to their owner/administrators.
+$settings=labProjectSettings($u,$pid);$preserved=$settings['config'];$preserved['governanceContributions']=['schemaVersion'=>1,'items'=>[]];query('UPDATE lab_project_config SET config=? WHERE project_id=?',[labJson($preserved),$pid]);
+$teacherId=id();query('INSERT INTO users(id,name,email,password,role,created_at) VALUES(?,?,?,?,?,?)',[$teacherId,'Teacher','teacher-settings@example.test','not-a-password','teacher',now()]);$teacher=one('SELECT * FROM users WHERE id=?',[$teacherId]);$owned=aiConnectionSave($teacher,['name'=>'Teacher embedding','provider'=>'openai','model'=>'synthetic-embedding','capability'=>'embedding','key'=>'synthetic-not-a-real-key','shared'=>true]);
+$teacherSettings=labProjectSettings($teacher,$pid);checkAi(array_column($teacherSettings['connections'],'id')===[$owned['id']],'Teacher can manage own shared connection only');
+$settingsInput=['project'=>$pid,'revision'=>$teacherSettings['revision'],'config'=>['tools'=>LAB_KINDS,'entry'=>'rag'],'grants'=>[['connection'=>$owned['id'],'max_calls'=>50]]];$saved=labProjectSettingsSave($teacher,$settingsInput);checkAi($saved['config']['governanceContributions']===$preserved['governanceContributions'],'Project metadata survives AI grant editing');
+expectAi(409,fn()=>labProjectSettingsSave($teacher,$settingsInput));expectAi(403,fn()=>labProjectSettingsSave($teacher,[...$settingsInput,'revision'=>$saved['revision'],'grants'=>[['connection'=>$connections[3]['id'],'max_calls'=>50]]]));
+checkAi(labProjectSettings($teacher,$pid)['revision']===$saved['revision'],'Forbidden grant leaves all settings unchanged');
+expectAi(403,fn()=>labProjectSettings($learner,$learnerProject));
+echo "Atomic project settings: owner/admin ACL, stale revisions, rollback and preserved metadata verified.\n";
+
+$source=aiConnectionSave($u,['name'=>'Provisioning source','provider'=>'openai','model'=>'synthetic-chat','capability'=>'chat','key'=>'synthetic-provisioning-key','shared'=>true]);$copyInput=['source'=>$source['id'],'version'=>$source['version'],'model'=>'text-embedding-3-small'];$copy=aiEmbeddingCreate($u,$copyInput,true);
+checkAi($copy['capability']==='embedding'&&$copy['model']==='text-embedding-3-small'&&!isset($copy['secret']),'Embedding shortcut returns metadata, never the reused key');
+checkAi(one('SELECT secret FROM ai_connections WHERE id=?',[$copy['id']])['secret']===one('SELECT secret FROM ai_connections WHERE id=?',[$source['id']])['secret'],'Encrypted credential reused on server without browser round trip');
+checkAi(aiEmbeddingCreate($u,$copyInput,true)['id']===$copy['id'],'Repeated submission reuses the same embedding connection');
+checkAi(!one('SELECT connection_id FROM ai_grants WHERE connection_id=?',[$copy['id']])&&!one('SELECT connection_id FROM ai_group_grants WHERE connection_id=?',[$copy['id']]),'Creating embedding connection never copies project or group grants');
+expectAi(404,fn()=>aiEmbeddingCreate($learner,$copyInput));expectAi(409,fn()=>aiEmbeddingCreate($u,[...$copyInput,'version'=>0],true));expectAi(422,fn()=>aiEmbeddingCreate($u,[...$copyInput,'model'=>'arbitrary-chat-model'],true));expectAi(422,fn()=>aiEmbeddingCreate($u,['source'=>$connections[2]['id'],'version'=>1],true));
+checkAi(one('SELECT capability FROM ai_connections WHERE id=?',[$source['id']])['capability']==='chat','Original chat connection remains unchanged');
+echo "Embedding provisioning: encrypted reuse, ACL, model allowlist, revision, idempotence and no automatic grants verified.\n";

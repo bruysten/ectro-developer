@@ -14,6 +14,18 @@ function aiConnectionSave(array $u,array $data,bool $admin=false): array {
     return transaction(function()use($u,$data,$cid,$old,$shared,$provider,$base,$cap,$key){$current=$cid?one('SELECT * FROM ai_connections WHERE id=?',[$cid]):null;if($cid&&!$current)fail(404,'Verbindung nicht gefunden.');if($old&&(($data['version']??null)!==(int)$current['version']||(int)$old['version']!==(int)$current['version']))fail(409,'Die Verbindung wurde inzwischen geändert.');if(!$old&&(int)query('SELECT COUNT(*) FROM ai_connections WHERE user_id=?',[$u['id']])->fetchColumn()>=20)fail(413,'Höchstens 20 Verbindungen pro Konto.');$id=$cid?:id();$secret=$key!==''?encryptSecret($key):$old['secret'];
         if($old){query('UPDATE ai_connections SET name=?,provider=?,base_url=?,model=?,capability=?,secret=?,shared=?,active=?,version=version+1 WHERE id=?',[labName($data['name']??null),$provider,$base,labName($data['model']??null,120),$cap,$secret,(int)$shared,(int)($data['active']??true),$id]);if(!$shared){query('DELETE FROM ai_grants WHERE connection_id=?',[$id]);query('DELETE FROM ai_group_grants WHERE connection_id=?',[$id]);}}else query('INSERT INTO ai_connections(id,user_id,name,provider,base_url,model,capability,secret,shared,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',[$id,$u['id'],labName($data['name']??null),$provider,$base,labName($data['model']??null,120),$cap,$secret,(int)$shared,now()]);audit($u['id'],'ai.connection.save');return aiPublic(one('SELECT * FROM ai_connections WHERE id=?',[$id]));});
 }
+// Reuse an encrypted OpenAI credential server-side, never returning it to the browser.
+function aiEmbeddingCreate(array $u,array $data,bool $admin=false):array {
+ if($admin)aiAdmin($u);else needFeature($u,'ai');$source=textField($data,'source',32);$version=$data['version']??null;$model=$data['model']??'text-embedding-3-small';if(!in_array($model,['text-embedding-3-small','text-embedding-3-large'],true))fail(422,'Ein unterstütztes OpenAI-Embedding-Modell auswählen.');
+ return transaction(function()use($u,$source,$version,$model,$admin){
+  $c=one('SELECT c.* FROM ai_connections c JOIN users owner ON owner.id=c.user_id WHERE c.id=? AND owner.active=1',[$source]);
+  if(!$c||($c['user_id']!==$u['id']&&!($admin&&$c['shared'])))fail(404,'Verbindung nicht gefunden.');
+  if($c['provider']!=='openai'||$c['capability']!=='chat'||!$c['active'])fail(422,'Ein aktiver OpenAI-Chat-Zugang wird benötigt.');if($version!==(int)$c['version'])fail(409,'Die Ausgangsverbindung wurde geändert. Bitte neu öffnen.');
+  $existing=one('SELECT * FROM ai_connections WHERE user_id=? AND provider="openai" AND capability="embedding" AND model=? AND secret=? AND shared=? AND active=1',[$c['user_id'],$model,$c['secret'],$c['shared']]);if($existing)return aiPublic($existing);
+  if((int)query('SELECT COUNT(*) FROM ai_connections WHERE user_id=?',[$c['user_id']])->fetchColumn()>=20)fail(413,'Höchstens 20 Verbindungen pro Konto.');
+  $cid=id();query('INSERT INTO ai_connections(id,user_id,name,provider,base_url,model,capability,secret,shared,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',[$cid,$c['user_id'],'OpenAI · Embeddings','openai',aiBase('openai',''),$model,'embedding',$c['secret'],(int)$c['shared'],now()]);audit($u['id'],'ai.embedding.create',['source'=>$source,'connection'=>$cid]);return aiPublic(one('SELECT * FROM ai_connections WHERE id=?',[$cid]));
+ });
+}
 function aiAvailable(array $u,string $pid): array {
     labAccess($u,$pid);needFeature($u,'ai');$out=[];
     foreach(all('SELECT c.* FROM ai_connections c JOIN users owner ON owner.id=c.user_id WHERE c.active=1 AND owner.active=1 AND (c.provider<>"daimon" OR owner.role="admin") AND (c.user_id=? OR (owner.role IN ("teacher","admin") AND c.shared=1)) ORDER BY c.name',[$u['id']]) as $c){
