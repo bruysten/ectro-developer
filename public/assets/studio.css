@@ -861,3 +861,30 @@ body.landscape-focus-open{overflow:hidden}
 .journey-dependency-resources [data-governance-quality]{border-left:4px solid #aaa}.journey-dependency-resources [data-governance-quality=bad]{border-left-color:#a34a2d}.journey-dependency-resources [data-governance-quality=good]{border-left-color:#237653}.journey-dependency-resources [data-governance-quality=warning],.journey-dependency-resources [data-governance-quality=stale]{border-left-color:#9b6c18}.journey-dependency-resources [data-governance-quality=unknown]{border-left-style:dashed}.studio-journey-editor>.section-head .toolbar{flex-wrap:wrap}.journey-dependency-heading>.toolbar{flex-wrap:wrap}
 
 @media(max-width:480px){.gov-context-open{width:44px;padding:8px;border:1px solid var(--border-strong);border-radius:50%}.gov-context-open>span:not(.icon){position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}}
+/* RACI cards share the Canvas pointer interaction; only the grip captures touch. */
+.gov-person-card{display:flex;align-items:flex-start;gap:2px;min-width:0;border:1px solid var(--border-strong);background:var(--surface-card);color:var(--text-strong);transition:opacity .15s ease,border-color .15s ease,box-shadow .15s ease}
+.gov-stakeholders>.gov-person-card{flex:0 1 auto;max-width:280px}
+.gov-workspace .gov-person-card>.gov-person-main{display:block;flex:1;min-width:0;border:0;background:transparent;color:inherit;text-align:left;padding:12px;overflow-wrap:anywhere;cursor:grab}
+.gov-person-main strong,.gov-person-main small{display:block}
+.gov-person-main strong{font-size:13px;line-height:1.45}
+.gov-person-main small{margin-top:5px;font-size:11px;line-height:1.5;color:var(--text-muted)}
+.gov-workspace .gov-person-card>.gov-person-grip{display:flex;align-items:center;justify-content:center;flex:none;width:32px;min-height:40px;padding:4px;border:0;background:transparent;color:var(--text-muted);touch-action:none;cursor:grab}
+.gov-person-grip>.icon{font-size:18px}
+.gov-person-card:focus-within,.gov-person-card:hover{border-color:var(--accent)}
+.gov-person-grip:hover{color:var(--accent)}
+.gov-role-hint{font-size:12px;line-height:1.5;color:var(--text-muted);margin:0 0 16px}
+.gov-raci-board .gov-person-card{margin:8px;background:var(--surface-accent-soft)}
+.gov-raci-board>section{transition:background .15s ease,box-shadow .15s ease;min-height:150px}
+.gov-raci-board>section.is-drop-target{background:var(--surface-accent-soft);box-shadow:inset 0 0 0 2px var(--accent)}
+.gov-workspace.is-card-dragging .gov-raci-board>section{border-style:dashed}
+.gov-workspace .gov-person-card.is-drag-source{opacity:.35}
+.gov-person-card.canvas-drag-ghost{position:fixed;top:0;left:0;z-index:10000;pointer-events:none;user-select:none;box-shadow:0 12px 32px #0003;border-color:var(--accent);font-family:var(--font-body);opacity:.95}
+.gov-person-card.canvas-drag-ghost .gov-person-main{border:0;background:transparent;text-align:left;padding:12px;min-width:0;flex:1;color:inherit;overflow-wrap:anywhere}
+.gov-person-card.canvas-drag-ghost .gov-person-grip{display:none}
+.gov-placement-context{padding:14px 16px;margin-bottom:18px;background:var(--surface-accent-soft);border-left:2px solid var(--accent);overflow-wrap:anywhere}
+.gov-placement-context :is(strong,span,b,small){display:block;font-size:13px;line-height:1.5}
+.gov-placement-context span,.gov-placement-context small{color:var(--text-muted);margin-top:4px}
+.gov-placement-context b{color:var(--accent);margin-top:8px}
+@media(pointer:coarse){.gov-workspace .gov-person-card>.gov-person-grip{width:44px;min-height:44px}}
+@media(max-width:480px){.gov-raci-board{grid-template-columns:minmax(0,1fr)}.gov-stakeholders>.gov-person-card{flex:1 1 100%;max-width:none}}
+@media(prefers-reduced-motion:reduce){.gov-person-card,.gov-raci-board>section{transition:none}}
