@@ -1,7 +1,7 @@
 import {journeyReferencesHtml,mountGovernanceBridge,mountLandscapeJourneys} from '../src/governance-bridge.js';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {GOVERNANCE,emptyGovernance,governanceExample,qualityResult,flowQuality,ruleResult,aiGovernanceReport,sampleQuality,lifecycleTrace,deletionSimulation,ageDays} from '../src/governance-models.js';
+import {GOVERNANCE,emptyGovernance,governanceExample,qualityResult,flowQuality,ruleResult,aiGovernanceReport,sampleQuality,lifecycleTrace,deletionSimulation,ageDays,saveGovernanceAssignment} from '../src/governance-models.js';
 import {emptyProjectPlan,stateDifference,projectSchedule,projectStakeholders} from '../src/projectplan-models.js';
 import {landscapeJourneyReferences} from '../src/landscape-journey-links.js';
 import {industryPair} from '../src/journey-industry-examples.js';
@@ -28,6 +28,22 @@ const rb={...j,infrastructure:{landscape:'land',bindings:[{id:'b',stage:j.stages
 const other=l.flows.find(f=>f.id!==l.flows[0].id);assert.equal(landscapeJourneyReferences([{id:'j',name:'J',content:rb}],{...l,id:'land'},{type:'flow',id:other.id}).length,0,'Adjacent systems never imply a directly mapped flow');
 const html=journeyReferencesHtml([...refs,...refs.map(r=>({...r,element:'Handlung',text:'<script>alert(1)</script>'}))],'p');assert.equal((html.match(/<a /g)||[]).length,1,'Related elements in a phase are grouped');assert(!html.includes('<script>'));assert(html.includes('&lt;script&gt;'));
 let unauthorizedFetches=0;const off={flags:{governance_lab:false,journey_lab:false},get(){unauthorizedFetches++;}},host={hidden:false};mountGovernanceBridge(host,off)();assert(host.hidden);host.hidden=false;mountLandscapeJourneys(host,off)();assert(host.hidden);assert.equal(unauthorizedFetches,0,'Disabled integration performs no data request');
+// A board move must retain the exact responsibility, plan and evidence; duplicates
+// must fail without deleting or silently merging either assignment.
+const board=emptyGovernance();board.stakeholders=[{id:'sam',name:'Sam'},{id:'lee',name:'Lee'}];
+const assignment=saveGovernanceAssignment(board,{id:'move',stakeholder:'sam',role:'data_owner',scope:{type:'system',id:'crm'},raci:'A',state:'planned',note:'Escalate to sponsor'});
+const otherScope=saveGovernanceAssignment(board,{...assignment,id:'other',scope:{type:'system',id:'erp'}});
+saveGovernanceAssignment(board,{...assignment,raci:'R'},assignment.id);
+assert.equal(board.assignments.length,2);assert.equal(assignment.raci,'R');assert.equal(otherScope.raci,'A');assert.equal(assignment.state,'planned');assert.equal(assignment.note,'Escalate to sponsor');assert.equal(assignment.role,'data_owner');
+const beforeDuplicate=structuredClone(board.assignments);
+assert.throws(()=>saveGovernanceAssignment(board,{...assignment,id:'duplicate'}),/bereits/);assert.deepEqual(board.assignments,beforeDuplicate);
+const existing=saveGovernanceAssignment(board,{...assignment,id:'consulted',raci:'C'});
+assert.throws(()=>saveGovernanceAssignment(board,{...assignment,raci:'C'},assignment.id),/bereits/);assert.equal(assignment.raci,'R');assert.equal(existing.raci,'C');
+assert.throws(()=>saveGovernanceAssignment(board,{...assignment,role:''}),/Rolle wählen/);
+assert.throws(()=>saveGovernanceAssignment(board,{...assignment,stakeholder:'missing'}),/Stakeholder/);
+assert.throws(()=>saveGovernanceAssignment(board,{...assignment,raci:'invalid'},assignment.id),/RACI/);
+assert.throws(()=>saveGovernanceAssignment(board,{...assignment},'deleted'),/nicht mehr vorhanden/);
+assert.deepEqual(board.assignments.map(a=>a.id),['move','other','consulted']);
 const run=spawnSync('php',['tests/governance-project.php'],{input:JSON.stringify({landscape:l,journey:j,governance:c,rollout:emptyProjectPlan()}),encoding:'utf8'});assert.equal(run.status,0,run.stdout+run.stderr);process.stdout.write(run.stdout);console.log('Governance/Project models: quality provenance and freshness, explicit lifecycle routes, holds, honest coverage, immutable comparisons, DAG scheduling and reverse Journey associations verified.');
 
 const migration=spawnSync('php',['tests/governance-migration.php'],{encoding:'utf8'});assert.equal(migration.status,0,migration.stdout+migration.stderr);process.stdout.write(migration.stdout);

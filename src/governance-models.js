@@ -29,6 +29,20 @@ export function flowQuality(c,flow,at=today()){
  if(status==='good'&&new Set(measurements.map(q=>q.dimension)).size<6)status='unknown';
  return {status,results,measured:new Set(measurements.map(q=>q.dimension)).size,total:6,label:GOVERNANCE_STATUSES[status]};
 }
+// Shared by the form and direct board moves: validate before changing any assignment.
+export function saveGovernanceAssignment(c,next,existingId=''){
+ const current=existingId?c.assignments.find(a=>a.id===existingId):null;
+ if(existingId&&!current)throw Error('Diese Zuordnung ist nicht mehr vorhanden.');
+ if(!c.stakeholders.some(p=>p.id===next.stakeholder))throw Error('Stakeholder wählen.');
+ if(!c.roles.some(r=>r.id===next.role))throw Error('Bitte eine Rolle wählen.');
+ if(!Object.hasOwn(RACI,next.raci))throw Error('Einen gültigen RACI-Beitrag wählen.');
+ if(!['active','planned'].includes(next.state))throw Error('Einen gültigen Planungsstand wählen.');
+ if(!next.scope||!['organization','system','store','flow'].includes(next.scope.type)||typeof next.scope.id!=='string')throw Error('Verantwortungsbereich wählen.');
+ if(c.assignments.some(a=>a!==current&&a.stakeholder===next.stakeholder&&a.role===next.role&&govScopeKey(a.scope)===govScopeKey(next.scope)&&a.raci===next.raci))throw Error('Diese Person ist mit dieser Rolle hier bereits zugeordnet.');
+ const assignment={...next,id:current?.id||next.id||govId(),scope:{...next.scope}};
+ if(current)Object.assign(current,assignment);else c.assignments.push(assignment);
+ return assignment;
+}
 export function governanceAssignments(c,scope){return c.assignments.filter(a=>a.scope.type===scope.type&&a.scope.id===scope.id);}
 export function governanceFindings(c,l,at=today()){
  const findings=[];for(const r of govResources(l).filter(r=>r.type==='store')){const owners=governanceAssignments(c,r).filter(a=>a.raci==='A'&&a.state==='active');if(owners.length!==1)findings.push({type:'roles',scope:r,title:r.name,detail:owners.length?'Mehrere verantwortliche Stellen · Entscheidung klären':'Verantwortung noch nicht zugeordnet'});}
